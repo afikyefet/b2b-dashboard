@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from "react";
 import type { FilterConfig, FilterOptions } from "../types/dashboard.types";
 import "../styles/DashboardFilter.scss";
 
@@ -8,11 +9,23 @@ interface DashboardFilterProps {
     filterOptions: FilterOptions;
 }
 
-function DashboardFilter({ filters, onFilterChange, onReset, filterOptions }: DashboardFilterProps) {
-    const handleSelectChange = (field: keyof FilterConfig, value: string) => {
+function DashboardFilter({ filters, onFilterChange, filterOptions }: DashboardFilterProps) {
+    const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+    const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
+    const handleCheckboxChange = (field: keyof FilterConfig, value: string, checked: boolean) => {
+        const currentValues = (filters[field] as string[]) || [];
+        let newValues: string[];
+
+        if (checked) {
+            newValues = [...currentValues, value];
+        } else {
+            newValues = currentValues.filter(v => v !== value);
+        }
+
         onFilterChange({
             ...filters,
-            [field]: value === '' ? undefined : value,
+            [field]: newValues.length > 0 ? newValues : undefined,
         });
     };
 
@@ -23,17 +36,37 @@ function DashboardFilter({ filters, onFilterChange, onReset, filterOptions }: Da
         });
     };
 
-    const hasActiveFilters = Object.values(filters).some(value => value && value.trim() !== '');
+    const toggleDropdown = (field: string) => {
+        setOpenDropdowns(prev => ({
+            ...prev,
+            [field]: !prev[field]
+        }));
+    };
+
+    // Close dropdowns when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            Object.keys(dropdownRefs.current).forEach((field) => {
+                const ref = dropdownRefs.current[field];
+                if (ref && !ref.contains(event.target as Node)) {
+                    setOpenDropdowns(prev => ({ ...prev, [field]: false }));
+                }
+            });
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    const getSelectedCount = (field: keyof FilterConfig): number => {
+        const values = filters[field] as string[] | undefined;
+        return values ? values.length : 0;
+    };
 
     return (
         <div className="dashboard-filter">
             <div className="filter-header">
                 <h3>Filters</h3>
-                {hasActiveFilters && (
-                    <button className="btn-reset" onClick={onReset}>
-                        Reset Filters
-                    </button>
-                )}
             </div>
             
             {/* General Search */}
@@ -50,99 +83,231 @@ function DashboardFilter({ filters, onFilterChange, onReset, filterOptions }: Da
 
             <div className="filter-inputs">
                 <div className="filter-group">
-                    <label htmlFor="dealerName">Dealer Name</label>
-                    <select
-                        id="dealerName"
-                        value={filters.dealerName || ''}
-                        onChange={(e) => handleSelectChange('dealerName', e.target.value)}
-                    >
-                        <option value="">All Dealers</option>
-                        {filterOptions.dealerNames.map((option) => (
-                            <option key={option} value={option}>
-                                {option}
-                            </option>
-                        ))}
-                    </select>
+                    <label htmlFor="dealerName">
+                        Dealer Name
+                        {getSelectedCount('dealerName') > 0 && (
+                            <span className="selection-count">({getSelectedCount('dealerName')})</span>
+                        )}
+                    </label>
+                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.dealerName = el; }}>
+                        <button
+                            className="multi-select-button"
+                            onClick={() => toggleDropdown('dealerName')}
+                            type="button"
+                        >
+                            {getSelectedCount('dealerName') > 0
+                                ? `${getSelectedCount('dealerName')} selected`
+                                : 'Select dealers...'}
+                            <span className="dropdown-arrow">▼</span>
+                        </button>
+                        {openDropdowns.dealerName && (
+                            <div className="multi-select-dropdown">
+                                {filterOptions.dealerNames.map((option) => {
+                                    const isChecked = (filters.dealerName || []).includes(option);
+                                    return (
+                                        <label key={option} className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                onChange={(e) => handleCheckboxChange('dealerName', option, e.target.checked)}
+                                            />
+                                            <span>{option}</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="filter-group">
-                    <label htmlFor="productCategory">Product Category</label>
-                    <select
-                        id="productCategory"
-                        value={filters.productCategory || ''}
-                        onChange={(e) => handleSelectChange('productCategory', e.target.value)}
-                    >
-                        <option value="">All Categories</option>
-                        {filterOptions.productCategories.map((option) => (
-                            <option key={option} value={option}>
-                                {option}
-                            </option>
-                        ))}
-                    </select>
+                    <label htmlFor="productCategory">
+                        Product Category
+                        {getSelectedCount('productCategory') > 0 && (
+                            <span className="selection-count">({getSelectedCount('productCategory')})</span>
+                        )}
+                    </label>
+                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.productCategory = el; }}>
+                        <button
+                            className="multi-select-button"
+                            onClick={() => toggleDropdown('productCategory')}
+                            type="button"
+                        >
+                            {getSelectedCount('productCategory') > 0
+                                ? `${getSelectedCount('productCategory')} selected`
+                                : 'Select categories...'}
+                            <span className="dropdown-arrow">▼</span>
+                        </button>
+                        {openDropdowns.productCategory && (
+                            <div className="multi-select-dropdown">
+                                {filterOptions.productCategories.map((option) => {
+                                    const isChecked = (filters.productCategory || []).includes(option);
+                                    return (
+                                        <label key={option} className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                onChange={(e) => handleCheckboxChange('productCategory', option, e.target.checked)}
+                                            />
+                                            <span>{option}</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="filter-group">
-                    <label htmlFor="productName">Product Name</label>
-                    <select
-                        id="productName"
-                        value={filters.productName || ''}
-                        onChange={(e) => handleSelectChange('productName', e.target.value)}
-                    >
-                        <option value="">All Products</option>
-                        {filterOptions.productNames.map((option) => (
-                            <option key={option} value={option}>
-                                {option}
-                            </option>
-                        ))}
-                    </select>
+                    <label htmlFor="productName">
+                        Product Name
+                        {getSelectedCount('productName') > 0 && (
+                            <span className="selection-count">({getSelectedCount('productName')})</span>
+                        )}
+                    </label>
+                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.productName = el; }}>
+                        <button
+                            className="multi-select-button"
+                            onClick={() => toggleDropdown('productName')}
+                            type="button"
+                        >
+                            {getSelectedCount('productName') > 0
+                                ? `${getSelectedCount('productName')} selected`
+                                : 'Select products...'}
+                            <span className="dropdown-arrow">▼</span>
+                        </button>
+                        {openDropdowns.productName && (
+                            <div className="multi-select-dropdown">
+                                {filterOptions.productNames.map((option) => {
+                                    const isChecked = (filters.productName || []).includes(option);
+                                    return (
+                                        <label key={option} className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                onChange={(e) => handleCheckboxChange('productName', option, e.target.checked)}
+                                            />
+                                            <span>{option}</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="filter-group">
-                    <label htmlFor="variantSku">Variant SKU</label>
-                    <select
-                        id="variantSku"
-                        value={filters.variantSku || ''}
-                        onChange={(e) => handleSelectChange('variantSku', e.target.value)}
-                    >
-                        <option value="">All SKUs</option>
-                        {filterOptions.variantSkus.map((option) => (
-                            <option key={option} value={option}>
-                                {option}
-                            </option>
-                        ))}
-                    </select>
+                    <label htmlFor="variantSku">
+                        Variant SKU
+                        {getSelectedCount('variantSku') > 0 && (
+                            <span className="selection-count">({getSelectedCount('variantSku')})</span>
+                        )}
+                    </label>
+                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.variantSku = el; }}>
+                        <button
+                            className="multi-select-button"
+                            onClick={() => toggleDropdown('variantSku')}
+                            type="button"
+                        >
+                            {getSelectedCount('variantSku') > 0
+                                ? `${getSelectedCount('variantSku')} selected`
+                                : 'Select SKUs...'}
+                            <span className="dropdown-arrow">▼</span>
+                        </button>
+                        {openDropdowns.variantSku && (
+                            <div className="multi-select-dropdown">
+                                {filterOptions.variantSkus.map((option) => {
+                                    const isChecked = (filters.variantSku || []).includes(option);
+                                    return (
+                                        <label key={option} className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                onChange={(e) => handleCheckboxChange('variantSku', option, e.target.checked)}
+                                            />
+                                            <span>{option}</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="filter-group">
-                    <label htmlFor="variantSize">Variant Size</label>
-                    <select
-                        id="variantSize"
-                        value={filters.variantSize || ''}
-                        onChange={(e) => handleSelectChange('variantSize', e.target.value)}
-                    >
-                        <option value="">All Sizes</option>
-                        {filterOptions.variantSizes.map((option) => (
-                            <option key={option} value={option}>
-                                {option}
-                            </option>
-                        ))}
-                    </select>
+                    <label htmlFor="variantSize">
+                        Variant Size
+                        {getSelectedCount('variantSize') > 0 && (
+                            <span className="selection-count">({getSelectedCount('variantSize')})</span>
+                        )}
+                    </label>
+                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.variantSize = el; }}>
+                        <button
+                            className="multi-select-button"
+                            onClick={() => toggleDropdown('variantSize')}
+                            type="button"
+                        >
+                            {getSelectedCount('variantSize') > 0
+                                ? `${getSelectedCount('variantSize')} selected`
+                                : 'Select sizes...'}
+                            <span className="dropdown-arrow">▼</span>
+                        </button>
+                        {openDropdowns.variantSize && (
+                            <div className="multi-select-dropdown">
+                                {filterOptions.variantSizes.map((option) => {
+                                    const isChecked = (filters.variantSize || []).includes(option);
+                                    return (
+                                        <label key={option} className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                onChange={(e) => handleCheckboxChange('variantSize', option, e.target.checked)}
+                                            />
+                                            <span>{option}</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="filter-group">
-                    <label htmlFor="variantColor">Variant Color</label>
-                    <select
-                        id="variantColor"
-                        value={filters.variantColor || ''}
-                        onChange={(e) => handleSelectChange('variantColor', e.target.value)}
-                    >
-                        <option value="">All Colors</option>
-                        {filterOptions.variantColors.map((option) => (
-                            <option key={option} value={option}>
-                                {option}
-                            </option>
-                        ))}
-                    </select>
+                    <label htmlFor="variantColor">
+                        Variant Color
+                        {getSelectedCount('variantColor') > 0 && (
+                            <span className="selection-count">({getSelectedCount('variantColor')})</span>
+                        )}
+                    </label>
+                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.variantColor = el; }}>
+                        <button
+                            className="multi-select-button"
+                            onClick={() => toggleDropdown('variantColor')}
+                            type="button"
+                        >
+                            {getSelectedCount('variantColor') > 0
+                                ? `${getSelectedCount('variantColor')} selected`
+                                : 'Select colors...'}
+                            <span className="dropdown-arrow">▼</span>
+                        </button>
+                        {openDropdowns.variantColor && (
+                            <div className="multi-select-dropdown">
+                                {filterOptions.variantColors.map((option) => {
+                                    const isChecked = (filters.variantColor || []).includes(option);
+                                    return (
+                                        <label key={option} className="checkbox-label">
+                                            <input
+                                                type="checkbox"
+                                                checked={isChecked}
+                                                onChange={(e) => handleCheckboxChange('variantColor', option, e.target.checked)}
+                                            />
+                                            <span>{option}</span>
+                                        </label>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

@@ -4,6 +4,7 @@ import DashboardFilter from "./DashboardFilter";
 import type { DashboardDataResponse, DashboardDataRow, DashboardHeader, FilterConfig, SortConfig } from "../types/dashboard.types";
 import { useState, useEffect, useMemo } from "react";
 import { getDashboardData, getDashboardHeaders, applyFiltersAndSort, getFilterOptions } from "../services/dashboard.service";
+import { getRowId } from "../utils/rowId";
 import "../styles/DashboardTable.scss";
 
 function DashboardTable() {
@@ -61,7 +62,15 @@ function DashboardTable() {
         handleResetSort();
     };
 
-    const hasActiveFilters = Object.values(filters).some(value => value && value.trim() !== '');
+    const hasActiveFilters = () => {
+        if (filters.generalSearch && filters.generalSearch.trim()) return true;
+        return Object.values(filters).some(value => {
+            if (Array.isArray(value)) {
+                return value.length > 0;
+            }
+            return false;
+        });
+    };
     const hasActiveSort = sortConfig.field && sortConfig.direction;
 
     if (!headers || headers.length === 0) {
@@ -77,7 +86,7 @@ function DashboardTable() {
                 filterOptions={filterOptions}
             />
             <div className="dashboard-controls">
-                {(hasActiveFilters || hasActiveSort) && (
+                {(hasActiveFilters() || hasActiveSort) && (
                     <button className="btn-reset-all" onClick={handleResetAll}>
                         Reset All
                     </button>
@@ -88,11 +97,15 @@ function DashboardTable() {
                     headers={headers}
                     sortConfig={sortConfig}
                     onSort={handleSort}
+                    filteredData={filteredData}
                 />
                 <div className="dashboard-rows">
-                    {filteredData.map((row: DashboardDataRow, index: number) => (
-                        <DashboardRow key={index} row={row} headers={headers} />
-                    ))}
+                    {filteredData.map((row: DashboardDataRow) => {
+                        const rowId = getRowId(row);
+                        return (
+                            <DashboardRow key={rowId} row={row} headers={headers} />
+                        );
+                    })}
                 </div>
             </div>
         </div>

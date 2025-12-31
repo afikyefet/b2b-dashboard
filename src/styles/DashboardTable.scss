@@ -25,9 +25,10 @@
   padding: $spacing-sm;
   box-sizing: border-box;
   
-  // Define the master grid with 11 columns
+  // Define the master grid with checkbox column + 11 data columns
   display: grid;
   grid-template-columns: 
+    40px                                              /* Checkbox column */
     minmax(100px, 0.9fr)   /* Dealer Name */
     minmax(100px, 0.9fr)   /* Product Category */
     minmax(120px, 1.2fr)    /* Product Name */
@@ -82,6 +83,20 @@
     overflow: hidden;
     text-overflow: ellipsis;
     
+    &.checkbox-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: $spacing-xs;
+      
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: $primary-color;
+      }
+    }
+    
     &.sortable-header {
       cursor: pointer;
       user-select: none;
@@ -123,19 +138,33 @@
     white-space: nowrap;
     display: flex;
     align-items: center;
+    
+    &.checkbox-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: $spacing-xs;
+      
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: $primary-color;
+      }
+    }
   }
 }
 
 // Responsive adjustments
 @media (max-width: 1600px) {
   .dashboard-table {
-    grid-template-columns: repeat(11, minmax(80px, 1fr));
+    grid-template-columns: 40px repeat(11, minmax(80px, 1fr));
   }
 }
 
 @media (max-width: 1200px) {
   .dashboard-table {
     overflow-x: auto;
-    min-width: 1000px;
+    min-width: 1040px; // 40px checkbox + 1000px for data columns
   }
 }
