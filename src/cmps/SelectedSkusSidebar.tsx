@@ -116,7 +116,6 @@ function SelectedSkusSidebar({ filteredData }: SelectedSkusSidebarProps) {
                     <span className="minimized-count">{selectedSkus.length}</span>
                 )}
             </button>
-            </div>
         </>
     );
 }
