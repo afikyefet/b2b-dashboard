@@ -129,6 +129,7 @@
   font-size: $font-size-xs;
   line-height: 1.4;
   padding: $spacing-sm $spacing-md;
+  border-left: 3px solid transparent; // Reserve space for selected border to prevent layout shift
   
   &:hover {
     background-color: $bg-secondary;
@@ -141,7 +142,7 @@
 
 .dashboard-row.selected ul {
   background-color: rgba($primary-color, 0.08);
-  border-left: 3px solid $primary-color;
+  border-left-color: $primary-color; // Change color only, size already reserved
   
   &:hover {
     background-color: rgba($primary-color, 0.12);
