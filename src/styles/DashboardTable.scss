@@ -7,6 +7,12 @@
   box-sizing: border-box;
 }
 
+.dashboard-main {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .dashboard-controls {
   margin-bottom: $spacing-md;
   display: flex;
@@ -25,7 +31,7 @@
   padding: $spacing-sm;
   box-sizing: border-box;
   
-  // Define the master grid with checkbox column + 11 data columns
+  // Define the master grid with checkbox column + 12 data columns (added product_sell_type)
   display: grid;
   grid-template-columns: 
     40px                                              /* Checkbox column */
@@ -39,7 +45,8 @@
     minmax(110px, 1fr)      /* How Much to Sell Now */
     minmax(80px, 0.8fr)     /* When To Sell */
     minmax(140px, 1.4fr)    /* How Much to Sell on Schedule */
-    minmax(70px, 0.6fr);    /* Sell Rate */
+    minmax(70px, 0.6fr)     /* Sell Rate */
+    minmax(100px, 0.9fr);   /* Product Sell Type */
   gap: 0;
   border: 1px solid $border-color;
   border-radius: $border-radius;
@@ -158,7 +165,7 @@
 // Responsive adjustments
 @media (max-width: 1600px) {
   .dashboard-table {
-    grid-template-columns: 40px repeat(11, minmax(80px, 1fr));
+    grid-template-columns: 40px repeat(12, minmax(80px, 1fr));
   }
 }
 

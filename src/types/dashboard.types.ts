@@ -17,7 +17,7 @@ export interface SortConfig {
 // Filtering Types
 export interface FilterConfig {
   generalSearch?: string;
-  dealerName?: string[];
+  dealerName?: string;
   productCategory?: string[];
   productName?: string[];
   variantSku?: string[];
@@ -57,7 +57,7 @@ export interface DashboardDataRow {
   product_name: string | null;
   
   // Variant Details
-  variant_sku: string | null;
+  variant_sku_real: string | null;
   variant_color: string | null;
   variant_size: string | null;
   

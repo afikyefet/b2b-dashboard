@@ -6,7 +6,7 @@ import type { DashboardDataRow } from '../types/dashboard.types';
  */
 export function getRowId(row: DashboardDataRow): string {
   const customer = String(row.customer_company || '').trim();
-  const sku = String(row.variant_sku || '').trim();
+  const sku = String(row.variant_sku_real || '').trim();
   const product = String(row.product_name || '').trim();
   
   // Create composite key, handle empty values

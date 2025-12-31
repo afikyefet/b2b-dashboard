@@ -1,5 +1,7 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createSelector } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
+import type { DashboardDataRow } from '../../types/dashboard.types';
+import { getRowId } from '../../utils/rowId';
 
 interface SelectionState {
   selectedRowIds: string[];
@@ -44,6 +46,49 @@ export const selectSelectedRowIds = (state: { selection: SelectionState }) => st
 
 export const isRowSelected = (rowId: string) => (state: { selection: SelectionState }) => 
   state.selection.selectedRowIds.includes(rowId);
+
+// Selector factory to get selected SKUs from data
+export const createSelectSelectedSkus = (data: DashboardDataRow[]) => {
+  return createSelector(
+    [selectSelectedRowIds],
+    (selectedRowIds: string[]) => {
+      const skus: string[] = [];
+      const seenSkus = new Set<string>();
+      
+      data.forEach((row) => {
+        const rowId = getRowId(row);
+        if (selectedRowIds.includes(rowId)) {
+          const sku = row.variant_sku_real;
+          if (sku && !seenSkus.has(sku)) {
+            seenSkus.add(sku);
+            skus.push(String(sku));
+          }
+        }
+      });
+      
+      return skus;
+    }
+  );
+};
+
+// Utility function to compute selected SKUs from row IDs and data
+export const getSelectedSkusFromData = (selectedRowIds: string[], data: DashboardDataRow[]): string[] => {
+  const skus: string[] = [];
+  const seenSkus = new Set<string>();
+  
+  data.forEach((row) => {
+    const rowId = getRowId(row);
+    if (selectedRowIds.includes(rowId)) {
+      const sku = row.variant_sku_real;
+      if (sku && !seenSkus.has(sku)) {
+        seenSkus.add(sku);
+        skus.push(String(sku));
+      }
+    }
+  });
+  
+  return skus;
+};
 
 export default selectionSlice.reducer;
 

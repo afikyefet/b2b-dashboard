@@ -20,8 +20,8 @@
       "category": "product"
     },
     {
-      "id": "variant_sku",
-      "field": "variant_sku",
+      "id": "variant_sku_real",
+      "field": "variant_sku_real",
       "displayName": "Variant Sku",
       "category": "variant"
     },
@@ -65,6 +65,12 @@
       "id": "sell_rate",
       "field": "sell_rate",
       "displayName": "Sell Rate",
+      "category": "sales"
+    },
+    {
+      "id": "product_sell_type",
+      "field": "product_sell_type",
+      "displayName": "Product Sell Type",
       "category": "sales"
     }
   ],

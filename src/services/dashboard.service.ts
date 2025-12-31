@@ -37,7 +37,7 @@ function filterDashboardData(data: DashboardDataResponse, filters: FilterConfig)
                 String(row.customer_company || ''),
                 String(row.product_category_name || ''),
                 String(row.product_name || ''),
-                String(row.variant_sku || ''),
+                String(row.variant_sku_real || ''),
                 String(row.variant_color || ''),
                 String(row.variant_size || ''),
             ];
@@ -51,10 +51,10 @@ function filterDashboardData(data: DashboardDataResponse, filters: FilterConfig)
             }
         }
 
-        // Dealer Name filter (multi-select - exact match)
-        if (filters.dealerName && filters.dealerName.length > 0) {
+        // Dealer Name filter (single-select - exact match)
+        if (filters.dealerName) {
             const dealerName = String(row.customer_company || '').trim();
-            if (!filters.dealerName.includes(dealerName)) {
+            if (filters.dealerName !== dealerName) {
                 return false;
             }
         }
@@ -77,7 +77,7 @@ function filterDashboardData(data: DashboardDataResponse, filters: FilterConfig)
 
         // Variant SKU filter (multi-select - exact match)
         if (filters.variantSku && filters.variantSku.length > 0) {
-            const sku = String(row.variant_sku || '').trim();
+            const sku = String(row.variant_sku_real || '').trim();
             if (!filters.variantSku.includes(sku)) {
                 return false;
             }
@@ -183,7 +183,7 @@ function getFilterOptions(data: DashboardDataResponse): {
         if (row.customer_company) dealerNames.add(String(row.customer_company));
         if (row.product_category_name) productCategories.add(String(row.product_category_name));
         if (row.product_name) productNames.add(String(row.product_name));
-        if (row.variant_sku) variantSkus.add(String(row.variant_sku));
+        if (row.variant_sku_real) variantSkus.add(String(row.variant_sku_real));
         if (row.variant_size) variantSizes.add(String(row.variant_size));
         if (row.variant_color) variantColors.add(String(row.variant_color));
     });

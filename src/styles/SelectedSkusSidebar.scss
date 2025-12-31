@@ -1,0 +1,237 @@
+@import './variables';
+@import './mixins';
+
+.drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 998;
+  animation: fadeIn $transition-base;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.selected-skus-drawer {
+  position: fixed;
+  top: 80px;
+  right: 0;
+  height: calc(100vh - 80px);
+  z-index: 999;
+  display: flex;
+  align-items: flex-start;
+  
+  &.open {
+    .drawer-content {
+      transform: translateX(0);
+    }
+    
+    .drawer-toggle-button {
+      left: -50px;
+      border-radius: $border-radius $border-radius-sm $border-radius-sm $border-radius;
+    }
+  }
+  
+  &.closed {
+    .drawer-content {
+      transform: translateX(100%);
+    }
+    
+    .drawer-toggle-button {
+      left: 0;
+      border-radius: $border-radius-sm $border-radius-sm $border-radius $border-radius;
+    }
+  }
+}
+
+.drawer-content {
+  width: 350px;
+  height: 100%;
+  background-color: $bg-primary;
+  border-left: 1px solid $border-color;
+  box-shadow: -2px 0 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  padding: $spacing-lg;
+  box-sizing: border-box;
+  overflow-y: auto;
+  transition: transform $transition-base;
+}
+
+.drawer-toggle-button {
+  position: absolute;
+  top: $spacing-lg;
+  width: 45px;
+  height: 45px;
+  background-color: $primary-color;
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  box-shadow: -2px 2px 8px rgba(0, 0, 0, 0.15);
+  transition: all $transition-base;
+  z-index: 1000;
+  
+  &:hover {
+    background-color: $primary-hover;
+    transform: translateX(-2px);
+  }
+  
+  &.minimized:hover {
+    transform: translateX(2px);
+  }
+  
+  .toggle-icon {
+    font-size: $font-size-lg;
+    line-height: 1;
+  }
+  
+  .minimized-count {
+    font-size: $font-size-xs;
+    font-weight: 600;
+    margin-top: 2px;
+    background-color: white;
+    color: $primary-color;
+    border-radius: 10px;
+    padding: 2px 6px;
+    min-width: 18px;
+    text-align: center;
+  }
+}
+
+.sidebar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-md;
+  border-bottom: 2px solid $border-color;
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+  }
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-lg;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  .sku-count {
+    background-color: $primary-color;
+    color: white;
+    padding: $spacing-xs $spacing-sm;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    min-width: 30px;
+    text-align: center;
+  }
+
+  .toggle-button {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background-color: $bg-secondary;
+    color: $text-primary;
+    border-radius: $border-radius-sm;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: $font-size-lg;
+    transition: all $transition-fast;
+    
+    &:hover {
+      background-color: $bg-tertiary;
+      color: $primary-color;
+    }
+  }
+}
+
+.sidebar-actions {
+  display: flex;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-md;
+}
+
+.copy-button {
+  @include button-base;
+  @include button-variant($primary-color, white);
+  font-size: $font-size-sm;
+  padding: $spacing-xs $spacing-sm;
+  flex: 1;
+}
+
+.sku-list {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+}
+
+.sku-item {
+  padding: $spacing-sm;
+  background-color: $bg-secondary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
+  font-size: $font-size-sm;
+  color: $text-primary;
+  word-break: break-word;
+  transition: background-color $transition-fast;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+}
+
+.empty-state {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: $text-secondary;
+  padding: $spacing-xl;
+
+  p {
+    margin: $spacing-xs 0;
+  }
+
+  .hint {
+    font-size: $font-size-sm;
+    color: $text-secondary;
+    opacity: 0.7;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 1200px) {
+  .drawer-content {
+    width: 300px;
+  }
+  
+  .drawer-toggle-button {
+    left: -45px;
+    width: 40px;
+    height: 40px;
+  }
+}
+

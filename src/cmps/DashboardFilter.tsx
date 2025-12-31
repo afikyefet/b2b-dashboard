@@ -1,39 +1,50 @@
 import { useState, useEffect, useRef } from "react";
-import type { FilterConfig, FilterOptions } from "../types/dashboard.types";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch } from "../store";
+import { 
+    selectFilters,
+    setGeneralSearch,
+    toggleProductCategory,
+    toggleProductName,
+    toggleVariantSku,
+    toggleVariantSize,
+    toggleVariantColor
+} from "../store/slices/filterSlice";
+import type { FilterOptions } from "../types/dashboard.types";
 import "../styles/DashboardFilter.scss";
 
 interface DashboardFilterProps {
-    filters: FilterConfig;
-    onFilterChange: (filters: FilterConfig) => void;
-    onReset: () => void;
     filterOptions: FilterOptions;
 }
 
-function DashboardFilter({ filters, onFilterChange, filterOptions }: DashboardFilterProps) {
+function DashboardFilter({ filterOptions }: DashboardFilterProps) {
+    const dispatch = useDispatch<AppDispatch>();
+    const filters = useSelector(selectFilters);
     const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
     const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-    const handleCheckboxChange = (field: keyof FilterConfig, value: string, checked: boolean) => {
-        const currentValues = (filters[field] as string[]) || [];
-        let newValues: string[];
-
-        if (checked) {
-            newValues = [...currentValues, value];
-        } else {
-            newValues = currentValues.filter(v => v !== value);
+    const handleCheckboxChange = (field: 'productCategory' | 'productName' | 'variantSku' | 'variantSize' | 'variantColor', value: string) => {
+        switch (field) {
+            case 'productCategory':
+                dispatch(toggleProductCategory(value));
+                break;
+            case 'productName':
+                dispatch(toggleProductName(value));
+                break;
+            case 'variantSku':
+                dispatch(toggleVariantSku(value));
+                break;
+            case 'variantSize':
+                dispatch(toggleVariantSize(value));
+                break;
+            case 'variantColor':
+                dispatch(toggleVariantColor(value));
+                break;
         }
-
-        onFilterChange({
-            ...filters,
-            [field]: newValues.length > 0 ? newValues : undefined,
-        });
     };
 
     const handleGeneralSearchChange = (value: string) => {
-        onFilterChange({
-            ...filters,
-            generalSearch: value || undefined,
-        });
+        dispatch(setGeneralSearch(value));
     };
 
     const toggleDropdown = (field: string) => {
@@ -58,7 +69,7 @@ function DashboardFilter({ filters, onFilterChange, filterOptions }: DashboardFi
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const getSelectedCount = (field: keyof FilterConfig): number => {
+    const getSelectedCount = (field: 'productCategory' | 'productName' | 'variantSku' | 'variantSize' | 'variantColor'): number => {
         const values = filters[field] as string[] | undefined;
         return values ? values.length : 0;
     };
@@ -82,44 +93,6 @@ function DashboardFilter({ filters, onFilterChange, filterOptions }: DashboardFi
             </div>
 
             <div className="filter-inputs">
-                <div className="filter-group">
-                    <label htmlFor="dealerName">
-                        Dealer Name
-                        {getSelectedCount('dealerName') > 0 && (
-                            <span className="selection-count">({getSelectedCount('dealerName')})</span>
-                        )}
-                    </label>
-                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.dealerName = el; }}>
-                        <button
-                            className="multi-select-button"
-                            onClick={() => toggleDropdown('dealerName')}
-                            type="button"
-                        >
-                            {getSelectedCount('dealerName') > 0
-                                ? `${getSelectedCount('dealerName')} selected`
-                                : 'Select dealers...'}
-                            <span className="dropdown-arrow">▼</span>
-                        </button>
-                        {openDropdowns.dealerName && (
-                            <div className="multi-select-dropdown">
-                                {filterOptions.dealerNames.map((option) => {
-                                    const isChecked = (filters.dealerName || []).includes(option);
-                                    return (
-                                        <label key={option} className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={isChecked}
-                                                onChange={(e) => handleCheckboxChange('dealerName', option, e.target.checked)}
-                                            />
-                                            <span>{option}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
                 <div className="filter-group">
                     <label htmlFor="productCategory">
                         Product Category
@@ -147,7 +120,7 @@ function DashboardFilter({ filters, onFilterChange, filterOptions }: DashboardFi
                                             <input
                                                 type="checkbox"
                                                 checked={isChecked}
-                                                onChange={(e) => handleCheckboxChange('productCategory', option, e.target.checked)}
+                                                onChange={() => handleCheckboxChange('productCategory', option)}
                                             />
                                             <span>{option}</span>
                                         </label>
@@ -185,7 +158,7 @@ function DashboardFilter({ filters, onFilterChange, filterOptions }: DashboardFi
                                             <input
                                                 type="checkbox"
                                                 checked={isChecked}
-                                                onChange={(e) => handleCheckboxChange('productName', option, e.target.checked)}
+                                                onChange={() => handleCheckboxChange('productName', option)}
                                             />
                                             <span>{option}</span>
                                         </label>
@@ -223,7 +196,7 @@ function DashboardFilter({ filters, onFilterChange, filterOptions }: DashboardFi
                                             <input
                                                 type="checkbox"
                                                 checked={isChecked}
-                                                onChange={(e) => handleCheckboxChange('variantSku', option, e.target.checked)}
+                                                onChange={() => handleCheckboxChange('variantSku', option)}
                                             />
                                             <span>{option}</span>
                                         </label>
@@ -261,7 +234,7 @@ function DashboardFilter({ filters, onFilterChange, filterOptions }: DashboardFi
                                             <input
                                                 type="checkbox"
                                                 checked={isChecked}
-                                                onChange={(e) => handleCheckboxChange('variantSize', option, e.target.checked)}
+                                                onChange={() => handleCheckboxChange('variantSize', option)}
                                             />
                                             <span>{option}</span>
                                         </label>
@@ -299,7 +272,7 @@ function DashboardFilter({ filters, onFilterChange, filterOptions }: DashboardFi
                                             <input
                                                 type="checkbox"
                                                 checked={isChecked}
-                                                onChange={(e) => handleCheckboxChange('variantColor', option, e.target.checked)}
+                                                onChange={() => handleCheckboxChange('variantColor', option)}
                                             />
                                             <span>{option}</span>
                                         </label>
