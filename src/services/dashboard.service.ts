@@ -154,12 +154,12 @@ function sortDashboardData(data: DashboardDataResponse, sortConfig: SortConfig):
     });
 }
 
-// Apply default sort: when_to_sell ASC, then sell_rate DESC
+// Apply default sort: when_to_sell ASC (0 up), then sell_rate DESC (high to low)
 function applyDefaultSort(data: DashboardDataResponse): DashboardDataResponse {
     if (!data || data.length === 0) return data;
 
     return [...data].sort((a, b) => {
-        // Primary sort: when_to_sell ascending
+        // Primary sort: when_to_sell ascending (0, 1, 2, ...)
         const aWhenToSell = parseNumericValue(a.when_to_sell);
         const bWhenToSell = parseNumericValue(b.when_to_sell);
 
@@ -173,11 +173,11 @@ function applyDefaultSort(data: DashboardDataResponse): DashboardDataResponse {
         } else {
             const whenToSellComparison = aWhenToSell - bWhenToSell;
             if (whenToSellComparison !== 0) {
-                return whenToSellComparison; // Primary sort determines order
+                return whenToSellComparison; // Primary sort: 0 up (ascending)
             }
         }
 
-        // Secondary sort: sell_rate descending (only if when_to_sell is equal or both null)
+        // Secondary sort: sell_rate descending (high to low)
         const aSellRate = parseNumericValue(a.sell_rate);
         const bSellRate = parseNumericValue(b.sell_rate);
 
@@ -189,7 +189,7 @@ function applyDefaultSort(data: DashboardDataResponse): DashboardDataResponse {
         } else if (bSellRate === null) {
             return 1; // b (null) goes to start for descending
         } else {
-            const sellRateComparison = bSellRate - aSellRate; // Descending (b - a)
+            const sellRateComparison = bSellRate - aSellRate; // Descending (high to low)
             if (sellRateComparison !== 0) {
                 return sellRateComparison;
             }
