@@ -130,6 +130,8 @@
   line-height: 1.4;
   padding: $spacing-sm $spacing-md;
   border-left: 3px solid transparent; // Reserve space for selected border to prevent layout shift
+  background-color: transparent; // Reserve background to prevent layout shift
+  transition: background-color $transition-fast, border-left-color $transition-fast; // Smooth transition
   
   &:hover {
     background-color: $bg-secondary;
@@ -137,15 +139,6 @@
   
   &:last-child {
     border-bottom: none;
-  }
-}
-
-.dashboard-row.selected ul {
-  background-color: rgba($primary-color, 0.08);
-  border-left-color: $primary-color; // Change color only, size already reserved
-  
-  &:hover {
-    background-color: rgba($primary-color, 0.12);
   }
   
   li {
@@ -169,6 +162,15 @@
         accent-color: $primary-color;
       }
     }
+  }
+}
+
+.dashboard-row.selected ul {
+  background-color: rgba($primary-color, 0.08);
+  border-left-color: $primary-color; // Change color only, size already reserved
+  
+  &:hover {
+    background-color: rgba($primary-color, 0.12);
   }
 }
 
