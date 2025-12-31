@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, createSelector } from '@reduxjs/toolkit';
 import type { PayloadAction } from '@reduxjs/toolkit';
 import type { RootState } from '../index';
 
@@ -104,15 +104,20 @@ export const {
 } = filterSlice.actions;
 
 // Selectors
-export const selectFilters = (state: RootState) => ({
-  dealerName: state.filter.dealerName,
-  productCategory: state.filter.productCategory.length > 0 ? state.filter.productCategory : undefined,
-  productName: state.filter.productName.length > 0 ? state.filter.productName : undefined,
-  variantSku: state.filter.variantSku.length > 0 ? state.filter.variantSku : undefined,
-  variantSize: state.filter.variantSize.length > 0 ? state.filter.variantSize : undefined,
-  variantColor: state.filter.variantColor.length > 0 ? state.filter.variantColor : undefined,
-  generalSearch: state.filter.generalSearch || undefined,
-});
+const selectFilterState = (state: RootState) => state.filter;
+
+export const selectFilters = createSelector(
+  [selectFilterState],
+  (filterState) => ({
+    dealerName: filterState.dealerName,
+    productCategory: filterState.productCategory.length > 0 ? filterState.productCategory : undefined,
+    productName: filterState.productName.length > 0 ? filterState.productName : undefined,
+    variantSku: filterState.variantSku.length > 0 ? filterState.variantSku : undefined,
+    variantSize: filterState.variantSize.length > 0 ? filterState.variantSize : undefined,
+    variantColor: filterState.variantColor.length > 0 ? filterState.variantColor : undefined,
+    generalSearch: filterState.generalSearch || undefined,
+  })
+);
 
 export const selectDealerName = (state: RootState) => state.filter.dealerName;
 
