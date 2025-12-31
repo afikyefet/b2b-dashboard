@@ -183,14 +183,31 @@ function applyDefaultSort(data: DashboardDataResponse): DashboardDataResponse {
 
         // Handle nulls in sell_rate (put at start for descending)
         if (aSellRate === null && bSellRate === null) {
-            return 0; // Both null, equal
+            // Both null, proceed to tertiary sort
         } else if (aSellRate === null) {
             return -1; // a (null) goes to start for descending
         } else if (bSellRate === null) {
             return 1; // b (null) goes to start for descending
         } else {
             const sellRateComparison = bSellRate - aSellRate; // Descending (b - a)
-            return sellRateComparison;
+            if (sellRateComparison !== 0) {
+                return sellRateComparison;
+            }
+        }
+
+        // Tertiary sort: how_much_to_sell_now ascending (put nulls at end)
+        const aHowMuchToSell = parseNumericValue(a.how_much_to_sell_now);
+        const bHowMuchToSell = parseNumericValue(b.how_much_to_sell_now);
+
+        // Handle nulls in how_much_to_sell_now (put at end for ascending)
+        if (aHowMuchToSell === null && bHowMuchToSell === null) {
+            return 0; // Both null, equal
+        } else if (aHowMuchToSell === null) {
+            return 1; // a (null) goes to end
+        } else if (bHowMuchToSell === null) {
+            return -1; // b (null) goes to end
+        } else {
+            return aHowMuchToSell - bHowMuchToSell; // Ascending
         }
     });
 }

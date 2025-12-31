@@ -56,6 +56,7 @@ function DashboardRow({ row, headers }: DashboardRowProps) {
                     // If field doesn't exist in data, show empty (field not in data)
                     // If field exists but is null, show "null" as text
                     // If field exists and is 0, show "0"
+                    // For "how much to sell" columns, format as whole numbers
                     // Otherwise show the value
                     let displayValue = '';
                     if (!fieldExists) {
@@ -67,13 +68,26 @@ function DashboardRow({ row, headers }: DashboardRowProps) {
                     } else if (value === undefined) {
                         // Field exists but value is undefined - show empty
                         displayValue = '';
-                    } else if (value === 0 || value === '0' || value === '0.0') {
-                        // Field exists and value is zero - show zero
-                        displayValue = String(value);
                     } else {
-                        // Field exists and has a value - show it
-                        const stringValue = String(value).trim();
-                        displayValue = stringValue || '';
+                        // Check if this is a "how much to sell" field that should be displayed as whole number
+                        const isHowMuchToSellField = fieldKey === 'how_much_to_sell_now' || fieldKey === 'how_much_to_sell_on_schedule';
+                        
+                        if (isHowMuchToSellField) {
+                            // Parse the value and format as whole number
+                            const numValue = parseFloat(String(value));
+                            if (isNaN(numValue)) {
+                                displayValue = String(value).trim();
+                            } else {
+                                displayValue = Math.round(numValue).toString();
+                            }
+                        } else if (value === 0 || value === '0' || value === '0.0') {
+                            // Field exists and value is zero - show zero
+                            displayValue = String(value);
+                        } else {
+                            // Field exists and has a value - show it
+                            const stringValue = String(value).trim();
+                            displayValue = stringValue || '';
+                        }
                     }
                     return (
                         <li key={header.id} title={displayValue || undefined}>
