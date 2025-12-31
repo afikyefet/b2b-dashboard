@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '../store';
-import { selectDealerName, setDealerName } from '../store/slices/filterSlice';
+import { selectDealerName, setDealerName, resetFilters } from '../store/slices/filterSlice';
 import { selectSelectedRowIds } from '../store/slices/selectionSlice';
 import { useDrawer } from '../contexts/DrawerContext';
 import { getDashboardData } from '../services/dashboard.service';
@@ -39,6 +39,7 @@ function AppHeader() {
 
     const handleDealerSelect = (dealer: string) => {
         dispatch(setDealerName(dealer));
+        dispatch(resetFilters()); // Reset all filters except dealer name when changing dealer
         setIsDropdownOpen(false);
     };
 
@@ -46,7 +47,7 @@ function AppHeader() {
         <header>
             <div className="header-container">
                 <div className="header-logo">
-                    <span>Logo</span>
+                    <img src="/logo.png" alt="Logo" />
                 </div>
                 <div className="header-company" ref={dropdownRef}>
                     {dealerName ? (

@@ -137,6 +137,15 @@
   &:last-child {
     border-bottom: none;
   }
+}
+
+.dashboard-row.selected ul {
+  background-color: rgba($primary-color, 0.08);
+  border-left: 3px solid $primary-color;
+  
+  &:hover {
+    background-color: rgba($primary-color, 0.12);
+  }
   
   li {
     padding: $spacing-xs $spacing-sm;
