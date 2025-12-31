@@ -19,26 +19,6 @@
   font-size: $font-size-sm;
 }
 
-.watching-headline {
-  padding: 16px 24px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: $border-radius;
-  margin-bottom: $spacing-md;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-
-  h2 {
-    margin: 0;
-    color: white;
-    font-size: 20px;
-    font-weight: 600;
-
-    .dealer-name {
-      font-weight: 700;
-      text-decoration: underline;
-      color: #ffd700;
-    }
-  }
-}
 
 .dashboard-table {
   width: 100%;

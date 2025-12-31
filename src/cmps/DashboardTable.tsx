@@ -1,19 +1,19 @@
 import DashboardHeaders from "./DashboardHeaders";
 import DashboardRow from "./DashboardRow";
 import DashboardFilter from "./DashboardFilter";
+import AppHeader from "./AppHeader";
 import type { DashboardDataResponse, DashboardDataRow, DashboardHeader, SortConfig } from "../types/dashboard.types";
 import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from 'react-redux';
 import { getDashboardData, getDashboardHeaders, applyFiltersAndSort, getFilterOptions } from "../services/dashboard.service";
 import { getRowId } from "../utils/rowId";
-import { selectFilters, selectDealerName, initializeFilters, resetAllFilters } from '../store/slices/filterSlice';
+import { selectFilters, initializeFilters, resetAllFilters } from '../store/slices/filterSlice';
 import { loadSelectedDealer, validateDealerExists, saveSelectedDealer } from '../services/localStorage.service';
 import "../styles/DashboardTable.scss";
 
 function DashboardTable() {
     const dispatch = useDispatch();
     const filters = useSelector(selectFilters);
-    const selectedDealer = useSelector(selectDealerName);
 
     const [originalData, setOriginalData] = useState<DashboardDataResponse>([]);
     const [headers, setHeaders] = useState<DashboardHeader[]>([]);
@@ -96,39 +96,37 @@ function DashboardTable() {
     }
 
     return (
-        <div className="dashboard-container">
-            <DashboardFilter
-                filterOptions={filterOptions}
-            />
-            <div className="dashboard-controls">
-                {(hasActiveFilters() || hasActiveSort) && (
-                    <button className="btn-reset-all" onClick={handleResetAll}>
-                        Reset All
-                    </button>
-                )}
-            </div>
-            {selectedDealer && (
-                <div className="watching-headline">
-                    <h2>Currently Watching: <span className="dealer-name">{selectedDealer}</span></h2>
-                </div>
-            )}
-            <div className="dashboard-table">
-                <DashboardHeaders
-                    headers={headers}
-                    sortConfig={sortConfig}
-                    onSort={handleSort}
-                    filteredData={filteredData}
+        <>
+            <AppHeader filterOptions={filterOptions} />
+            <div className="dashboard-container">
+                <DashboardFilter
+                    filterOptions={filterOptions}
                 />
-                <div className="dashboard-rows">
-                    {filteredData.map((row: DashboardDataRow) => {
-                        const rowId = getRowId(row);
-                        return (
-                            <DashboardRow key={rowId} row={row} headers={headers} />
-                        );
-                    })}
+                <div className="dashboard-controls">
+                    {(hasActiveFilters() || hasActiveSort) && (
+                        <button className="btn-reset-all" onClick={handleResetAll}>
+                            Reset All
+                        </button>
+                    )}
+                </div>
+                <div className="dashboard-table">
+                    <DashboardHeaders
+                        headers={headers}
+                        sortConfig={sortConfig}
+                        onSort={handleSort}
+                        filteredData={filteredData}
+                    />
+                    <div className="dashboard-rows">
+                        {filteredData.map((row: DashboardDataRow) => {
+                            const rowId = getRowId(row);
+                            return (
+                                <DashboardRow key={rowId} row={row} headers={headers} />
+                            );
+                        })}
+                    </div>
                 </div>
             </div>
-        </div>
+        </>
     );
 }
 export default DashboardTable;

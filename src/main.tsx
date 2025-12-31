@@ -4,12 +4,10 @@ import { Provider } from 'react-redux'
 import { store } from './store'
 import './styles/index.scss'
 import App from './App.tsx'
-import AppHeader from './cmps/AppHeader.tsx'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Provider store={store}>
-      <AppHeader />
       <App />
     </Provider>
   </StrictMode>,

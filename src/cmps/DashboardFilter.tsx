@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { FilterConfig, FilterOptions } from "../types/dashboard.types";
 import {
     selectFilters,
-    setDealerName,
     setGeneralSearch,
     toggleProductCategory,
     toggleProductName,
@@ -11,7 +10,6 @@ import {
     toggleVariantSize,
     toggleVariantColor
 } from '../store/slices/filterSlice';
-import { saveSelectedDealer } from '../services/localStorage.service';
 import "../styles/DashboardFilter.scss";
 
 interface DashboardFilterProps {
@@ -71,9 +69,6 @@ function DashboardFilter({ filterOptions }: DashboardFilterProps) {
     }, []);
 
     const getSelectedCount = (field: keyof FilterConfig): number => {
-        if (field === 'dealerName') {
-            return filters.dealerName ? 1 : 0;
-        }
         const values = filters[field] as string[] | undefined;
         return values?.length || 0;
     };
@@ -97,52 +92,6 @@ function DashboardFilter({ filterOptions }: DashboardFilterProps) {
             </div>
 
             <div className="filter-inputs">
-                <div className="filter-group">
-                    <label htmlFor="dealerName">Dealer Name</label>
-                    <div className="single-select-wrapper" ref={(el) => { dropdownRefs.current.dealerName = el; }}>
-                        <button
-                            className="single-select-button"
-                            onClick={() => toggleDropdown('dealerName')}
-                            type="button"
-                        >
-                            {filters.dealerName || 'Select dealer...'}
-                            <span className="dropdown-arrow">▼</span>
-                        </button>
-                        {openDropdowns.dealerName && (
-                            <div className="single-select-dropdown">
-                                {filterOptions.dealerNames.map((option) => (
-                                    <label key={option} className="radio-label">
-                                        <input
-                                            type="radio"
-                                            name="dealerName"
-                                            checked={filters.dealerName === option}
-                                            onChange={() => {
-                                                dispatch(setDealerName(option));
-                                                saveSelectedDealer(option);
-                                                setOpenDropdowns(prev => ({ ...prev, dealerName: false }));
-                                            }}
-                                        />
-                                        <span>{option}</span>
-                                    </label>
-                                ))}
-                                {filters.dealerName && (
-                                    <div className="clear-selection">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                dispatch(setDealerName(null));
-                                                saveSelectedDealer(null);
-                                            }}
-                                        >
-                                            Clear Selection
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
                 <div className="filter-group">
                     <label htmlFor="productCategory">
                         Product Category
