@@ -1,16 +1,22 @@
 import DashboardHeaders from "./DashboardHeaders";
 import DashboardRow from "./DashboardRow";
 import DashboardFilter from "./DashboardFilter";
-import type { DashboardDataResponse, DashboardDataRow, DashboardHeader, FilterConfig, SortConfig } from "../types/dashboard.types";
+import type { DashboardDataResponse, DashboardDataRow, DashboardHeader, SortConfig } from "../types/dashboard.types";
 import { useState, useEffect, useMemo } from "react";
+import { useDispatch, useSelector } from 'react-redux';
 import { getDashboardData, getDashboardHeaders, applyFiltersAndSort, getFilterOptions } from "../services/dashboard.service";
 import { getRowId } from "../utils/rowId";
+import { selectFilters, selectDealerName, initializeFilters, resetAllFilters } from '../store/slices/filterSlice';
+import { loadSelectedDealer, validateDealerExists, saveSelectedDealer } from '../services/localStorage.service';
 import "../styles/DashboardTable.scss";
 
 function DashboardTable() {
+    const dispatch = useDispatch();
+    const filters = useSelector(selectFilters);
+    const selectedDealer = useSelector(selectDealerName);
+
     const [originalData, setOriginalData] = useState<DashboardDataResponse>([]);
     const [headers, setHeaders] = useState<DashboardHeader[]>([]);
-    const [filters, setFilters] = useState<FilterConfig>({});
     const [sortConfig, setSortConfig] = useState<SortConfig>({ field: '', direction: null });
 
     useEffect(() => {
@@ -22,6 +28,23 @@ function DashboardTable() {
     const filterOptions = useMemo(() => {
         return getFilterOptions(originalData);
     }, [originalData]);
+
+    // Initialize dealer filter from localStorage on mount
+    useEffect(() => {
+        if (filterOptions.dealerNames.length > 0) {
+            const savedDealer = loadSelectedDealer();
+            const validatedDealer = validateDealerExists(savedDealer, filterOptions.dealerNames);
+
+            if (validatedDealer) {
+                dispatch(initializeFilters({ dealerName: validatedDealer }));
+            } else if (filterOptions.dealerNames.length === 1) {
+                // Auto-select if only one dealer
+                const dealer = filterOptions.dealerNames[0];
+                dispatch(initializeFilters({ dealerName: dealer }));
+                saveSelectedDealer(dealer);
+            }
+        }
+    }, [filterOptions.dealerNames, dispatch]);
 
     // Apply filters and sorting using useMemo
     const filteredData = useMemo(() => {
@@ -45,26 +68,21 @@ function DashboardTable() {
         });
     };
 
-    const handleFilterChange = (newFilters: FilterConfig) => {
-        setFilters(newFilters);
-    };
-
-    const handleResetFilters = () => {
-        setFilters({});
-    };
-
     const handleResetSort = () => {
         setSortConfig({ field: '', direction: null });
     };
 
     const handleResetAll = () => {
-        handleResetFilters();
+        dispatch(resetAllFilters());
+        saveSelectedDealer(null);
         handleResetSort();
     };
 
     const hasActiveFilters = () => {
-        if (filters.generalSearch && filters.generalSearch.trim()) return true;
-        return Object.values(filters).some(value => {
+        if (filters.generalSearch?.trim()) return true;
+        if (filters.dealerName) return true;
+        return Object.entries(filters).some(([key, value]) => {
+            if (key === 'dealerName' || key === 'generalSearch') return false;
             if (Array.isArray(value)) {
                 return value.length > 0;
             }
@@ -80,9 +98,6 @@ function DashboardTable() {
     return (
         <div className="dashboard-container">
             <DashboardFilter
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                onReset={handleResetFilters}
                 filterOptions={filterOptions}
             />
             <div className="dashboard-controls">
@@ -92,6 +107,11 @@ function DashboardTable() {
                     </button>
                 )}
             </div>
+            {selectedDealer && (
+                <div className="watching-headline">
+                    <h2>Currently Watching: <span className="dealer-name">{selectedDealer}</span></h2>
+                </div>
+            )}
             <div className="dashboard-table">
                 <DashboardHeaders
                     headers={headers}

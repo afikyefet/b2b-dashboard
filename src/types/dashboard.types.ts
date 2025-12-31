@@ -17,7 +17,7 @@ export interface SortConfig {
 // Filtering Types
 export interface FilterConfig {
   generalSearch?: string;
-  dealerName?: string[];
+  dealerName?: string | null;
   productCategory?: string[];
   productName?: string[];
   variantSku?: string[];

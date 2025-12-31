@@ -51,10 +51,10 @@ function filterDashboardData(data: DashboardDataResponse, filters: FilterConfig)
             }
         }
 
-        // Dealer Name filter (multi-select - exact match)
-        if (filters.dealerName && filters.dealerName.length > 0) {
+        // Dealer Name filter (single-select - exact match)
+        if (filters.dealerName) {
             const dealerName = String(row.customer_company || '').trim();
-            if (!filters.dealerName.includes(dealerName)) {
+            if (filters.dealerName !== dealerName) {
                 return false;
             }
         }
