@@ -1,0 +1,78 @@
+
+{
+  "headers": [
+    {
+      "id": "dealer_name",
+      "field": "customer_company",
+      "displayName": "Dealer Name",
+      "category": "dealer"
+    },
+    {
+      "id": "product_category",
+      "field": "product_category_name",
+      "displayName": "Product Category",
+      "category": "product"
+    },
+    {
+      "id": "product_name",
+      "field": "product_name",
+      "displayName": "Product Name",
+      "category": "product"
+    },
+    {
+      "id": "variant_sku",
+      "field": "variant_sku",
+      "displayName": "Variant Sku",
+      "category": "variant"
+    },
+    {
+      "id": "variant_color",
+      "field": "variant_color",
+      "displayName": "Variant Color",
+      "category": "variant"
+    },
+    {
+      "id": "variant_size",
+      "field": "variant_size",
+      "displayName": "Variant Size",
+      "category": "variant"
+    },
+    {
+      "id": "current_stock",
+      "field": "last_stock",
+      "displayName": "Current Stock",
+      "category": "inventory"
+    },
+    {
+      "id": "how_much_to_sell_now",
+      "field": "how_much_to_sell_now",
+      "displayName": "How Much to Sell Now",
+      "category": "sales"
+    },
+    {
+      "id": "when_to_sell",
+      "field": "when_to_sell",
+      "displayName": "When To Sell",
+      "category": "sales"
+    },
+    {
+      "id": "how_much_to_sell_on_schedule",
+      "field": "how_much_to_sell_on_schedule",
+      "displayName": "How Much to Sell on Schedule",
+      "category": "sales"
+    },
+    {
+      "id": "sell_rate",
+      "field": "sell_rate",
+      "displayName": "Sell Rate",
+      "category": "sales"
+    }
+  ],
+  "categories": {
+    "dealer": "Dealer Information",
+    "product": "Product Information",
+    "variant": "Variant Details",
+    "inventory": "Inventory Management",
+    "sales": "Sales Strategy"
+  }
+}

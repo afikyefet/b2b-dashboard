@@ -1,0 +1,117 @@
+@import './variables';
+@import './mixins';
+
+.dashboard-filter {
+  background-color: $bg-primary;
+  border: 1px solid $border-color;
+  border-radius: $border-radius;
+  padding: $spacing-md;
+  margin-bottom: $spacing-md;
+}
+
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: $spacing-md;
+
+  h3 {
+    margin: 0;
+    font-size: $font-size-lg;
+    font-weight: 600;
+    color: $text-primary;
+  }
+}
+
+.general-search {
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-md;
+  border-bottom: 1px solid $border-color;
+  
+  input {
+    width: 100%;
+    max-width: 500px;
+  }
+}
+
+.filter-inputs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: $spacing-md;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-xs;
+
+  label {
+    font-size: $font-size-sm;
+    font-weight: 500;
+    color: $text-secondary;
+  }
+
+  input {
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $border-color;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-sm;
+    font-family: $font-family;
+    color: $text-primary;
+    background-color: $bg-primary;
+    transition: border-color $transition-fast;
+    width: 100%;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+
+    &::placeholder {
+      color: $text-tertiary;
+    }
+  }
+
+  select {
+    padding: $spacing-sm $spacing-md;
+    border: 1px solid $border-color;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-sm;
+    font-family: $font-family;
+    color: $text-primary;
+    background-color: $bg-primary;
+    transition: border-color $transition-fast;
+    width: 100%;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23475569' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right $spacing-sm center;
+    padding-right: $spacing-xl;
+
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+    }
+
+    option {
+      background-color: $bg-primary;
+      color: $text-primary;
+    }
+  }
+}
+
+.btn-reset {
+  @include button-base;
+  @include button-variant($bg-tertiary, $text-primary, $border-color);
+  font-size: $font-size-xs;
+  padding: $spacing-xs $spacing-sm;
+}
+
+// Responsive
+@media (max-width: 768px) {
+  .filter-inputs {
+    grid-template-columns: 1fr;
+  }
+}
+

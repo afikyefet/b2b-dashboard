@@ -1,0 +1,107 @@
+@import './variables';
+@import './mixins';
+
+// Reset and Base Styles
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: $font-family;
+  font-size: $font-size-base;
+  line-height: 1.5;
+  color: $text-primary;
+  background-color: $bg-secondary;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+// Typography
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.2;
+  color: $text-primary;
+  margin-bottom: $spacing-md;
+}
+
+h1 {
+  font-size: $font-size-3xl;
+}
+
+h2 {
+  font-size: $font-size-2xl;
+}
+
+h3 {
+  font-size: $font-size-xl;
+}
+
+h4 {
+  font-size: $font-size-lg;
+}
+
+p {
+  margin-bottom: $spacing-md;
+  color: $text-secondary;
+}
+
+a {
+  color: $primary-color;
+  text-decoration: none;
+  transition: color $transition-fast;
+
+  &:hover {
+    color: $primary-hover;
+  }
+}
+
+// Buttons
+.btn {
+  @include button-base;
+
+  &-primary {
+    @include button-variant($primary-color, white, $primary-hover);
+  }
+
+  &-secondary {
+    @include button-variant($bg-tertiary, $text-primary, $border-color);
+  }
+}
+
+// Cards
+.card {
+  @include card;
+}
+
+// Container
+.container {
+  @include container;
+}
+
+// Utilities
+.text-center {
+  text-align: center;
+}
+
+.text-secondary {
+  color: $text-secondary;
+}
+
+// Spacing Utilities
+.mt-sm { margin-top: $spacing-sm; }
+.mt-md { margin-top: $spacing-md; }
+.mt-lg { margin-top: $spacing-lg; }
+.mb-sm { margin-bottom: $spacing-sm; }
+.mb-md { margin-bottom: $spacing-md; }
+.mb-lg { margin-bottom: $spacing-lg; }
+
+.p-sm { padding: $spacing-sm; }
+.p-md { padding: $spacing-md; }
+.p-lg { padding: $spacing-lg; }
+
