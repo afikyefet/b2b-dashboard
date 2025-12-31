@@ -1,5 +1,5 @@
-import { useState } from 'react';
 import { useSelector } from 'react-redux';
+import { useDrawer } from '../contexts/DrawerContext';
 import { selectSelectedRowIds, getSelectedSkusFromData } from '../store/slices/selectionSlice';
 import type { DashboardDataRow } from '../types/dashboard.types';
 import '../styles/SelectedSkusSidebar.scss';
@@ -9,7 +9,7 @@ interface SelectedSkusSidebarProps {
 }
 
 function SelectedSkusSidebar({ filteredData }: SelectedSkusSidebarProps) {
-    const [isOpen, setIsOpen] = useState(true);
+    const { isOpen, toggleDrawer } = useDrawer();
     const selectedRowIds = useSelector(selectSelectedRowIds);
     const selectedSkus = getSelectedSkusFromData(selectedRowIds, filteredData);
 
@@ -30,10 +30,6 @@ function SelectedSkusSidebar({ filteredData }: SelectedSkusSidebarProps) {
         }).catch((err) => {
             console.error('Failed to copy SKUs array to clipboard:', err);
         });
-    };
-
-    const toggleDrawer = () => {
-        setIsOpen(!isOpen);
     };
 
     return (
@@ -59,9 +55,9 @@ function SelectedSkusSidebar({ filteredData }: SelectedSkusSidebarProps) {
                             className="toggle-button"
                             onClick={toggleDrawer}
                             type="button"
-                            aria-label={isOpen ? 'Minimize drawer' : 'Open drawer'}
+                            aria-label="Close drawer"
                         >
-                            {isOpen ? '✕' : '☰'}
+                            ✕
                         </button>
                     </div>
                     
@@ -103,19 +99,6 @@ function SelectedSkusSidebar({ filteredData }: SelectedSkusSidebarProps) {
                     )}
                 </div>
             </div>
-            
-            {/* Toggle button - always visible */}
-            <button 
-                className={`drawer-toggle-button ${!isOpen ? 'minimized' : ''}`}
-                onClick={toggleDrawer}
-                type="button"
-                title={isOpen ? 'Minimize drawer' : 'Open SKU drawer'}
-            >
-                <span className="toggle-icon">{isOpen ? '✕' : '☰'}</span>
-                {!isOpen && selectedSkus.length > 0 && (
-                    <span className="minimized-count">{selectedSkus.length}</span>
-                )}
-            </button>
         </>
     );
 }

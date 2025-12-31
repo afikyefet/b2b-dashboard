@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '../store';
 import { selectDealerName, setDealerName } from '../store/slices/filterSlice';
+import { selectSelectedRowIds } from '../store/slices/selectionSlice';
+import { useDrawer } from '../contexts/DrawerContext';
 import { getDashboardData } from '../services/dashboard.service';
 import { getFilterOptions } from '../services/dashboard.service';
 import '../styles/AppHeader.scss'
@@ -9,6 +11,8 @@ import '../styles/AppHeader.scss'
 function AppHeader() {
     const dispatch = useDispatch<AppDispatch>();
     const dealerName = useSelector(selectDealerName);
+    const selectedRowIds = useSelector(selectSelectedRowIds);
+    const { isOpen: isDrawerOpen, toggleDrawer } = useDrawer();
     const [dealerOptions, setDealerOptions] = useState<string[]>([]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -99,9 +103,17 @@ function AppHeader() {
                     )}
                 </div>
                 <div className="header-nav">
-                    <ul>
-                        <li><a href="#">Home</a></li>
-                    </ul>
+                    <button
+                        className="drawer-toggle-button-header"
+                        onClick={toggleDrawer}
+                        type="button"
+                        title={isDrawerOpen ? 'Close SKU drawer' : 'Open SKU drawer'}
+                    >
+                        <span className="toggle-icon">☰</span>
+                        {!isDrawerOpen && selectedRowIds.length > 0 && (
+                            <span className="sku-count-badge">{selectedRowIds.length}</span>
+                        )}
+                    </button>
                 </div>
             </div>
         </header>

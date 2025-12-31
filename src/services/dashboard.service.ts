@@ -103,6 +103,14 @@ function filterDashboardData(data: DashboardDataResponse, filters: FilterConfig)
     });
 }
 
+// Helper to parse string numbers to numbers for sorting
+function parseNumericValue(value: unknown): number | null {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'number') return value;
+    const num = parseFloat(String(value));
+    return isNaN(num) ? null : num;
+}
+
 function sortDashboardData(data: DashboardDataResponse, sortConfig: SortConfig): DashboardDataResponse {
     if (!data || data.length === 0) return data;
     if (!sortConfig.field || !sortConfig.direction) return [...data];
@@ -111,17 +119,26 @@ function sortDashboardData(data: DashboardDataResponse, sortConfig: SortConfig):
         const aValue = a[sortConfig.field as keyof typeof a];
         const bValue = b[sortConfig.field as keyof typeof b];
 
-        // Handle null/undefined values - put them at the end
-        if (aValue === null || aValue === undefined) return 1;
-        if (bValue === null || bValue === undefined) return -1;
+        // Try to parse as numbers first for numeric comparison
+        const aNum = parseNumericValue(aValue);
+        const bNum = parseNumericValue(bValue);
+
+        // Handle null/undefined values
+        if (aNum === null && bNum === null) return 0;
+        if (aNum === null) return sortConfig.direction === 'asc' ? 1 : -1; // nulls at end for asc, start for desc
+        if (bNum === null) return sortConfig.direction === 'asc' ? -1 : 1;
 
         let comparison = 0;
 
+        // If both can be parsed as numbers, compare numerically
+        if (aNum !== null && bNum !== null) {
+            comparison = aNum - bNum;
+        }
         // Handle string comparisons
-        if (typeof aValue === 'string' && typeof bValue === 'string') {
+        else if (typeof aValue === 'string' && typeof bValue === 'string') {
             comparison = aValue.localeCompare(bValue, undefined, { sensitivity: 'base' });
         }
-        // Handle number comparisons
+        // Handle number comparisons (if not already handled)
         else if (typeof aValue === 'number' && typeof bValue === 'number') {
             comparison = aValue - bValue;
         }
@@ -137,6 +154,47 @@ function sortDashboardData(data: DashboardDataResponse, sortConfig: SortConfig):
     });
 }
 
+// Apply default sort: when_to_sell ASC, then sell_rate DESC
+function applyDefaultSort(data: DashboardDataResponse): DashboardDataResponse {
+    if (!data || data.length === 0) return data;
+
+    return [...data].sort((a, b) => {
+        // Primary sort: when_to_sell ascending
+        const aWhenToSell = parseNumericValue(a.when_to_sell);
+        const bWhenToSell = parseNumericValue(b.when_to_sell);
+
+        // Handle nulls in when_to_sell (put at end for ascending)
+        if (aWhenToSell === null && bWhenToSell === null) {
+            // Both null, proceed to secondary sort
+        } else if (aWhenToSell === null) {
+            return 1; // a goes to end
+        } else if (bWhenToSell === null) {
+            return -1; // b goes to end
+        } else {
+            const whenToSellComparison = aWhenToSell - bWhenToSell;
+            if (whenToSellComparison !== 0) {
+                return whenToSellComparison; // Primary sort determines order
+            }
+        }
+
+        // Secondary sort: sell_rate descending (only if when_to_sell is equal or both null)
+        const aSellRate = parseNumericValue(a.sell_rate);
+        const bSellRate = parseNumericValue(b.sell_rate);
+
+        // Handle nulls in sell_rate (put at start for descending)
+        if (aSellRate === null && bSellRate === null) {
+            return 0; // Both null, equal
+        } else if (aSellRate === null) {
+            return -1; // a (null) goes to start for descending
+        } else if (bSellRate === null) {
+            return 1; // b (null) goes to start for descending
+        } else {
+            const sellRateComparison = bSellRate - aSellRate; // Descending (b - a)
+            return sellRateComparison;
+        }
+    });
+}
+
 function applyFiltersAndSort(
     data: DashboardDataResponse,
     filters: FilterConfig,
@@ -147,8 +205,13 @@ function applyFiltersAndSort(
     // Apply filters first
     result = filterDashboardData(result, filters);
     
-    // Then apply sorting
-    result = sortDashboardData(result, sortConfig);
+    // Always apply default sort first (when_to_sell ASC, sell_rate DESC)
+    result = applyDefaultSort(result);
+    
+    // Then apply user's sort on top if they have selected one
+    if (sortConfig.field && sortConfig.direction) {
+        result = sortDashboardData(result, sortConfig);
+    }
     
     return result;
 }
