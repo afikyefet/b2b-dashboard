@@ -9,7 +9,7 @@ interface DrawerContextType {
 const DrawerContext = createContext<DrawerContextType | undefined>(undefined);
 
 export function DrawerProvider({ children }: { children: ReactNode }) {
-  const [isOpen, setIsOpen] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
 
   const toggleDrawer = () => {
     setIsOpen(!isOpen);
