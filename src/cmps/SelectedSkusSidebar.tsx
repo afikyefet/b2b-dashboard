@@ -1,35 +1,28 @@
-import { useSelector } from 'react-redux';
 import { useDrawer } from '../contexts/DrawerContext';
-import { selectSelectedRowIds, getSelectedSkusFromData } from '../store/slices/selectionSlice';
-import type { DashboardDataRow } from '../types/dashboard.types';
+import { useCart } from '../contexts/CartContext';
 import '../styles/SelectedSkusSidebar.scss';
 
+// Prop interface kept for compatibility if needed, but props are unused
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface SelectedSkusSidebarProps {
-    filteredData: DashboardDataRow[];
+    filteredData?: unknown[];
 }
 
-function SelectedSkusSidebar({ filteredData }: SelectedSkusSidebarProps) {
+function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
     const { isOpen, toggleDrawer } = useDrawer();
-    const selectedRowIds = useSelector(selectSelectedRowIds);
-    const selectedSkus = getSelectedSkusFromData(selectedRowIds, filteredData);
+    const { cart, hydrated, setQty, removeSku } = useCart();
 
-    const handleCopyToClipboard = () => {
-        const skusText = selectedSkus.join('\n');
-        navigator.clipboard.writeText(skusText).then(() => {
-            // Optional: Show a toast notification
-            alert(`Copied ${selectedSkus.length} SKUs to clipboard`);
-        }).catch((err) => {
-            console.error('Failed to copy SKUs to clipboard:', err);
-        });
+    const handleGoToCart = () => {
+        window.location.hash = '#cart';
+        if (isOpen) toggleDrawer();
     };
 
-    const handleCopyAsArray = () => {
-        const skusArrayText = JSON.stringify(selectedSkus, null, 2);
-        navigator.clipboard.writeText(skusArrayText).then(() => {
-            alert(`Copied SKUs array to clipboard`);
-        }).catch((err) => {
-            console.error('Failed to copy SKUs array to clipboard:', err);
-        });
+    const calculateTotal = () => {
+        return cart.reduce((total, item) => {
+            const details = hydrated[item.sku];
+            const price = details?.price ?? 0;
+            return total + (price * item.qty);
+        }, 0);
     };
 
     return (
@@ -48,8 +41,8 @@ function SelectedSkusSidebar({ filteredData }: SelectedSkusSidebarProps) {
                 <div className="drawer-content">
                     <div className="sidebar-header">
                         <div className="header-left">
-                            <h3>Selected SKUs</h3>
-                            <span className="sku-count">{selectedSkus.length}</span>
+                            <h3>Cart</h3>
+                            <span className="sku-count">{cart.length}</span>
                         </div>
                         <button 
                             className="toggle-button"
@@ -62,40 +55,77 @@ function SelectedSkusSidebar({ filteredData }: SelectedSkusSidebarProps) {
                     </div>
                     
                     {isOpen && (
-                        <>
-                            {selectedSkus.length > 0 ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+                            {cart.length > 0 ? (
                                 <>
-                                    <div className="sidebar-actions">
+                                    <div className="sidebar-actions" style={{ marginBottom: '10px' }}>
                                         <button 
-                                            className="copy-button" 
-                                            onClick={handleCopyToClipboard}
+                                            className="copy-button" // Reuse class for style
+                                            onClick={handleGoToCart}
                                             type="button"
+                                            style={{ width: '100%', textAlign: 'center', justifyContent: 'center' }}
                                         >
-                                            Copy List
-                                        </button>
-                                        <button 
-                                            className="copy-button" 
-                                            onClick={handleCopyAsArray}
-                                            type="button"
-                                        >
-                                            Copy Array
+                                            View Full Cart
                                         </button>
                                     </div>
-                                    <div className="sku-list">
-                                        {selectedSkus.map((sku, index) => (
-                                            <div key={`${sku}-${index}`} className="sku-item">
-                                                {sku}
-                                            </div>
-                                        ))}
+                                    
+                                    <div className="sku-list" style={{ flex: 1, overflowY: 'auto' }}>
+                                        {cart.map((item) => {
+                                            const details = hydrated[item.sku];
+                                            return (
+                                                <div key={item.sku} className="sku-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '5px' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
+                                                        <span style={{ fontWeight: 'bold' }}>
+                                                            {details ? details.product_title : item.sku}
+                                                        </span>
+                                                        <button 
+                                                            onClick={() => removeSku(item.sku)}
+                                                            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', padding: '0 5px' }}
+                                                        >
+                                                            ✕
+                                                        </button>
+                                                    </div>
+                                                    
+                                                    {details && (
+                                                        <div style={{ fontSize: '0.85em', color: '#666' }}>
+                                                            {details.variant_title}
+                                                        </div>
+                                                    )}
+                                                    
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginTop: '5px', alignItems: 'center' }}>
+                                                        <div style={{ fontSize: '0.9em' }}>
+                                                            Price: {details?.price != null ? `$${details.price.toFixed(2)}` : '-'}
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                                            <label style={{ fontSize: '0.8em' }}>Qty:</label>
+                                                            <input 
+                                                                type="number" 
+                                                                min="1"
+                                                                value={item.qty}
+                                                                onChange={(e) => setQty(item.sku, Number(e.target.value))}
+                                                                style={{ width: '40px', padding: '2px' }}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <div style={{ borderTop: '1px solid #eee', paddingTop: '15px', marginTop: '10px' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                                            <span>Total:</span>
+                                            <span>${calculateTotal().toFixed(2)}</span>
+                                        </div>
                                     </div>
                                 </>
                             ) : (
                                 <div className="empty-state">
-                                    <p>No rows selected</p>
-                                    <p className="hint">Select rows to see their SKUs here</p>
+                                    <p>Your cart is empty</p>
+                                    <p className="hint">Select items from the dashboard to add them.</p>
                                 </div>
                             )}
-                        </>
+                        </div>
                     )}
                 </div>
             </div>
@@ -104,4 +134,3 @@ function SelectedSkusSidebar({ filteredData }: SelectedSkusSidebarProps) {
 }
 
 export default SelectedSkusSidebar;
-

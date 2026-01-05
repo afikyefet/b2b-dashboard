@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '../store';
 import { selectDealerName, setDealerName, resetFilters } from '../store/slices/filterSlice';
-import { selectSelectedRowIds } from '../store/slices/selectionSlice';
 import { useDrawer } from '../contexts/DrawerContext';
+import { useCart } from '../contexts/CartContext';
 import { getDashboardData } from '../services/dashboard.service';
 import { getFilterOptions } from '../services/dashboard.service';
 import '../styles/AppHeader.scss'
@@ -11,11 +11,25 @@ import '../styles/AppHeader.scss'
 function AppHeader() {
     const dispatch = useDispatch<AppDispatch>();
     const dealerName = useSelector(selectDealerName);
-    const selectedRowIds = useSelector(selectSelectedRowIds);
+    const { cart } = useCart();
     const { isOpen: isDrawerOpen, toggleDrawer } = useDrawer();
     const [dealerOptions, setDealerOptions] = useState<string[]>([]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const [isCartPage, setIsCartPage] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Check if we're on the cart page
+    useEffect(() => {
+        const handleHashChange = () => {
+            setIsCartPage(window.location.hash === '#cart');
+        };
+        
+        // Initial check
+        handleHashChange();
+        
+        window.addEventListener('hashchange', handleHashChange);
+        return () => window.removeEventListener('hashchange', handleHashChange);
+    }, []);
 
     // Fetch dealer options
     useEffect(() => {
@@ -47,7 +61,13 @@ function AppHeader() {
         <header>
             <div className="header-container">
                 <div className="header-logo">
-                    <img src="/logo.png" alt="Logo" />
+                    <button
+                        onClick={() => window.location.hash = ''}
+                        type="button"
+                        title="Go to dashboard"
+                    >
+                        <img src="/logo.png" alt="Logo" />
+                    </button>
                 </div>
                 <div className="header-company" ref={dropdownRef}>
                     {dealerName ? (
@@ -103,19 +123,21 @@ function AppHeader() {
                         </div>
                     )}
                 </div>
-                <div className="header-nav">
-                    <button
-                        className="drawer-toggle-button-header"
-                        onClick={toggleDrawer}
-                        type="button"
-                        title={isDrawerOpen ? 'Close SKU drawer' : 'Open SKU drawer'}
-                    >
-                        <span className="toggle-icon">☰</span>
-                        {!isDrawerOpen && selectedRowIds.length > 0 && (
-                            <span className="sku-count-badge">{selectedRowIds.length}</span>
-                        )}
-                    </button>
-                </div>
+                {!isCartPage && (
+                    <div className="header-nav">
+                        <button
+                            className="drawer-toggle-button-header"
+                            onClick={toggleDrawer}
+                            type="button"
+                            title={isDrawerOpen ? 'Close cart drawer' : 'Open cart drawer'}
+                        >
+                            <span className="toggle-icon">☰</span>
+                            {!isDrawerOpen && cart.length > 0 && (
+                                <span className="sku-count-badge">{cart.length}</span>
+                            )}
+                        </button>
+                    </div>
+                )}
             </div>
         </header>
     )

@@ -1,8 +1,5 @@
-import { useDispatch, useSelector } from 'react-redux';
 import type { DashboardDataRow, DashboardHeader } from "../types/dashboard.types";
-import { toggleRowSelection, isRowSelected } from '../store/slices/selectionSlice';
-import { getRowId } from '../utils/rowId';
-import type { RootState } from '../store';
+import { useCart } from '../contexts/CartContext';
 
 interface DashboardRowProps {
     row: DashboardDataRow;
@@ -10,17 +7,44 @@ interface DashboardRowProps {
 }
 
 function DashboardRow({ row, headers }: DashboardRowProps) {
-    const dispatch = useDispatch();
-    const rowId = getRowId(row);
-    const selected = useSelector((state: RootState) => isRowSelected(rowId)(state));
+    const { isInCart, addSku, removeSku } = useCart();
+    
+    // Get SKU for cart operations
+    const sku = row.variant_sku_real;
+    const hasSku = !!sku;
+    
+    const selected = hasSku ? isInCart(sku) : false;
+
+    const toggleSelection = () => {
+        if (!hasSku) return;
+
+        if (selected) {
+            removeSku(sku);
+        } else {
+            // Get initial quantity from "how_much_to_sell_now"
+            let initialQty = 1;
+            const sellNow = row.how_much_to_sell_now;
+            
+            if (sellNow !== null && sellNow !== undefined) {
+                const parsed = parseFloat(String(sellNow));
+                if (!isNaN(parsed) && parsed > 0) {
+                    initialQty = Math.round(parsed);
+                }
+            }
+            
+            addSku(sku, initialQty);
+        }
+    };
 
     const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         e.stopPropagation();
-        dispatch(toggleRowSelection(rowId));
+        toggleSelection();
     };
 
     const handleRowClick = () => {
-        dispatch(toggleRowSelection(rowId));
+        // Optional: Only toggle if clicking the row background, not specific interactive elements
+        // But for now, match previous behavior
+        toggleSelection();
     };
 
     return (
@@ -32,6 +56,7 @@ function DashboardRow({ row, headers }: DashboardRowProps) {
                         checked={selected}
                         onChange={handleCheckboxChange}
                         onClick={(e) => e.stopPropagation()}
+                        disabled={!hasSku}
                     />
                 </li>
                 {headers.map((header: DashboardHeader) => {
@@ -53,27 +78,17 @@ function DashboardRow({ row, headers }: DashboardRowProps) {
                     }
                     
                     // Handle display values
-                    // If field doesn't exist in data, show empty (field not in data)
-                    // If field exists but is null, show "null" as text
-                    // If field exists and is 0, show "0"
-                    // For "how much to sell" columns, format as whole numbers
-                    // Otherwise show the value
                     let displayValue = '';
                     if (!fieldExists) {
-                        // Field doesn't exist in the row data - show empty
                         displayValue = '';
                     } else if (value === null) {
-                        // Field exists but value is null - show "null" as text
                         displayValue = 'null';
                     } else if (value === undefined) {
-                        // Field exists but value is undefined - show empty
                         displayValue = '';
                     } else {
-                        // Check if this is a "how much to sell" field that should be displayed as whole number
                         const isHowMuchToSellField = fieldKey === 'how_much_to_sell_now' || fieldKey === 'how_much_to_sell_on_schedule';
                         
                         if (isHowMuchToSellField) {
-                            // Parse the value and format as whole number
                             const numValue = parseFloat(String(value));
                             if (isNaN(numValue)) {
                                 displayValue = String(value).trim();
@@ -81,10 +96,8 @@ function DashboardRow({ row, headers }: DashboardRowProps) {
                                 displayValue = Math.round(numValue).toString();
                             }
                         } else if (value === 0 || value === '0' || value === '0.0') {
-                            // Field exists and value is zero - show zero
                             displayValue = String(value);
                         } else {
-                            // Field exists and has a value - show it
                             const stringValue = String(value).trim();
                             displayValue = stringValue || '';
                         }

@@ -14,9 +14,11 @@ export type HydratedSkuItem = {
   product_id: string;
   product_title: string;
   variant_title: string;
-  price: string | null;
-  compare_at_price: string | null;
+  price: number | null;
+  compare_at_price: number | null;
   available_for_sale: boolean;
+  product_options?: string | null;
+  variant_selected_options?: string | null;
 };
 
 export async function fetchProducts(params: {
@@ -42,6 +44,15 @@ export async function hydrateBySkus(skus: string[]) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ skus }),
   });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json() as Promise<{ items: HydratedSkuItem[] }>;
+}
+
+export async function fetchProductVariants(productId: string) {
+  const url = new URL(`${API_BASE}/api/catalog/product/variants`);
+  url.searchParams.set("product_id", productId);
+
+  const res = await fetch(url.toString());
   if (!res.ok) throw new Error(await res.text());
   return res.json() as Promise<{ items: HydratedSkuItem[] }>;
 }

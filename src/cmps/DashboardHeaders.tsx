@@ -1,7 +1,5 @@
-import { useDispatch, useSelector } from 'react-redux';
 import type { DashboardHeader, SortConfig, DashboardDataRow } from "../types/dashboard.types";
-import { selectAllRows, deselectAllRows, selectSelectedRowIds } from '../store/slices/selectionSlice';
-import { getRowId } from '../utils/rowId';
+import { useCart } from '../contexts/CartContext';
 
 interface DashboardHeadersProps {
     headers: DashboardHeader[];
@@ -11,24 +9,46 @@ interface DashboardHeadersProps {
 }
 
 function DashboardHeaders({ headers, sortConfig, onSort, filteredData }: DashboardHeadersProps) {
-    const dispatch = useDispatch();
-    const selectedRowIds = useSelector(selectSelectedRowIds);
+    const { cart, addSku, removeSku, isInCart } = useCart();
 
     if (!headers || headers.length === 0) return null;
 
-    // Get all row IDs from filtered data
-    const filteredRowIds = filteredData.map(row => getRowId(row));
+    // Get all SKUs from filtered data (only rows with valid SKUs)
+    const filteredSkus = filteredData
+        .map(row => row.variant_sku_real)
+        .filter((sku): sku is string => !!sku);
     
-    // Check if all filtered rows are selected
-    const allSelected = filteredRowIds.length > 0 && filteredRowIds.every(id => selectedRowIds.includes(id));
-    const someSelected = filteredRowIds.some(id => selectedRowIds.includes(id));
+    // Check if all filtered rows with SKUs are in cart
+    const allSelected = filteredSkus.length > 0 && filteredSkus.every(sku => isInCart(sku));
+    const someSelected = filteredSkus.some(sku => isInCart(sku));
 
     const handleSelectAllClick = (e: React.ChangeEvent<HTMLInputElement>) => {
         e.stopPropagation();
         if (allSelected) {
-            dispatch(deselectAllRows());
+            // Remove all filtered SKUs from cart
+            filteredSkus.forEach(sku => {
+                if (isInCart(sku)) {
+                    removeSku(sku);
+                }
+            });
         } else {
-            dispatch(selectAllRows(filteredRowIds));
+            // Add all filtered SKUs to cart with their "how_much_to_sell_now" quantities
+            filteredData.forEach(row => {
+                const sku = row.variant_sku_real;
+                if (sku && !isInCart(sku)) {
+                    let initialQty = 1;
+                    const sellNow = row.how_much_to_sell_now;
+                    
+                    if (sellNow !== null && sellNow !== undefined) {
+                        const parsed = parseFloat(String(sellNow));
+                        if (!isNaN(parsed) && parsed > 0) {
+                            initialQty = Math.round(parsed);
+                        }
+                    }
+                    
+                    addSku(sku, initialQty);
+                }
+            });
         }
     };
 
