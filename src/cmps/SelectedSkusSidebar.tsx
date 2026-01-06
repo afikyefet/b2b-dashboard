@@ -58,8 +58,6 @@ function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
                     
                     {isOpen && (
                         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-                            {cart.length > 0 ? (
-                                <>
                                     <div className="sidebar-actions" style={{ marginBottom: '10px' }}>
                                         <button 
                                             className="copy-button" // Reuse class for style
@@ -70,6 +68,8 @@ function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
                                             View Full Cart
                                         </button>
                                     </div>
+                            {cart.length > 0 ? (
+                                <>
                                     
                                     <div className="sku-list" style={{ flex: 1, overflowY: 'auto' }}>
                                         {cart.map((item) => {

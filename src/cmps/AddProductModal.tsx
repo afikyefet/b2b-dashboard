@@ -244,6 +244,14 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     });
   };
 
+  const visibleProducts = products.filter(product => {
+    const productData = productsWithVariants.get(product.product_id);
+    const isLoading = loadingVariants.has(product.product_id);
+    if (isLoading) return true;
+    if (!productData) return false;
+    return productData.options.length > 0;
+  });
+
   if (!isOpen) return null;
 
   return (
@@ -253,8 +261,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             justifyContent: 'center', alignItems: 'flex-start', zIndex: 1100, padding: '40px 20px', overflowY: 'auto'
         }}
         onClick={onClose}
+        className='add-product-modal'
     >
-        <div style={{ backgroundColor: 'white', borderRadius: '8px', width: '100%', maxWidth: '900px', maxHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
+        <div className='add-product-modal-content' style={{ backgroundColor: 'white', borderRadius: '8px', width: '100%', maxWidth: '900px', maxHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '16px 20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h2 style={{ margin: 0 }}>Browse Products</h2>
                 <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: '1.5em', cursor: 'pointer' }}>×</button>
@@ -265,24 +274,36 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     placeholder="Search products..." 
                     style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
                 />
+                <div style={{ marginTop: '8px', fontSize: '0.85em', color: '#666' }}>
+                    Showing {visibleProducts.length} product{visibleProducts.length === 1 ? '' : 's'} with options
+                </div>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
                 {loadingProducts && <div>Loading products...</div>}
-                {!loadingProducts && products.length === 0 && <div>No products found</div>}
-                {products.map(product => {
+                {!loadingProducts && visibleProducts.length === 0 && <div>No products with options found</div>}
+                {visibleProducts.map(product => {
                     const productData = productsWithVariants.get(product.product_id);
                     const selectedVariant = productData ? getSelectedVariant(product.product_id) : null;
                     // const allOptionsSelected = productData ? productData.options.every(opt => productData.selectedOptions[opt.name]) : false;
+                    const isLoading = loadingVariants.has(product.product_id);
                     
                     return (
-                        <div key={product.product_id} style={{ border: '1px solid #ddd', borderRadius: '6px', padding: '12px' }}>
-                            <h3 style={{ margin: '0 0 10px 0', fontSize: '1em' }}>{product.title}</h3>
+                        <div  key={product.product_id} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '14px', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: '1em' }}>{product.title}</h3>
+                                {product.tags?.length > 0 && (
+                                    <div style={{ marginTop: '4px', fontSize: '0.8em', color: '#666' }}>
+                                        {product.tags.slice(0, 3).join(', ')}
+                                    </div>
+                                )}
+                            </div>
+                            {isLoading && <div style={{ fontSize: '0.85em', color: '#666' }}>Loading options...</div>}
                             {productData && (
                                 <>
-                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '10px' }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
                                         {productData.options.map(option => (
-                                            <div key={option.name} style={{ flex: '1 1 120px' }}>
-                                                <label style={{ display: 'block', fontSize: '0.8em', fontWeight: 'bold' }}>{option.name}</label>
+                                            <div key={option.name}>
+                                                <label style={{ display: 'block', fontSize: '0.75em', fontWeight: 600, color: '#444' }}>{option.name}</label>
                                                 <select 
                                                     value={productData.selectedOptions[option.name] || ''}
                                                     onChange={e => handleOptionChange(product.product_id, option.name, e.target.value)}

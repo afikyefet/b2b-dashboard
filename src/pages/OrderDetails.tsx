@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOrder, patchOrder, sendOrder, type Order, type OrderItem } from '../api/orders';
 import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
@@ -22,6 +22,9 @@ export default function OrderDetails() {
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<OrderItem[]>([]);
 
+  // Track which order we've already reset the baseline for
+  const resetBaselineForOrderId = useRef<string | null>(null);
+
   // Track dirty state for each field - use valid orderId or empty string as resetKey
   const resetKey = isValidOrderId ? orderId : '';
   const dealerNameDirty = useDirtyState(dealerName, resetKey);
@@ -37,30 +40,45 @@ export default function OrderDetails() {
       const data = await getOrder(orderId);
       setOrder(data);
 
+      // Set all form values
       setDealerName(data.dealer_name);
       setDealerEmail(data.dealer_email);
       setDealerCompany(data.dealer_company);
       setNotes(data.notes || '');
       setItems(data.items);
-
-      // Mark all fields as clean after loading
-      dealerNameDirty.markClean();
-      dealerEmailDirty.markClean();
-      dealerCompanyDirty.markClean();
-      notesDirty.markClean();
-      itemsDirty.markClean();
     } catch (err) {
       console.error(err);
       alert('Error loading order');
     } finally {
       setLoading(false);
     }
-  }, [orderId, dealerNameDirty, dealerEmailDirty, dealerCompanyDirty, notesDirty, itemsDirty]);
+  }, [orderId]);
 
   useEffect(() => {
     if (!isValidOrderId) return;
     loadOrder();
+    // Reset the baseline tracking when orderId changes
+    resetBaselineForOrderId.current = null;
   }, [isValidOrderId, loadOrder]);
+
+  // Reset dirty state after order is loaded and form values are set
+  // This ensures the baseline matches the loaded values, not the initial empty values
+  // We only reset once per orderId to avoid resetting during user edits
+  useEffect(() => {
+    if (!loading && order && orderId && orderId !== resetBaselineForOrderId.current) {
+      // Only reset if we haven't already reset for this order
+      resetBaselineForOrderId.current = orderId;
+      // Use setTimeout to ensure state updates have been processed
+      setTimeout(() => {
+        dealerNameDirty.resetToClean();
+        dealerEmailDirty.resetToClean();
+        dealerCompanyDirty.resetToClean();
+        notesDirty.resetToClean();
+        itemsDirty.resetToClean();
+      }, 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, order, orderId]);
 
   const hasUnsavedChanges = 
     dealerNameDirty.isDirty || 

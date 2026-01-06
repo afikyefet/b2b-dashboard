@@ -40,11 +40,13 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
         ...formData,
         items: cartItems
       });
+      // Reset loading state before navigation to prevent loading loop
+      setLoading(false);
+      // Call onOrderCreated which will close modal and navigate
       onOrderCreated(order.order_id);
     } catch (err) {
       console.error(err);
       alert('Error creating order');
-    } finally {
       setLoading(false);
     }
   };

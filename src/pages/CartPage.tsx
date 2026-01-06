@@ -386,18 +386,17 @@ export default function CartPage() {
                     }
                 }
             } else if (variant.variant_title) {
-                // Fallback: match by variant title
+                // Fallback: match by variant title (more lenient matching)
                 const titleParts = variant.variant_title.split(' / ').map(p => p.trim());
-                if (titleParts.length === selectedValues.length) {
-                    return selectedValues.every(val => {
-                        const normalizedVal = val.toString().trim().toLowerCase();
-                        return titleParts.some(part => 
-                            part.toLowerCase() === normalizedVal || 
-                            part.toLowerCase().includes(normalizedVal) ||
-                            normalizedVal.includes(part.toLowerCase())
-                        );
-                    });
-                }
+                // Check if all selected values appear somewhere in the variant title
+                return selectedValues.every(val => {
+                    const normalizedVal = val.toString().trim().toLowerCase();
+                    return titleParts.some(part =>
+                        part.toLowerCase() === normalizedVal ||
+                        part.toLowerCase().includes(normalizedVal) ||
+                        normalizedVal.includes(part.toLowerCase())
+                    );
+                });
             }
             return false;
         });
@@ -859,28 +858,36 @@ export default function CartPage() {
                                                             // If all options are selected, try to find matching variant
                                                             if (allOptionsSelected) {
                                                                 const variant = getSelectedVariant(product.product_id);
+                                                                console.log('Selected variant:', variant);
+                                                                console.log('Available variants:', productData.variants);
+                                                                console.log('First variant structure:', productData.variants[0]);
+                                                                console.log('Variant keys:', productData.variants[0] ? Object.keys(productData.variants[0]) : 'no variants');
+                                                                console.log('Selected options:', productData.selectedOptions);
+
                                                                 if (variant && variant.sku) {
                                                                     addSku(variant.sku, 1);
                                                                     setShowProductModal(false);
                                                                 } else {
-                                                                    // If no exact match found but all options selected, try to add first variant or show helpful message
-                                                                    if (productData.variants.length > 0) {
-                                                                        // Try to find closest match or use first variant
-                                                                        const firstVariant = productData.variants[0];
-                                                                        if (firstVariant.sku) {
-                                                                            addSku(firstVariant.sku, 1);
-                                                                            setShowProductModal(false);
-                                                                        } else {
-                                                                            alert('Unable to find matching variant. Please check your selections.');
-                                                                        }
+                                                                    // If no exact match found, try to find ANY variant with a SKU
+                                                                    const variantWithSku = productData.variants.find(v => v.sku);
+                                                                    if (variantWithSku) {
+                                                                        console.warn('Could not find exact match, using first variant with SKU:', variantWithSku);
+                                                                        addSku(variantWithSku.sku, 1);
+                                                                        setShowProductModal(false);
                                                                     } else {
-                                                                        alert('No variants available for this product.');
+                                                                        console.error('No variants with SKU found');
+                                                                        alert('Unable to find matching variant. This product may not have valid SKUs.');
                                                                     }
                                                                 }
                                                             } else if (productData.options.length === 0 && productData.variants.length > 0) {
                                                                 // If no options, add first variant
-                                                                addSku(productData.variants[0].sku, 1);
-                                                                setShowProductModal(false);
+                                                                const variantWithSku = productData.variants.find(v => v.sku);
+                                                                if (variantWithSku) {
+                                                                    addSku(variantWithSku.sku, 1);
+                                                                    setShowProductModal(false);
+                                                                } else {
+                                                                    alert('This product does not have valid SKUs.');
+                                                                }
                                                             } else {
                                                                 alert('Please select all options before adding to cart');
                                                             }

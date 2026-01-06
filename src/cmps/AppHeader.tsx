@@ -25,10 +25,21 @@ function AppHeader() {
 
     // Fetch dealer options
     useEffect(() => {
-        getDashboardData().then((data) => {
-            const options = getFilterOptions(data.rows);
-            setDealerOptions(options.dealerNames);
-        });
+        let cancelled = false;
+        getDashboardData()
+            .then((data) => {
+                console.log('[AppHeader] dashboard data', data);
+                const options = getFilterOptions(data);
+                console.log('[AppHeader] dealer options', options.dealerNames);
+                if (!cancelled) setDealerOptions(options.dealerNames);
+            })
+            .catch((error) => {
+                console.error('[AppHeader] failed to load dashboard data', error);
+            });
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     // Close dropdown when clicking outside

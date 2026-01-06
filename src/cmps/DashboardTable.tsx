@@ -6,7 +6,7 @@ import type { DashboardDataResponse, DashboardDataRow, DashboardHeader, SortConf
 import { useState, useEffect, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import type { AppDispatch } from "../store";
-import { selectFilters, setDealerName } from "../store/slices/filterSlice";
+import { selectFilters, setDealerName, resetFilters } from "../store/slices/filterSlice";
 import { getDashboardData, getDashboardHeaders, applyFiltersAndSort, getFilterOptions } from "../services/dashboard.service";
 import { getRowId } from "../utils/rowId";
 import "../styles/DashboardTable.scss";
@@ -62,25 +62,19 @@ function DashboardTable() {
         // Filters are now managed by Redux, this is kept for compatibility
     // };
 
-    const handleResetFilters = () => {
-        // Reset filters except dealer name (handled by Redux actions)
-        // This is kept for compatibility, actual reset handled by Redux
-    };
-
     const handleResetSort = () => {
         setSortConfig({ field: '', direction: null });
     };
 
     const handleResetAll = () => {
-        handleResetFilters();
+        dispatch(resetFilters());
         handleResetSort();
     };
 
     const hasActiveFilters = () => {
         if (filters.generalSearch && filters.generalSearch.trim()) return true;
-        // Dealer name is always set (required), so check other filters
-        const otherFilters = { ...filters };
-        // delete otherFilters.dealerName;
+        // Dealer name is always set (required), so ignore it for "Reset All"
+        const { dealerName: _dealerName, ...otherFilters } = filters;
         return Object.values(otherFilters).some(value => {
             if (Array.isArray(value)) {
                 return value.length > 0;
