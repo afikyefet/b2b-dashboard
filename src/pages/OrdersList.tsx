@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { listOrders, type Order } from '../api/orders';
+import { listOrders, deleteOrder, type Order } from '../api/orders';
 import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
 
 export default function OrdersList() {
@@ -7,6 +7,7 @@ export default function OrdersList() {
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [search, setSearch] = useState('');
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
   const loadOrders = async () => {
     setLoading(true);
@@ -31,6 +32,28 @@ export default function OrdersList() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     loadOrders();
+  };
+
+  const canDelete = (status: string) => {
+    return status === 'DRAFT' || status === 'SENT' || status === 'OPENED';
+  };
+
+  const handleDelete = async (orderId: string, status: string) => {
+    if (!canDelete(status)) {
+      alert('Order cannot be deleted in current status.');
+      return;
+    }
+    if (!confirm('Delete this order? This cannot be undone.')) return;
+    setDeletingOrderId(orderId);
+    try {
+      await deleteOrder(orderId);
+      setOrders(prev => prev.filter(o => o.order_id !== orderId));
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting order');
+    } finally {
+      setDeletingOrderId(null);
+    }
   };
 
   return (
@@ -79,16 +102,15 @@ export default function OrdersList() {
               <th style={{ padding: '12px 16px', fontSize: '0.85em', color: '#6b7280' }}>Order ID</th>
               <th style={{ padding: '12px 16px', fontSize: '0.85em', color: '#6b7280' }}>Status</th>
               <th style={{ padding: '12px 16px', fontSize: '0.85em', color: '#6b7280' }}>Dealer</th>
-              <th style={{ padding: '12px 16px', fontSize: '0.85em', color: '#6b7280' }}>Total</th>
               <th style={{ padding: '12px 16px', fontSize: '0.85em', color: '#6b7280' }}>Updated</th>
               <th style={{ padding: '12px 16px', fontSize: '0.85em', color: '#6b7280' }}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center' }}>Loading...</td></tr>
+              <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center' }}>Loading...</td></tr>
             ) : orders.length === 0 ? (
-              <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>No orders found.</td></tr>
+              <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>No orders found.</td></tr>
             ) : (
               orders.map(order => (
                 <tr key={order.order_id} style={{ borderBottom: '1px solid #e5e7eb' }}>
@@ -98,7 +120,6 @@ export default function OrdersList() {
                     <div style={{ fontWeight: '500' }}>{order.dealer_name}</div>
                     <div style={{ fontSize: '0.85em', color: '#6b7280' }}>{order.dealer_company}</div>
                   </td>
-                  <td style={{ padding: '12px 16px' }}>${Number(order.subtotal).toFixed(2)}</td>
                   <td style={{ padding: '12px 16px', fontSize: '0.9em' }}>{new Date(order.updated_at).toLocaleDateString()}</td>
                   <td style={{ padding: '12px 16px' }}>
                     <a 
@@ -116,6 +137,23 @@ export default function OrdersList() {
                     >
                       Open
                     </a>
+                    <button
+                      onClick={() => handleDelete(order.order_id, order.status)}
+                      disabled={!canDelete(order.status) || deletingOrderId === order.order_id}
+                      style={{
+                        marginLeft: '8px',
+                        padding: '6px 12px',
+                        background: 'white',
+                        border: '1px solid #fca5a5',
+                        borderRadius: '4px',
+                        color: '#b91c1c',
+                        fontSize: '0.9em',
+                        cursor: (!canDelete(order.status) || deletingOrderId === order.order_id) ? 'not-allowed' : 'pointer',
+                        opacity: (!canDelete(order.status) || deletingOrderId === order.order_id) ? 0.5 : 1
+                      }}
+                    >
+                      {deletingOrderId === order.order_id ? 'Deleting...' : 'Delete'}
+                    </button>
                   </td>
                 </tr>
               ))

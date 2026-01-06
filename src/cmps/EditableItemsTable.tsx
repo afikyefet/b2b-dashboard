@@ -43,17 +43,13 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({ items, o
     onChange(newItems);
   };
 
-  const total = items.reduce((sum, item) => sum + (Number(item.price) * item.qty), 0);
-
   return (
     <div className="editable-items-table">
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '16px' }}>
         <thead>
           <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
             <th style={{ padding: '8px' }}>Product</th>
-            <th style={{ padding: '8px' }}>Price</th>
             <th style={{ padding: '8px' }}>Qty</th>
-            <th style={{ padding: '8px' }}>Total</th>
             {!readOnly && <th style={{ padding: '8px' }}></th>}
           </tr>
         </thead>
@@ -64,7 +60,6 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({ items, o
                 <div style={{ fontWeight: '500' }}>{item.title}</div>
                 <div style={{ fontSize: '0.8em', color: '#666' }}>SKU: {item.sku}</div>
               </td>
-              <td style={{ padding: '8px' }}>${Number(item.price).toFixed(2)}</td>
               <td style={{ padding: '8px' }}>
                 {readOnly ? item.qty : (
                   <input
@@ -76,7 +71,6 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({ items, o
                   />
                 )}
               </td>
-              <td style={{ padding: '8px' }}>${(Number(item.price) * item.qty).toFixed(2)}</td>
               {!readOnly && (
                 <td style={{ padding: '8px' }}>
                   <button
@@ -91,19 +85,12 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({ items, o
           ))}
           {items.length === 0 && (
             <tr>
-              <td colSpan={readOnly ? 4 : 5} style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+              <td colSpan={readOnly ? 2 : 3} style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
                 No items in order.
               </td>
             </tr>
           )}
         </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={3} style={{ textAlign: 'right', padding: '12px', fontWeight: 'bold' }}>Subtotal:</td>
-            <td style={{ padding: '12px', fontWeight: 'bold' }}>${total.toFixed(2)}</td>
-            {!readOnly && <td></td>}
-          </tr>
-        </tfoot>
       </table>
 
       {!readOnly && (

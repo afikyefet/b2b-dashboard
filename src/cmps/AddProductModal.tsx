@@ -244,6 +244,38 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     });
   };
 
+  const getOptionValues = (productData: ProductWithVariants, optionName: string): string[] => {
+    const values = new Set<string>();
+    const optionIndex = productData.options.findIndex(opt => opt.name.toLowerCase() === optionName.toLowerCase());
+
+    productData.variants.forEach(variant => {
+      if (variant.variant_selected_options) {
+        try {
+          const selected = JSON.parse(variant.variant_selected_options);
+          if (Array.isArray(selected)) {
+            const match = selected.find((opt: any) => (opt.name || opt.Name || '').toLowerCase() === optionName.toLowerCase());
+            const val = match ? (match.value || match.Value || '') : '';
+            if (val) values.add(String(val));
+          }
+          return;
+        } catch (e) {
+          // Fall through to title parsing.
+        }
+      }
+
+      if (variant.variant_title && optionIndex >= 0) {
+        const parts = variant.variant_title.split(' / ');
+        const part = parts[optionIndex];
+        if (part) values.add(part.trim());
+      }
+    });
+
+    if (values.size > 0) return Array.from(values).sort();
+
+    const option = productData.options.find(opt => opt.name.toLowerCase() === optionName.toLowerCase());
+    return option ? option.values : [];
+  };
+
   const visibleProducts = products.filter(product => {
     const productData = productsWithVariants.get(product.product_id);
     const isLoading = loadingVariants.has(product.product_id);
@@ -278,7 +310,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     Showing {visibleProducts.length} product{visibleProducts.length === 1 ? '' : 's'} with options
                 </div>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {loadingProducts && <div>Loading products...</div>}
                 {!loadingProducts && visibleProducts.length === 0 && <div>No products with options found</div>}
                 {visibleProducts.map(product => {
@@ -288,56 +320,94 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     const isLoading = loadingVariants.has(product.product_id);
                     
                     return (
-                        <div  key={product.product_id} style={{ border: '1px solid #ddd', borderRadius: '8px', padding: '14px', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            <div>
+                        <div key={product.product_id} style={{ border: '1px solid #ddd', borderRadius: '10px', padding: '14px', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'row', gap: '16px', alignItems: 'stretch' }}>
+                            <div style={{ minWidth: '220px', flex: '0 0 220px' }}>
                                 <h3 style={{ margin: 0, fontSize: '1em' }}>{product.title}</h3>
                                 {product.tags?.length > 0 && (
-                                    <div style={{ marginTop: '4px', fontSize: '0.8em', color: '#666' }}>
+                                    <div style={{ marginTop: '6px', fontSize: '0.8em', color: '#666' }}>
                                         {product.tags.slice(0, 3).join(', ')}
                                     </div>
                                 )}
                             </div>
                             {isLoading && <div style={{ fontSize: '0.85em', color: '#666' }}>Loading options...</div>}
                             {productData && (
-                                <>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
-                                        {productData.options.map(option => (
-                                            <div key={option.name}>
-                                                <label style={{ display: 'block', fontSize: '0.75em', fontWeight: 600, color: '#444' }}>{option.name}</label>
-                                                <select 
-                                                    value={productData.selectedOptions[option.name] || ''}
-                                                    onChange={e => handleOptionChange(product.product_id, option.name, e.target.value)}
-                                                    style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                                >
-                                                    <option value="">Select</option>
-                                                    {option.values.map(v => <option key={v} value={v}>{v}</option>)}
-                                                </select>
-                                            </div>
-                                        ))}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
+                                        {productData.options.map(option => {
+                                            const values = getOptionValues(productData, option.name);
+                                            const current = productData.selectedOptions[option.name] || '';
+                                            const isColorOption = option.name.toLowerCase().includes('color') || option.name.toLowerCase().includes('colour');
+                                            const swatchLimit = isColorOption ? 20 : 12;
+                                            const useSwatches = values.length > 0 && values.length <= swatchLimit;
+                                            return (
+                                                <div key={option.name}>
+                                                    <label style={{ display: 'block', fontSize: '0.75em', fontWeight: 600, color: '#444', marginBottom: '4px' }}>{option.name}</label>
+                                                    {useSwatches ? (
+                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                            {values.map(value => {
+                                                                const isActive = current === value;
+                                                                return (
+                                                                    <button
+                                                                        key={value}
+                                                                        type="button"
+                                                                        onClick={() => handleOptionChange(product.product_id, option.name, value)}
+                                                                        style={{
+                                                                            padding: '6px 10px',
+                                                                            borderRadius: '999px',
+                                                                            border: isActive ? '1px solid #008060' : '1px solid #ddd',
+                                                                            backgroundColor: isActive ? '#e6f5f1' : 'white',
+                                                                            color: '#333',
+                                                                            fontSize: '0.8em',
+                                                                            cursor: 'pointer'
+                                                                        }}
+                                                                    >
+                                                                        {value}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <select 
+                                                            value={current}
+                                                            onChange={e => handleOptionChange(product.product_id, option.name, e.target.value)}
+                                                            style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                                                        >
+                                                            <option value="">Select</option>
+                                                            {values.map(v => <option key={v} value={v}>{v}</option>)}
+                                                        </select>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
-                                    <button
-                                        disabled={!selectedVariant}
-                                        onClick={() => {
-                                            if (selectedVariant) {
-                                                onAdd({
-                                                    sku: selectedVariant.sku,
-                                                    variant_id: Number(selectedVariant.variant_id),
-                                                    title: `${product.title} - ${selectedVariant.variant_title}`,
-                                                    price: String(selectedVariant.price || '0'),
-                                                    qty: 1
-                                                });
-                                                onClose();
-                                            }
-                                        }}
-                                        style={{
-                                            width: '100%', padding: '8px', 
-                                            backgroundColor: selectedVariant ? '#008060' : '#ccc', 
-                                            color: 'white', border: 'none', borderRadius: '4px', cursor: selectedVariant ? 'pointer' : 'not-allowed'
-                                        }}
-                                    >
-                                        Add {selectedVariant ? `- $${selectedVariant.price?.toFixed(2)}` : ''}
-                                    </button>
-                                </>
+                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                        <button
+                                            disabled={!selectedVariant}
+                                            onClick={() => {
+                                                if (selectedVariant) {
+                                                    onAdd({
+                                                        sku: selectedVariant.sku,
+                                                        variant_id: Number(selectedVariant.variant_id),
+                                                        title: `${product.title} - ${selectedVariant.variant_title}`,
+                                                        price: String(selectedVariant.price || '0'),
+                                                        qty: 1
+                                                    });
+                                                    onClose();
+                                                }
+                                            }}
+                                            style={{
+                                                padding: '8px 14px',
+                                                backgroundColor: selectedVariant ? '#008060' : '#ccc',
+                                                color: 'white',
+                                                border: 'none',
+                                                borderRadius: '6px',
+                                                cursor: selectedVariant ? 'pointer' : 'not-allowed'
+                                            }}
+                                        >
+                                            Add
+                                        </button>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     );

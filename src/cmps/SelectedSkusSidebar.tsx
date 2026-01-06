@@ -19,14 +19,6 @@ function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
         if (isOpen) toggleDrawer();
     };
 
-    const calculateTotal = () => {
-        return cart.reduce((total, item) => {
-            const details = hydrated[item.sku];
-            const price = details?.price ?? 0;
-            return total + (price * item.qty);
-        }, 0);
-    };
-
     return (
         <>
             {/* Overlay when drawer is open */}
@@ -95,13 +87,13 @@ function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
                                                     )}
                                                     
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', marginTop: '5px', alignItems: 'center' }}>
-                                                        <div style={{ fontSize: '0.9em' }}>
-                                                            Price: {details?.price != null ? `$${details.price.toFixed(2)}` : '-'}
+                                                        <div style={{ fontSize: '0.85em', color: '#666' }}>
+                                                            SKU: {item.sku}
                                                         </div>
                                                         <div style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
                                                             <label style={{ fontSize: '0.8em' }}>Qty:</label>
-                                                            <input 
-                                                                type="number" 
+                                                            <input
+                                                                type="number"
                                                                 min="1"
                                                                 value={item.qty}
                                                                 onChange={(e) => setQty(item.sku, Number(e.target.value))}
@@ -112,13 +104,6 @@ function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
                                                 </div>
                                             );
                                         })}
-                                    </div>
-
-                                    <div style={{ borderTop: '1px solid #eee', paddingTop: '15px', marginTop: '10px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                                            <span>Total:</span>
-                                            <span>${calculateTotal().toFixed(2)}</span>
-                                        </div>
                                     </div>
                                 </>
                             ) : (

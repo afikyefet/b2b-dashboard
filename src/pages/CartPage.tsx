@@ -57,14 +57,6 @@ export default function CartPage() {
         }
     };
 
-    const calculateTotal = () => {
-        return cart.reduce((total, item) => {
-            const details = hydrated[item.sku];
-            const price = details?.price ?? 0;
-            return total + (price * item.qty);
-        }, 0);
-    };
-
     // Parse options from product options JSON
     const parseProductOptions = (optionsJson: string | null | undefined): ProductOption[] => {
         if (!optionsJson) return [];
@@ -97,6 +89,40 @@ export default function CartPage() {
         } finally {
             setLoadingProducts(false);
         }
+    };
+
+    // Filter out products where ALL variants are unavailable
+    const filterUnavailableProducts = (products: ProductListItem[]): ProductListItem[] => {
+        return products.filter(product => {
+            const productData = productsWithVariants.get(product.product_id);
+
+            if (loadingVariants.has(product.product_id)) return true;
+            if (!productData || productData.variants.length === 0) return true;
+
+            // Keep product if ANY variant is available
+            const hasAvailableVariant = productData.variants.some(v => v.available_for_sale);
+            return hasAvailableVariant;
+        });
+    };
+
+    // Get image URL with fallback chain: variant → product featured → null
+    const getProductImageUrl = (productId: string): string | null => {
+        const productData = productsWithVariants.get(productId);
+        if (!productData) return null;
+
+        // Try variant image first
+        const variantWithImage = productData.variants.find(v => v.variant_image_url);
+        if (variantWithImage?.variant_image_url) {
+            return variantWithImage.variant_image_url;
+        }
+
+        // Fallback to product featured image
+        const firstVariant = productData.variants[0];
+        if (firstVariant?.product_featured_image_url) {
+            return firstVariant.product_featured_image_url;
+        }
+
+        return null;
     };
 
     // Load variants for a product
@@ -459,17 +485,13 @@ export default function CartPage() {
                             <thead>
                                 <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
                                     <th style={{ padding: '12px' }}>Product</th>
-                                    <th style={{ padding: '12px' }}>Price</th>
                                     <th style={{ padding: '12px' }}>Quantity</th>
-                                    <th style={{ padding: '12px' }}>Total</th>
                                     <th style={{ padding: '12px' }}></th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {cart.map((item) => {
                                     const details = hydrated[item.sku];
-                                    const price = details?.price ?? 0;
-                                    const rowTotal = price * item.qty;
 
                                     return (
                                         <tr key={item.sku} style={{ borderBottom: '1px solid #eee' }}>
@@ -485,9 +507,6 @@ export default function CartPage() {
                                                 )}
                                             </td>
                                             <td style={{ padding: '12px' }}>
-                                                {details?.price ? `$${price.toFixed(2)}` : '-'}
-                                            </td>
-                                            <td style={{ padding: '12px' }}>
                                                 <input 
                                                     type="number" 
                                                     min="0"
@@ -495,9 +514,6 @@ export default function CartPage() {
                                                     onChange={(e) => setQty(item.sku, Number(e.target.value))}
                                                     style={{ width: '60px', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
                                                 />
-                                            </td>
-                                            <td style={{ padding: '12px' }}>
-                                                ${rowTotal.toFixed(2)}
                                             </td>
                                             <td style={{ padding: '12px' }}>
                                                 <button 
@@ -536,10 +552,6 @@ export default function CartPage() {
                 <div className="cart-sidebar">
                     <div style={{ background: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
                         <h3 style={{ marginTop: 0 }}>Summary</h3>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontSize: '1.2em', fontWeight: 'bold' }}>
-                            <span>Total</span>
-                            <span>${calculateTotal().toFixed(2)}</span>
-                        </div>
                         
                         <button
                             onClick={() => setShowCreateOrderModal(true)}
@@ -667,254 +679,218 @@ export default function CartPage() {
                                 <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>No products found</div>
                             ) : (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {products.map((product) => {
-                                    const productData = productsWithVariants.get(product.product_id);
-                                    const isLoading = loadingVariants.has(product.product_id);
-                                    const selectedVariant = productData ? getSelectedVariant(product.product_id) : null;
-                                    const allOptionsSelected = productData ? 
-                                        productData.options.every(opt => productData.selectedOptions[opt.name]) : false;
+                                    {filterUnavailableProducts(products).map((product) => {
+                                        const productData = productsWithVariants.get(product.product_id);
+                                        const isLoading = loadingVariants.has(product.product_id);
+                                        const selectedVariant = productData ? getSelectedVariant(product.product_id) : null;
+                                        const allOptionsSelected = productData ?
+                                            productData.options.every(opt => productData.selectedOptions[opt.name]) : false;
 
-                                    return (
-                                        <div
-                                            key={product.product_id}
-                                            style={{
-                                                border: '1px solid #ddd',
-                                                borderRadius: '6px',
-                                                padding: '12px 14px',
-                                                background: 'white',
-                                                display: 'flex',
-                                                flexDirection: 'column',
-                                                gap: '10px'
-                                            }}
-                                        >
-                                            <h3 style={{ margin: 0, fontSize: '1em', fontWeight: '600' }}>{product.title}</h3>
-                                            
-                                            {isLoading && (
-                                                <div style={{ textAlign: 'center', padding: '10px', color: '#666', fontSize: '0.9em' }}>Loading options...</div>
-                                            )}
-
-                                            {productData && (
-                                                <>
-                                                    <div style={{ display: 'flex', flexDirection: 'row', flexWrap: 'wrap', gap: '10px' }}>
-                                                        {productData.options.map((option) => {
-                                                            const availableValues = getAvailableOptionValues(product.product_id, option.name);
-                                                            const displayValues = availableValues.length > 0 ? availableValues : option.values;
-                                                            
-                                                            return (
-                                                                <div key={option.name} style={{ flex: '1 1 140px', minWidth: '120px' }}>
-                                                                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.8em', fontWeight: '600', color: '#555' }}>
-                                                                        {option.name}
-                                                                        {availableValues.length > 0 && availableValues.length < option.values.length && (
-                                                                            <span style={{ fontSize: '0.85em', fontWeight: 'normal', color: '#888', marginLeft: '4px' }}>
-                                                                                ({availableValues.length})
-                                                                            </span>
-                                                                        )}
-                                                                    </label>
-                                                                    <select
-                                                                        value={productData.selectedOptions[option.name] || ''}
-                                                                        onChange={(e) => handleOptionChange(product.product_id, option.name, e.target.value)}
-                                                                        style={{
-                                                                            width: '100%',
-                                                                            padding: '6px 8px',
-                                                                            border: '1px solid #ddd',
-                                                                            borderRadius: '4px',
-                                                                            fontSize: '0.9em',
-                                                                            backgroundColor: 'white',
-                                                                            cursor: 'pointer'
-                                                                        }}
-                                                                    >
-                                                                        <option value="">Select</option>
-                                                                        {displayValues.map((value) => (
-                                                                            <option key={value} value={value}>
-                                                                                {value}
-                                                                            </option>
-                                                                        ))}
-                                                                    </select>
-                                                                </div>
-                                                            );
-                                                        })}
-                                                    </div>
-
-                                                    {/* Show available variants based on current selections */}
+                                        return (
+                                            <div
+                                                key={product.product_id}
+                                                style={{
+                                                    border: '1px solid #ddd',
+                                                    borderRadius: '8px',
+                                                    background: 'white',
+                                                    display: 'flex',
+                                                    flexDirection: 'row',
+                                                    overflow: 'hidden',
+                                                    transition: 'box-shadow 0.2s',
+                                                }}
+                                                onMouseEnter={(e) => {
+                                                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                                                }}
+                                                onMouseLeave={(e) => {
+                                                    e.currentTarget.style.boxShadow = 'none';
+                                                }}
+                                            >
+                                                {/* Product Image */}
+                                                <div style={{
+                                                    width: '120px',
+                                                    height: '120px',
+                                                    flexShrink: 0,
+                                                    position: 'relative',
+                                                    backgroundColor: '#f5f5f5',
+                                                    overflow: 'hidden'
+                                                }}>
                                                     {(() => {
-                                                        const availableVariants = getAvailableVariants(product.product_id);
-                                                        const hasSelections = Object.values(productData.selectedOptions).some(v => v);
-                                                        
-                                                        if (hasSelections && availableVariants.length > 0) {
+                                                        const imageUrl = getProductImageUrl(product.product_id);
+                                                        if (imageUrl) {
                                                             return (
-                                                                <div style={{ 
-                                                                    padding: '10px', 
-                                                                    background: '#f9f9f9', 
-                                                                    border: '1px solid #ddd',
-                                                                    borderRadius: '4px'
-                                                                }}>
-                                                                    <div style={{ fontSize: '0.8em', fontWeight: '600', marginBottom: '6px', color: '#555' }}>
-                                                                        Available ({availableVariants.length}):
-                                                                    </div>
-                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '120px', overflowY: 'auto' }}>
-                                                                        {availableVariants.map((variant) => {
-                                                                            const isSelected = selectedVariant?.sku === variant.sku;
-                                                                            return (
-                                                                                <div
-                                                                                    key={variant.sku}
-                                                                                    onClick={() => {
-                                                                                        if (variant.sku) {
-                                                                                            addSku(variant.sku, 1);
-                                                                                            setShowProductModal(false);
-                                                                                        }
-                                                                                    }}
-                                                                                    style={{
-                                                                                        padding: '6px 8px',
-                                                                                        border: isSelected ? '2px solid #008060' : '1px solid #ddd',
-                                                                                        borderRadius: '4px',
-                                                                                        background: isSelected ? '#f0f9ff' : 'white',
-                                                                                        cursor: 'pointer',
-                                                                                        transition: 'all 0.15s',
-                                                                                        display: 'flex',
-                                                                                        justifyContent: 'space-between',
-                                                                                        alignItems: 'center',
-                                                                                        fontSize: '0.85em'
-                                                                                    }}
-                                                                                    onMouseEnter={(e) => {
-                                                                                        if (!isSelected) {
-                                                                                            e.currentTarget.style.background = '#f5f5f5';
-                                                                                            e.currentTarget.style.borderColor = '#008060';
-                                                                                        }
-                                                                                    }}
-                                                                                    onMouseLeave={(e) => {
-                                                                                        if (!isSelected) {
-                                                                                            e.currentTarget.style.background = 'white';
-                                                                                            e.currentTarget.style.borderColor = '#ddd';
-                                                                                        }
-                                                                                    }}
-                                                                                >
-                                                                                    <span style={{ fontWeight: isSelected ? '600' : 'normal' }}>
-                                                                                        {variant.variant_title}
-                                                                                    </span>
-                                                                                    <span style={{ fontWeight: '600', color: '#008060' }}>
-                                                                                        {variant.price ? `$${variant.price.toFixed(2)}` : 'N/A'}
-                                                                                    </span>
-                                                                                </div>
-                                                                            );
-                                                                        })}
-                                                                    </div>
-                                                                </div>
+                                                                <img
+                                                                    src={imageUrl}
+                                                                    alt={product.title}
+                                                                    style={{
+                                                                        width: '100%',
+                                                                        height: '100%',
+                                                                        objectFit: 'cover'
+                                                                    }}
+                                                                />
                                                             );
                                                         }
-                                                        return null;
+                                                        return (
+                                                            <div style={{
+                                                                width: '100%',
+                                                                height: '100%',
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                justifyContent: 'center',
+                                                                backgroundColor: '#e5e5e5',
+                                                                color: '#999',
+                                                                fontSize: '0.75em'
+                                                            }}>
+                                                                No Image
+                                                            </div>
+                                                        );
                                                     })()}
+                                                </div>
 
-                                                    {selectedVariant && allOptionsSelected && (
-                                                        <div style={{ 
-                                                            padding: '8px 10px', 
-                                                            background: '#f0f9ff', 
-                                                            border: '1px solid #008060',
-                                                            borderRadius: '4px',
-                                                            display: 'flex',
-                                                            justifyContent: 'space-between',
-                                                            alignItems: 'center',
-                                                            fontSize: '0.85em'
+                                                {/* Product Info & Options */}
+                                                <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                                    <div>
+                                                        <h3 style={{
+                                                            margin: 0,
+                                                            fontSize: '1em',
+                                                            fontWeight: '600',
+                                                            lineHeight: '1.3',
+                                                            color: '#333'
                                                         }}>
-                                                            <span><strong>Selected:</strong> {selectedVariant.variant_title}</span>
-                                                            <span style={{ fontWeight: '600', color: '#008060' }}>
-                                                                {selectedVariant.price ? `$${selectedVariant.price.toFixed(2)}` : 'N/A'}
-                                                            </span>
+                                                            {product.title}
+                                                        </h3>
+                                                        {product.tags && product.tags.length > 0 && (
+                                                            <div style={{ fontSize: '0.75em', color: '#666', marginTop: '2px' }}>
+                                                                {product.tags.slice(0, 2).join(', ')}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {isLoading && (
+                                                        <div style={{ color: '#666', fontSize: '0.85em' }}>
+                                                            Loading options...
                                                         </div>
                                                     )}
 
-                                                    {productData.options.length > 0 && !allOptionsSelected && selectedVariant && (
-                                                        <div style={{ 
-                                                            padding: '6px 10px', 
-                                                            background: '#fff3cd', 
-                                                            border: '1px solid #ffc107',
-                                                            borderRadius: '4px',
-                                                            fontSize: '0.8em',
-                                                            color: '#856404'
-                                                        }}>
-                                                            Select all options to see exact variant
+                                                    {productData && (
+                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                                            {productData.options.map((option) => {
+                                                                const availableValues = getAvailableOptionValues(product.product_id, option.name);
+                                                                const displayValues = availableValues.length > 0 ? availableValues : option.values;
+                                                                const selectedValue = productData.selectedOptions[option.name];
+
+                                                                return (
+                                                                    <div key={option.name}>
+                                                                        <label style={{
+                                                                            display: 'block',
+                                                                            marginBottom: '6px',
+                                                                            fontSize: '0.8em',
+                                                                            fontWeight: '600',
+                                                                            color: '#555'
+                                                                        }}>
+                                                                            {option.name}: {selectedValue && <span style={{ color: '#008060' }}>{selectedValue}</span>}
+                                                                        </label>
+                                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                                                            {displayValues.map((value) => {
+                                                                                const isSelected = selectedValue === value;
+                                                                                return (
+                                                                                    <button
+                                                                                        key={value}
+                                                                                        onClick={() => handleOptionChange(product.product_id, option.name, value)}
+                                                                                        style={{
+                                                                                            padding: '6px 12px',
+                                                                                            border: isSelected ? '2px solid #008060' : '1px solid #ddd',
+                                                                                            borderRadius: '4px',
+                                                                                            background: isSelected ? '#e8f5f2' : 'white',
+                                                                                            color: isSelected ? '#008060' : '#333',
+                                                                                            fontSize: '0.8em',
+                                                                                            fontWeight: isSelected ? '600' : '400',
+                                                                                            cursor: 'pointer',
+                                                                                            transition: 'all 0.15s',
+                                                                                            minWidth: '40px',
+                                                                                            textAlign: 'center'
+                                                                                        }}
+                                                                                        onMouseEnter={(e) => {
+                                                                                            if (!isSelected) {
+                                                                                                e.currentTarget.style.borderColor = '#999';
+                                                                                                e.currentTarget.style.background = '#f9f9f9';
+                                                                                            }
+                                                                                        }}
+                                                                                        onMouseLeave={(e) => {
+                                                                                            if (!isSelected) {
+                                                                                                e.currentTarget.style.borderColor = '#ddd';
+                                                                                                e.currentTarget.style.background = 'white';
+                                                                                            }
+                                                                                        }}
+                                                                                    >
+                                                                                        {value}
+                                                                                    </button>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })}
                                                         </div>
                                                     )}
+                                                </div>
 
-                                                    {productData.options.length === 0 && productData.variants.length > 0 && (
-                                                        <div style={{ 
-                                                            padding: '8px 10px', 
-                                                            background: '#f0f9ff', 
-                                                            border: '1px solid #008060',
-                                                            borderRadius: '4px',
-                                                            display: 'flex',
-                                                            justifyContent: 'space-between',
-                                                            alignItems: 'center',
-                                                            fontSize: '0.85em'
-                                                        }}>
-                                                            <span style={{ color: '#666' }}>SKU: {productData.variants[0].sku}</span>
-                                                            <span style={{ fontWeight: '600', color: '#008060' }}>
-                                                                {productData.variants[0].price ? `$${productData.variants[0].price.toFixed(2)}` : 'N/A'}
-                                                            </span>
-                                                        </div>
-                                                    )}
-
-                                                    <button
-                                                        onClick={() => {
-                                                            // If all options are selected, try to find matching variant
-                                                            if (allOptionsSelected) {
-                                                                const variant = getSelectedVariant(product.product_id);
-                                                                console.log('Selected variant:', variant);
-                                                                console.log('Available variants:', productData.variants);
-                                                                console.log('First variant structure:', productData.variants[0]);
-                                                                console.log('Variant keys:', productData.variants[0] ? Object.keys(productData.variants[0]) : 'no variants');
-                                                                console.log('Selected options:', productData.selectedOptions);
-
-                                                                if (variant && variant.sku) {
-                                                                    addSku(variant.sku, 1);
-                                                                    setShowProductModal(false);
-                                                                } else {
-                                                                    // If no exact match found, try to find ANY variant with a SKU
-                                                                    const variantWithSku = productData.variants.find(v => v.sku);
-                                                                    if (variantWithSku) {
-                                                                        console.warn('Could not find exact match, using first variant with SKU:', variantWithSku);
-                                                                        addSku(variantWithSku.sku, 1);
+                                                {/* Add to Cart Button */}
+                                                {productData && (
+                                                    <div style={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        paddingRight: '12px',
+                                                        paddingLeft: '12px'
+                                                    }}>
+                                                        <button
+                                                            onClick={() => {
+                                                                if (allOptionsSelected) {
+                                                                    const variant = getSelectedVariant(product.product_id);
+                                                                    if (variant && variant.sku) {
+                                                                        addSku(variant.sku, 1);
                                                                         setShowProductModal(false);
                                                                     } else {
-                                                                        console.error('No variants with SKU found');
-                                                                        alert('Unable to find matching variant. This product may not have valid SKUs.');
+                                                                        const variantWithSku = productData.variants.find(v => v.sku);
+                                                                        if (variantWithSku) {
+                                                                            addSku(variantWithSku.sku, 1);
+                                                                            setShowProductModal(false);
+                                                                        } else {
+                                                                            alert('Unable to find matching variant.');
+                                                                        }
                                                                     }
-                                                                }
-                                                            } else if (productData.options.length === 0 && productData.variants.length > 0) {
-                                                                // If no options, add first variant
-                                                                const variantWithSku = productData.variants.find(v => v.sku);
-                                                                if (variantWithSku) {
-                                                                    addSku(variantWithSku.sku, 1);
-                                                                    setShowProductModal(false);
+                                                                } else if (productData.options.length === 0 && productData.variants.length > 0) {
+                                                                    const variantWithSku = productData.variants.find(v => v.sku);
+                                                                    if (variantWithSku) {
+                                                                        addSku(variantWithSku.sku, 1);
+                                                                        setShowProductModal(false);
+                                                                    }
                                                                 } else {
-                                                                    alert('This product does not have valid SKUs.');
+                                                                    alert('Please select all options');
                                                                 }
-                                                            } else {
-                                                                alert('Please select all options before adding to cart');
-                                                            }
-                                                        }}
-                                                        disabled={productData.options.length > 0 && !allOptionsSelected}
-                                                        style={{
-                                                            width: '100%',
-                                                            padding: '8px',
-                                                            background: (productData.options.length > 0 && !allOptionsSelected) ? '#ccc' : '#008060',
-                                                            color: 'white',
-                                                            border: 'none',
-                                                            borderRadius: '4px',
-                                                            cursor: (productData.options.length > 0 && !allOptionsSelected) ? 'not-allowed' : 'pointer',
-                                                            fontWeight: '600',
-                                                            fontSize: '0.9em',
-                                                            opacity: (productData.options.length > 0 && !allOptionsSelected) ? 0.6 : 1
-                                                        }}
-                                                    >
-                                                        Add to Cart
-                                                    </button>
-                                                </>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
+                                                            }}
+                                                            disabled={productData.options.length > 0 && !allOptionsSelected}
+                                                            style={{
+                                                                padding: '10px 20px',
+                                                                background: (productData.options.length > 0 && !allOptionsSelected) ? '#ccc' : '#008060',
+                                                                color: 'white',
+                                                                border: 'none',
+                                                                borderRadius: '6px',
+                                                                cursor: (productData.options.length > 0 && !allOptionsSelected) ? 'not-allowed' : 'pointer',
+                                                                fontWeight: '600',
+                                                                fontSize: '0.9em',
+                                                                whiteSpace: 'nowrap',
+                                                                minWidth: '100px'
+                                                            }}
+                                                        >
+                                                            Add to Cart
+                                                        </button>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

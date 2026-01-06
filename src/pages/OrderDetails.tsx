@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getOrder, patchOrder, sendOrder, type Order, type OrderItem } from '../api/orders';
+import { getOrder, patchOrder, sendOrder, deleteOrder, type Order, type OrderItem } from '../api/orders';
 import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
 import { EditableItemsTable } from '../cmps/EditableItemsTable';
 import { useDirtyState } from '../hooks/useDirtyState';
@@ -14,6 +14,7 @@ export default function OrderDetails() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   
   // Form states
   const [dealerName, setDealerName] = useState('');
@@ -149,9 +150,32 @@ export default function OrderDetails() {
     }
   };
 
+  const canDelete = (status: string) => {
+    return status === 'DRAFT' || status === 'SENT' || status === 'OPENED';
+  };
+
+  const handleDelete = async () => {
+    if (!order) return;
+    if (!canDelete(order.status)) {
+      alert('Order cannot be deleted in current status.');
+      return;
+    }
+    if (!confirm('Delete this order? This cannot be undone.')) return;
+    setDeleting(true);
+    try {
+      await deleteOrder(order.order_id);
+      navigate('/orders');
+    } catch (err) {
+      console.error(err);
+      alert('Error deleting order');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const copyLink = () => {
       if (!order?.share_token) return;
-      const url = `${window.location.origin}/#/public/order/${order.share_token}`;
+      const url = `${window.location.origin}/public/order/${order.share_token}`;
       navigator.clipboard.writeText(url);
       alert('Link copied to clipboard!');
   };
@@ -164,7 +188,7 @@ export default function OrderDetails() {
   if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading Order...</div>;
   if (!order) return <div style={{ padding: '40px', textAlign: 'center' }}>Order not found</div>;
 
-  const publicLink = `${window.location.origin}/#/public/order/${order.share_token}`;
+  const publicLink = `${window.location.origin}/public/order/${order.share_token}`;
 
   return (
     <div className="order-details-page" style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto', paddingBottom: '80px' }}>
@@ -175,8 +199,25 @@ export default function OrderDetails() {
           <h1 style={{ margin: 0, fontSize: '1.5em' }}>Order #{order.order_id.substring(0,8)}...</h1>
           <OrderStatusBadge status={order.status} />
         </div>
-        <div style={{ fontSize: '0.85em', color: '#666' }}>
-          Updated: {new Date(order.updated_at).toLocaleString()}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ fontSize: '0.85em', color: '#666' }}>
+            Updated: {new Date(order.updated_at).toLocaleString()}
+          </div>
+          <button
+            onClick={handleDelete}
+            disabled={!canDelete(order.status) || deleting}
+            style={{
+              padding: '6px 12px',
+              background: 'white',
+              border: '1px solid #fca5a5',
+              borderRadius: '4px',
+              color: '#b91c1c',
+              cursor: (!canDelete(order.status) || deleting) ? 'not-allowed' : 'pointer',
+              opacity: (!canDelete(order.status) || deleting) ? 0.5 : 1
+            }}
+          >
+            {deleting ? 'Deleting...' : 'Delete'}
+          </button>
         </div>
       </div>
 

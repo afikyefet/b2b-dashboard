@@ -6,6 +6,7 @@ export type ProductListItem = {
   title: string;
   tags: string[];
   updated_at: string;
+  featured_image_url?: string | null;
 };
 
 export type HydratedSkuItem = {
@@ -19,6 +20,8 @@ export type HydratedSkuItem = {
   available_for_sale: boolean;
   product_options?: string | null;
   variant_selected_options?: string | null;
+  variant_image_url?: string | null;
+  product_featured_image_url?: string | null;
 };
 
 export async function fetchProducts(params: {

@@ -117,3 +117,11 @@ export async function sendOrder(id: string): Promise<Order> {
   return data.order;
 }
 
+export async function deleteOrder(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/orders/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error(await res.text());
+}
+
