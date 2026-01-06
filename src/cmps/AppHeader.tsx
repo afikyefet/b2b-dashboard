@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '../store';
 import { selectDealerName, setDealerName, resetFilters } from '../store/slices/filterSlice';
@@ -9,32 +10,23 @@ import { getFilterOptions } from '../services/dashboard.service';
 import '../styles/AppHeader.scss'
 
 function AppHeader() {
+    const navigate = useNavigate();
+    const location = useLocation();
     const dispatch = useDispatch<AppDispatch>();
     const dealerName = useSelector(selectDealerName);
     const { cart } = useCart();
     const { isOpen: isDrawerOpen, toggleDrawer } = useDrawer();
     const [dealerOptions, setDealerOptions] = useState<string[]>([]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const [isCartPage, setIsCartPage] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     // Check if we're on the cart page
-    useEffect(() => {
-        const handleHashChange = () => {
-            setIsCartPage(window.location.hash === '#cart');
-        };
-        
-        // Initial check
-        handleHashChange();
-        
-        window.addEventListener('hashchange', handleHashChange);
-        return () => window.removeEventListener('hashchange', handleHashChange);
-    }, []);
+    const isCartPage = location.pathname === '/cart';
 
     // Fetch dealer options
     useEffect(() => {
         getDashboardData().then((data) => {
-            const options = getFilterOptions(data);
+            const options = getFilterOptions(data.rows);
             setDealerOptions(options.dealerNames);
         });
     }, []);
@@ -62,7 +54,7 @@ function AppHeader() {
             <div className="header-container">
                 <div className="header-logo">
                     <button
-                        onClick={() => window.location.hash = ''}
+                        onClick={() => navigate('/')}
                         type="button"
                         title="Go to dashboard"
                     >
@@ -138,6 +130,16 @@ function AppHeader() {
                         </button>
                     </div>
                 )}
+                <div className="header-nav">
+                    <button
+                        className="drawer-toggle-button-header"
+                        onClick={() => navigate('/orders')}
+                        type="button"
+                        style={{ marginLeft: '10px' }}
+                    >
+                        Orders
+                    </button>
+                </div>
             </div>
         </header>
     )

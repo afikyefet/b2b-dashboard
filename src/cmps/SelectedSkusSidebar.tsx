@@ -1,3 +1,4 @@
+import { useNavigate } from 'react-router-dom';
 import { useDrawer } from '../contexts/DrawerContext';
 import { useCart } from '../contexts/CartContext';
 import '../styles/SelectedSkusSidebar.scss';
@@ -9,11 +10,12 @@ interface SelectedSkusSidebarProps {
 }
 
 function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
+    const navigate = useNavigate();
     const { isOpen, toggleDrawer } = useDrawer();
     const { cart, hydrated, setQty, removeSku } = useCart();
 
     const handleGoToCart = () => {
-        window.location.hash = '#cart';
+        navigate('/cart');
         if (isOpen) toggleDrawer();
     };
 

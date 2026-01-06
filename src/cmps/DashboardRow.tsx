@@ -68,13 +68,13 @@ function DashboardRow({ row, headers }: DashboardRowProps) {
                     
                     // Debug logging for problematic rows
                     if (row.product_sell_type === 'Problematic Product' && fieldKey === 'product_name') {
-                        console.log('Problematic Product row:', {
-                            field: fieldKey,
-                            value: value,
-                            hasField: fieldKey in row,
-                            rowKeys: Object.keys(row).slice(0, 10),
-                            productName: row.product_name
-                        });
+                        // console.log('Problematic Product row:', {
+                        //     field: fieldKey,
+                        //     value: value,
+                        //     hasField: fieldKey in row,
+                        //     rowKeys: Object.keys(row).slice(0, 10),
+                        //     productName: row.product_name
+                        // });
                     }
                     
                     // Handle display values

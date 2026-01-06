@@ -1,7 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { useCart } from '../contexts/CartContext';
 import { hydrateBySkus, fetchProducts, fetchProductVariants } from '../api/catalogApi';
 import type { ProductListItem, HydratedSkuItem } from '../api/catalogApi';
+import { CreateOrderModal } from '../cmps/CreateOrderModal';
+import { selectDealerName } from '../store/slices/filterSlice';
 import '../styles/App.scss';
 
 type ProductOption = {
@@ -16,13 +20,17 @@ type ProductWithVariants = {
     selectedOptions: Record<string, string>;
 };
 
-export default function CartPage({ onBack }: { onBack: () => void }) {
+export default function CartPage() {
+    const navigate = useNavigate();
     const { cart, hydrated, setQty, removeSku, addSku } = useCart();
+    const dealerName = useSelector(selectDealerName);
     const [skuInput, setSkuInput] = useState('');
     const [loadingSku, setLoadingSku] = useState(false);
     
     // Modal state
     const [showProductModal, setShowProductModal] = useState(false);
+    const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);
+    
     const [products, setProducts] = useState<ProductListItem[]>([]);
     const [productSearch, setProductSearch] = useState('');
     const [loadingProducts, setLoadingProducts] = useState(false);
@@ -72,38 +80,6 @@ export default function CartPage({ onBack }: { onBack: () => void }) {
             console.error('Error parsing product options:', e);
         }
         return [];
-    };
-
-    // Extract unique option values from variants
-    const extractOptionValues = (variants: HydratedSkuItem[], optionName: string): string[] => {
-        const values = new Set<string>();
-        variants.forEach(variant => {
-            if (variant.variant_selected_options) {
-                try {
-                    const selected = JSON.parse(variant.variant_selected_options);
-                    if (Array.isArray(selected)) {
-                        selected.forEach((opt: any) => {
-                            const name = opt.name || opt.Name || '';
-                            const value = opt.value || opt.Value || '';
-                            if (name.toLowerCase() === optionName.toLowerCase() && value) {
-                                values.add(value);
-                            }
-                        });
-                    }
-                } catch (e) {
-                    // Try to extract from variant_title if JSON parsing fails
-                    if (variant.variant_title) {
-                        const parts = variant.variant_title.split(' / ');
-                        parts.forEach(part => {
-                            if (part.toLowerCase().includes(optionName.toLowerCase())) {
-                                values.add(part);
-                            }
-                        });
-                    }
-                }
-            }
-        });
-        return Array.from(values).sort();
     };
 
     // Load products
@@ -446,14 +422,16 @@ export default function CartPage({ onBack }: { onBack: () => void }) {
         });
     };
 
-    const handleAddToCart = (productId: string) => {
-        const variant = getSelectedVariant(productId);
-        if (variant && variant.sku) {
-            addSku(variant.sku, 1);
-        } else {
-            alert('Please select all options');
-        }
-    };
+    const cartItemsForOrder = useMemo(() => {
+        return cart.map(item => {
+            const details = hydrated[item.sku];
+            return {
+                sku: item.sku,
+                qty: item.qty,
+                variant_id: details?.variant_id ? Number(details.variant_id) : undefined
+            };
+        });
+    }, [cart, hydrated]);
 
     return (
         <div className="cart-page" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', zIndex: 100 }}>
@@ -461,7 +439,7 @@ export default function CartPage({ onBack }: { onBack: () => void }) {
                 <h1>Cart ({cart.length} items)</h1>
                 <div style={{ display: 'flex', gap: '10px' }}>
                     <button 
-                        onClick={onBack} 
+                        onClick={() => navigate('/')} 
                         className="btn-reset-all" 
                         style={{ backgroundColor: '#666', borderColor: '#666' }}
                     >
@@ -559,10 +537,28 @@ export default function CartPage({ onBack }: { onBack: () => void }) {
                 <div className="cart-sidebar">
                     <div style={{ background: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
                         <h3 style={{ marginTop: 0 }}>Summary</h3>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px', fontSize: '1.2em', fontWeight: 'bold' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px', fontSize: '1.2em', fontWeight: 'bold' }}>
                             <span>Total</span>
                             <span>${calculateTotal().toFixed(2)}</span>
                         </div>
+                        
+                        <button
+                            onClick={() => setShowCreateOrderModal(true)}
+                            disabled={cart.length === 0}
+                            style={{
+                                width: '100%',
+                                padding: '12px',
+                                background: cart.length === 0 ? '#ccc' : '#008060',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
+                                fontSize: '1em',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            Create Order
+                        </button>
                     </div>
 
                     <div style={{ background: 'white', border: '1px solid #eee', padding: '20px', borderRadius: '8px' }}>
@@ -916,6 +912,17 @@ export default function CartPage({ onBack }: { onBack: () => void }) {
                     </div>
                 </div>
             )}
+            
+            <CreateOrderModal 
+                isOpen={showCreateOrderModal} 
+                onClose={() => setShowCreateOrderModal(false)}
+                cartItems={cartItemsForOrder}
+                defaultCompany={dealerName || undefined}
+                onOrderCreated={(orderId) => {
+                    setShowCreateOrderModal(false);
+                    navigate(`/orders/${orderId}`);
+                }}
+            />
         </div>
     );
 }

@@ -1,17 +1,65 @@
 import type { DashboardDataResponse, DashboardHeadersDataResponse, DashboardHeadersResponse, FilterConfig, SortConfig } from '../types/dashboard.types';
 
-function getDashboardData(): Promise<DashboardDataResponse> {
-    return fetch('BigQueryDashboardData.json')
-        .then(response => response.json())
-        .then(data => {
-            return data as DashboardDataResponse;
-        })
-        .catch(error => {
-            console.error('Error fetching dashboard data:', error);
-            return [];
-        });
+// function getDashboardData(): Promise<DashboardDataResponse> {
+//     return fetch('BigQueryDashboardData.json')
+//         .then(response => response.json())
+//         .then(data => {
+//             return data as DashboardDataResponse;
+//         })
+//         .catch(error => {
+//             console.error('Error fetching dashboard data:', error);
+//             return [];
+//         });
+// }
+// export { getDashboardData };
+
+// export async function getDashboardData(
+//   pageSize = 200,
+//   pageToken?: string
+// ): Promise<DistributionInsightsResponse> {
+//   const params = new URLSearchParams();
+//   params.set("pageSize", String(pageSize));
+//   if (pageToken) params.set("pageToken", pageToken);
+
+//   const res = await fetch(`/api/distribution-insights?${params.toString()}`, {
+//     credentials: "include",
+//   });
+
+//   const text = await res.text();
+
+//   if (!res.ok) {
+//     throw new Error(`API ${res.status}: ${text.slice(0, 200)}`);
+//   }
+
+//   try {
+//     return JSON.parse(text) as DistributionInsightsResponse;
+//   } catch {
+//     console.error("Expected JSON, got:", text.slice(0, 200));
+//     throw new Error("API did not return JSON");
+//   }
+// }
+
+type DistributionInsightRow = DashboardDataRow; // replace later
+type DashboardDataResponse = DistributionInsightRow[];
+
+export async function getDashboardData(): Promise<DashboardDataResponse> {
+  const res = await fetch("/api/distribution-insights?pageSize=500", {
+    credentials: "include",
+  });
+
+  const text = await res.text();
+  if (!res.ok) throw new Error(text);
+
+  const json = JSON.parse(text);
+
+  // normalize: endpoint returns { rows, nextPageToken }
+  if (Array.isArray(json)) return json;
+  if (json && Array.isArray(json.rows)) return json.rows;
+
+  console.error("Unexpected response shape:", json);
+  return [];
 }
-export { getDashboardData };
+
 
 function getDashboardHeaders(): Promise<DashboardHeadersDataResponse> {
     return fetch('BigQueryDashboardHeaders.json')

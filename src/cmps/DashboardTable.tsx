@@ -2,7 +2,7 @@ import DashboardHeaders from "./DashboardHeaders";
 import DashboardRow from "./DashboardRow";
 import DashboardFilter from "./DashboardFilter";
 import SelectedSkusSidebar from "./SelectedSkusSidebar";
-import type { DashboardDataResponse, DashboardDataRow, DashboardHeader, FilterConfig, SortConfig } from "../types/dashboard.types";
+import type { DashboardDataResponse, DashboardDataRow, DashboardHeader, SortConfig } from "../types/dashboard.types";
 import { useState, useEffect, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import type { AppDispatch } from "../store";
@@ -58,9 +58,9 @@ function DashboardTable() {
         });
     };
 
-    const handleFilterChange = (_newFilters: FilterConfig) => {
+    // const handleFilterChange = (_newFilters: FilterConfig) => {
         // Filters are now managed by Redux, this is kept for compatibility
-    };
+    // };
 
     const handleResetFilters = () => {
         // Reset filters except dealer name (handled by Redux actions)
@@ -80,7 +80,7 @@ function DashboardTable() {
         if (filters.generalSearch && filters.generalSearch.trim()) return true;
         // Dealer name is always set (required), so check other filters
         const otherFilters = { ...filters };
-        delete otherFilters.dealerName;
+        // delete otherFilters.dealerName;
         return Object.values(otherFilters).some(value => {
             if (Array.isArray(value)) {
                 return value.length > 0;

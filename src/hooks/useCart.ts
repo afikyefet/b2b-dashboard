@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { hydrateBySkus, HydratedSkuItem } from "../api/catalogApi";
+import { hydrateBySkus, type HydratedSkuItem } from "../api/catalogApi";
 
 export type CartItem = { sku: string; qty: number };
 

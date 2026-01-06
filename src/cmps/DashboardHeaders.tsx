@@ -9,7 +9,7 @@ interface DashboardHeadersProps {
 }
 
 function DashboardHeaders({ headers, sortConfig, onSort, filteredData }: DashboardHeadersProps) {
-    const { cart, addSku, removeSku, isInCart } = useCart();
+    const { addSku, removeSku, isInCart } = useCart();
 
     if (!headers || headers.length === 0) return null;
 
