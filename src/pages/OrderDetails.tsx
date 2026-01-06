@@ -36,19 +36,26 @@ export default function OrderDetails() {
     try {
       const data = await getOrder(orderId);
       setOrder(data);
-      
+
       setDealerName(data.dealer_name);
       setDealerEmail(data.dealer_email);
       setDealerCompany(data.dealer_company);
       setNotes(data.notes || '');
       setItems(data.items);
+
+      // Mark all fields as clean after loading
+      dealerNameDirty.markClean();
+      dealerEmailDirty.markClean();
+      dealerCompanyDirty.markClean();
+      notesDirty.markClean();
+      itemsDirty.markClean();
     } catch (err) {
       console.error(err);
       alert('Error loading order');
     } finally {
       setLoading(false);
     }
-  }, [orderId]);
+  }, [orderId, dealerNameDirty, dealerEmailDirty, dealerCompanyDirty, notesDirty, itemsDirty]);
 
   useEffect(() => {
     if (!isValidOrderId) return;
