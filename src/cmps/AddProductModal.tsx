@@ -26,7 +26,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [productsWithVariants, setProductsWithVariants] = useState<Map<string, ProductWithVariants>>(new Map());
   const [loadingVariants, setLoadingVariants] = useState<Set<string>>(new Set());
 
-  // Parse options from product options JSON
   const parseProductOptions = (optionsJson: string | null | undefined): ProductOption[] => {
     if (!optionsJson) return [];
     try {
@@ -69,59 +68,61 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         const firstVariant = result.items[0];
         const options = parseProductOptions(firstVariant.product_options);
 
-        // Simple option extraction (can be improved like in CartPage if needed)
-        // For MVP, using the parsed options + extraction from CartPage logic
-        // But for brevity I'll assume options are mostly correct or extracted from variant titles if needed.
-        // Copying the more robust logic from CartPage for safety.
-        
         let enrichedOptions: ProductOption[] = [];
-                
+
         if (options.length > 0) {
-            enrichedOptions = options.map(opt => {
-                const values = new Set<string>();
-                result.items.forEach(variant => {
-                    if (variant.variant_selected_options) {
-                        try {
-                            const selected = JSON.parse(variant.variant_selected_options);
-                            if (Array.isArray(selected)) {
-                                selected.forEach((sel: any) => {
-                                    const name = sel.name || sel.Name || '';
-                                    const value = sel.value || sel.Value || '';
-                                    if (name.toLowerCase() === opt.name.toLowerCase() && value) {
-                                        values.add(value);
-                                    }
-                                });
-                            }
-                        } catch (e) { /* ignore */ }
-                    } else if (variant.variant_title) {
-                        const parts = variant.variant_title.split(' / ');
-                        const optIndex = options.findIndex(o => o.name.toLowerCase() === opt.name.toLowerCase());
-                        if (optIndex >= 0 && parts[optIndex]) {
-                            values.add(parts[optIndex]);
-                        }
-                    }
-                });
-                return {
-                    name: opt.name,
-                    values: Array.from(values).sort()
-                };
-            });
-        } else {
-             // Extract from variant titles
-             enrichedOptions = result.items.reduce((acc: ProductOption[], variant) => {
-                if (variant.variant_title) {
-                    const parts = variant.variant_title.split(' / ');
-                    parts.forEach((part, idx) => {
-                        if (!acc[idx]) {
-                            acc[idx] = { name: `Option ${idx + 1}`, values: [] };
-                        }
-                        if (!acc[idx].values.includes(part)) {
-                            acc[idx].values.push(part);
-                        }
+          enrichedOptions = options.map(opt => {
+            const values = new Set<string>();
+            result.items.forEach(variant => {
+              if (variant.variant_selected_options) {
+                try {
+                  const selected = JSON.parse(variant.variant_selected_options);
+                  if (Array.isArray(selected)) {
+                    selected.forEach((sel: any) => {
+                      const name = sel.name || sel.Name || '';
+                      const value = sel.value || sel.Value || '';
+                      if (name.toLowerCase() === opt.name.toLowerCase() && value) {
+                        values.add(value);
+                      }
                     });
+                  }
+                } catch (e) {
+                  if (variant.variant_title) {
+                    const parts = variant.variant_title.split(' / ');
+                    const optIndex = options.findIndex(o => o.name.toLowerCase() === opt.name.toLowerCase());
+                    if (optIndex >= 0 && parts[optIndex]) {
+                      values.add(parts[optIndex]);
+                    }
+                  }
                 }
-                return acc;
-            }, []);
+              } else if (variant.variant_title) {
+                const parts = variant.variant_title.split(' / ');
+                const optIndex = options.findIndex(o => o.name.toLowerCase() === opt.name.toLowerCase());
+                if (optIndex >= 0 && parts[optIndex]) {
+                  values.add(parts[optIndex]);
+                }
+              }
+            });
+            return {
+              name: opt.name,
+              values: Array.from(values).sort()
+            };
+          });
+        } else {
+          enrichedOptions = result.items.reduce((acc: ProductOption[], variant) => {
+            if (variant.variant_title) {
+              const parts = variant.variant_title.split(' / ');
+              parts.forEach((part, idx) => {
+                if (!acc[idx]) {
+                  acc[idx] = { name: `Option ${idx + 1}`, values: [] };
+                }
+                if (!acc[idx].values.includes(part)) {
+                  acc[idx].values.push(part);
+                }
+              });
+            }
+            return acc;
+          }, []);
         }
 
         setProductsWithVariants(prev => {
@@ -170,61 +171,201 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     return () => clearTimeout(timer);
   }, [productSearch, isOpen]);
 
-  const getAvailableVariants = (productId: string): HydratedSkuItem[] => {
-    const productData = productsWithVariants.get(productId);
-    if (!productData) return [];
-    const { variants, selectedOptions } = productData;
-    const selectedEntries = Object.entries(selectedOptions).filter(([_, value]) => value);
-    if (selectedEntries.length === 0) return variants;
+  const filterUnavailableProducts = (items: ProductListItem[]): ProductListItem[] => {
+    return items.filter(product => {
+      const productData = productsWithVariants.get(product.product_id);
 
-    return variants.filter(variant => {
-        return selectedEntries.every(([optionName, selectedValue]) => {
-            // ... (simplified matching logic for brevity, assuming standard structure)
-            // Reusing the core matching logic from CartPage would be safer but verbose.
-            // I'll implement a robust enough check here.
-            
-            const normalizedSelected = selectedValue.toString().trim().toLowerCase();
-            
-            if (variant.variant_selected_options) {
-                try {
-                    const selected = JSON.parse(variant.variant_selected_options);
-                    if (Array.isArray(selected)) {
-                         const option = selected.find((opt: any) => (opt.name || opt.Name || '').toLowerCase() === optionName.toLowerCase());
-                         if (option) {
-                             const val = (option.value || option.Value || '').toString().trim().toLowerCase();
-                             return val === normalizedSelected || val.includes(normalizedSelected) || normalizedSelected.includes(val);
-                         }
-                    }
-                } catch(e) {}
-            }
-            
-            if (variant.variant_title) {
-                 const titleParts = variant.variant_title.split(' / ').map(p => p.trim().toLowerCase());
-                 const optionIndex = productData.options.findIndex(opt => opt.name.toLowerCase() === optionName.toLowerCase());
-                 if (optionIndex >= 0 && titleParts[optionIndex]) {
-                     const part = titleParts[optionIndex];
-                     return part === normalizedSelected || part.includes(normalizedSelected) || normalizedSelected.includes(part);
-                 }
-            }
-            
-            return false;
-        });
+      if (loadingVariants.has(product.product_id)) return true;
+      if (!productData || productData.variants.length === 0) return true;
+
+      return productData.variants.some(v => v.available_for_sale);
     });
   };
 
+  const getProductImageUrl = (productId: string): string | null => {
+    const productData = productsWithVariants.get(productId);
+    if (!productData) return null;
+
+    const variantWithImage = productData.variants.find(v => v.variant_image_url);
+    if (variantWithImage?.variant_image_url) {
+      return variantWithImage.variant_image_url;
+    }
+
+    const firstVariant = productData.variants[0];
+    if (firstVariant?.product_featured_image_url) {
+      return firstVariant.product_featured_image_url;
+    }
+
+    return null;
+  };
+
+  const getAvailableVariants = (productId: string): HydratedSkuItem[] => {
+    const productData = productsWithVariants.get(productId);
+    if (!productData) return [];
+
+    const { variants, selectedOptions } = productData;
+    const selectedEntries = Object.entries(selectedOptions).filter(([_, value]) => value);
+    const availableVariants = variants.filter(variant => variant.available_for_sale);
+
+    if (selectedEntries.length === 0) return availableVariants;
+
+    return availableVariants.filter(variant => {
+      return selectedEntries.every(([optionName, selectedValue]) => {
+        if (variant.variant_selected_options) {
+          try {
+            const selected = JSON.parse(variant.variant_selected_options);
+            if (Array.isArray(selected)) {
+              const option = selected.find((opt: any) => {
+                const name = (opt.name || opt.Name || '').toLowerCase();
+                return name === optionName.toLowerCase();
+              });
+              if (option) {
+                const value = (option.value || option.Value || '').toString().trim().toLowerCase();
+                const normalizedSelected = selectedValue.toString().trim().toLowerCase();
+                return value === normalizedSelected ||
+                  value.includes(normalizedSelected) ||
+                  normalizedSelected.includes(value);
+              }
+            }
+          } catch (e) {
+            if (variant.variant_title) {
+              const titleParts = variant.variant_title.split(' / ').map(p => p.trim());
+              const optionIndex = productData.options.findIndex(opt =>
+                opt.name.toLowerCase() === optionName.toLowerCase()
+              );
+              if (optionIndex >= 0 && titleParts[optionIndex]) {
+                const partValue = titleParts[optionIndex].toLowerCase();
+                const normalizedSelected = selectedValue.toString().trim().toLowerCase();
+                return partValue === normalizedSelected ||
+                  partValue.includes(normalizedSelected) ||
+                  normalizedSelected.includes(partValue);
+              }
+            }
+          }
+        } else if (variant.variant_title) {
+          const titleParts = variant.variant_title.split(' / ').map(p => p.trim());
+          const optionIndex = productData.options.findIndex(opt =>
+            opt.name.toLowerCase() === optionName.toLowerCase()
+          );
+          if (optionIndex >= 0 && titleParts[optionIndex]) {
+            const partValue = titleParts[optionIndex].toLowerCase();
+            const normalizedSelected = selectedValue.toString().trim().toLowerCase();
+            return partValue === normalizedSelected ||
+              partValue.includes(normalizedSelected) ||
+              normalizedSelected.includes(partValue);
+          }
+        }
+        return false;
+      });
+    });
+  };
+
+  const getAvailableOptionValues = (productId: string, optionName: string): string[] => {
+    const productData = productsWithVariants.get(productId);
+    if (!productData) return [];
+
+    const availableVariants = getAvailableVariants(productId);
+    const values = new Set<string>();
+
+    availableVariants.forEach(variant => {
+      if (variant.variant_selected_options) {
+        try {
+          const selected = JSON.parse(variant.variant_selected_options);
+          if (Array.isArray(selected)) {
+            const option = selected.find((opt: any) => {
+              const name = (opt.name || opt.Name || '').toLowerCase();
+              return name === optionName.toLowerCase();
+            });
+            if (option) {
+              const value = (option.value || option.Value || '').toString().trim();
+              if (value) values.add(value);
+            }
+          }
+        } catch (e) {
+          if (variant.variant_title) {
+            const parts = variant.variant_title.split(' / ');
+            const optionIndex = productData.options.findIndex(opt =>
+              opt.name.toLowerCase() === optionName.toLowerCase()
+            );
+            if (optionIndex >= 0 && parts[optionIndex]) {
+              values.add(parts[optionIndex].trim());
+            }
+          }
+        }
+      } else if (variant.variant_title) {
+        const parts = variant.variant_title.split(' / ');
+        const optionIndex = productData.options.findIndex(opt =>
+          opt.name.toLowerCase() === optionName.toLowerCase()
+        );
+        if (optionIndex >= 0 && parts[optionIndex]) {
+          values.add(parts[optionIndex].trim());
+        }
+      }
+    });
+
+    return Array.from(values).sort();
+  };
+
   const getSelectedVariant = (productId: string): HydratedSkuItem | null => {
-      const avail = getAvailableVariants(productId);
-      const productData = productsWithVariants.get(productId);
-      if (!productData) return null;
-      
-      // If we narrowed down to 1 variant, return it.
-      // But we should also check if all options are selected.
-      const allOptionsSelected = productData.options.every(opt => productData.selectedOptions[opt.name]);
-      if (allOptionsSelected && avail.length === 1) return avail[0];
-      
-      // Also try to find exact match if multiple returned (e.g. subset options)
-      // Logic from CartPage is more precise but this should suffice for MVP
-      return allOptionsSelected && avail.length > 0 ? avail[0] : null;
+    const productData = productsWithVariants.get(productId);
+    if (!productData) return null;
+
+    const { variants, selectedOptions } = productData;
+    const selectedValues = Object.values(selectedOptions).filter(Boolean);
+
+    if (selectedValues.length === 0) return null;
+
+    const matchedVariant = variants.find(variant => {
+      if (variant.variant_selected_options) {
+        try {
+          const selected = JSON.parse(variant.variant_selected_options);
+          if (Array.isArray(selected)) {
+            const variantValues = selected.map((opt: any) => {
+              const val = opt.value || opt.Value || '';
+              return val.toString().trim();
+            }).filter(Boolean);
+
+            const normalizedSelected = selectedValues.map(v => v.toString().trim());
+
+            if (variantValues.length === normalizedSelected.length) {
+              return normalizedSelected.every(val =>
+                variantValues.some(vVal =>
+                  vVal.toLowerCase() === val.toLowerCase() ||
+                  vVal.includes(val) ||
+                  val.includes(vVal)
+                )
+              );
+            }
+          }
+        } catch (e) {
+          if (variant.variant_title) {
+            const titleParts = variant.variant_title.split(' / ').map(p => p.trim());
+            return selectedValues.every(val => {
+              const normalizedVal = val.toString().trim().toLowerCase();
+              return titleParts.some(part =>
+                part.toLowerCase() === normalizedVal ||
+                part.toLowerCase().includes(normalizedVal) ||
+                normalizedVal.includes(part.toLowerCase())
+              );
+            });
+          }
+        }
+      } else if (variant.variant_title) {
+        const titleParts = variant.variant_title.split(' / ').map(p => p.trim());
+        return selectedValues.every(val => {
+          const normalizedVal = val.toString().trim().toLowerCase();
+          return titleParts.some(part =>
+            part.toLowerCase() === normalizedVal ||
+            part.toLowerCase().includes(normalizedVal) ||
+            normalizedVal.includes(part.toLowerCase())
+          );
+        });
+      }
+      return false;
+    });
+
+    if (!matchedVariant || !matchedVariant.available_for_sale) return null;
+    return matchedVariant;
   };
 
   const handleOptionChange = (productId: string, optionName: string, value: string) => {
@@ -244,177 +385,298 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     });
   };
 
-  const getOptionValues = (productData: ProductWithVariants, optionName: string): string[] => {
-    const values = new Set<string>();
-    const optionIndex = productData.options.findIndex(opt => opt.name.toLowerCase() === optionName.toLowerCase());
-
-    productData.variants.forEach(variant => {
-      if (variant.variant_selected_options) {
-        try {
-          const selected = JSON.parse(variant.variant_selected_options);
-          if (Array.isArray(selected)) {
-            const match = selected.find((opt: any) => (opt.name || opt.Name || '').toLowerCase() === optionName.toLowerCase());
-            const val = match ? (match.value || match.Value || '') : '';
-            if (val) values.add(String(val));
-          }
-          return;
-        } catch (e) {
-          // Fall through to title parsing.
-        }
-      }
-
-      if (variant.variant_title && optionIndex >= 0) {
-        const parts = variant.variant_title.split(' / ');
-        const part = parts[optionIndex];
-        if (part) values.add(part.trim());
-      }
-    });
-
-    if (values.size > 0) return Array.from(values).sort();
-
-    const option = productData.options.find(opt => opt.name.toLowerCase() === optionName.toLowerCase());
-    return option ? option.values : [];
-  };
-
-  const visibleProducts = products.filter(product => {
-    const productData = productsWithVariants.get(product.product_id);
-    const isLoading = loadingVariants.has(product.product_id);
-    if (isLoading) return true;
-    if (!productData) return false;
-    return productData.options.length > 0;
-  });
-
   if (!isOpen) return null;
 
   return (
-    <div 
-        style={{
-            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', 
-            justifyContent: 'center', alignItems: 'flex-start', zIndex: 1100, padding: '40px 20px', overflowY: 'auto'
-        }}
-        onClick={onClose}
-        className='add-product-modal'
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 1000,
+        padding: '20px'
+      }}
+      onClick={onClose}
     >
-        <div className='add-product-modal-content' style={{ backgroundColor: 'white', borderRadius: '8px', width: '100%', maxWidth: '900px', maxHeight: 'calc(100vh - 80px)', display: 'flex', flexDirection: 'column' }} onClick={e => e.stopPropagation()}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ margin: 0 }}>Browse Products</h2>
-                <button onClick={onClose} style={{ border: 'none', background: 'none', fontSize: '1.5em', cursor: 'pointer' }}>×</button>
-            </div>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #eee' }}>
-                <input 
-                    type="text" value={productSearch} onChange={e => setProductSearch(e.target.value)} 
-                    placeholder="Search products..." 
-                    style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px' }}
-                />
-                <div style={{ marginTop: '8px', fontSize: '0.85em', color: '#666' }}>
-                    Showing {visibleProducts.length} product{visibleProducts.length === 1 ? '' : 's'} with options
-                </div>
-            </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {loadingProducts && <div>Loading products...</div>}
-                {!loadingProducts && visibleProducts.length === 0 && <div>No products with options found</div>}
-                {visibleProducts.map(product => {
-                    const productData = productsWithVariants.get(product.product_id);
-                    const selectedVariant = productData ? getSelectedVariant(product.product_id) : null;
-                    // const allOptionsSelected = productData ? productData.options.every(opt => productData.selectedOptions[opt.name]) : false;
-                    const isLoading = loadingVariants.has(product.product_id);
-                    
-                    return (
-                        <div key={product.product_id} style={{ border: '1px solid #ddd', borderRadius: '10px', padding: '14px', backgroundColor: '#fafafa', display: 'flex', flexDirection: 'row', gap: '16px', alignItems: 'stretch' }}>
-                            <div style={{ minWidth: '220px', flex: '0 0 220px' }}>
-                                <h3 style={{ margin: 0, fontSize: '1em' }}>{product.title}</h3>
-                                {product.tags?.length > 0 && (
-                                    <div style={{ marginTop: '6px', fontSize: '0.8em', color: '#666' }}>
-                                        {product.tags.slice(0, 3).join(', ')}
-                                    </div>
-                                )}
-                            </div>
-                            {isLoading && <div style={{ fontSize: '0.85em', color: '#666' }}>Loading options...</div>}
-                            {productData && (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 }}>
-                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px' }}>
-                                        {productData.options.map(option => {
-                                            const values = getOptionValues(productData, option.name);
-                                            const current = productData.selectedOptions[option.name] || '';
-                                            const isColorOption = option.name.toLowerCase().includes('color') || option.name.toLowerCase().includes('colour');
-                                            const swatchLimit = isColorOption ? 20 : 12;
-                                            const useSwatches = values.length > 0 && values.length <= swatchLimit;
-                                            return (
-                                                <div key={option.name}>
-                                                    <label style={{ display: 'block', fontSize: '0.75em', fontWeight: 600, color: '#444', marginBottom: '4px' }}>{option.name}</label>
-                                                    {useSwatches ? (
-                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                                            {values.map(value => {
-                                                                const isActive = current === value;
-                                                                return (
-                                                                    <button
-                                                                        key={value}
-                                                                        type="button"
-                                                                        onClick={() => handleOptionChange(product.product_id, option.name, value)}
-                                                                        style={{
-                                                                            padding: '6px 10px',
-                                                                            borderRadius: '999px',
-                                                                            border: isActive ? '1px solid #008060' : '1px solid #ddd',
-                                                                            backgroundColor: isActive ? '#e6f5f1' : 'white',
-                                                                            color: '#333',
-                                                                            fontSize: '0.8em',
-                                                                            cursor: 'pointer'
-                                                                        }}
-                                                                    >
-                                                                        {value}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    ) : (
-                                                        <select 
-                                                            value={current}
-                                                            onChange={e => handleOptionChange(product.product_id, option.name, e.target.value)}
-                                                            style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                                        >
-                                                            <option value="">Select</option>
-                                                            {values.map(v => <option key={v} value={v}>{v}</option>)}
-                                                        </select>
-                                                    )}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                                        <button
-                                            disabled={!selectedVariant}
-                                            onClick={() => {
-                                                if (selectedVariant) {
-                                                    onAdd({
-                                                        sku: selectedVariant.sku,
-                                                        variant_id: Number(selectedVariant.variant_id),
-                                                        title: `${product.title} - ${selectedVariant.variant_title}`,
-                                                        price: String(selectedVariant.price || '0'),
-                                                        qty: 1
-                                                    });
-                                                    onClose();
-                                                }
-                                            }}
-                                            style={{
-                                                padding: '8px 14px',
-                                                backgroundColor: selectedVariant ? '#008060' : '#ccc',
-                                                color: 'white',
-                                                border: 'none',
-                                                borderRadius: '6px',
-                                                cursor: selectedVariant ? 'pointer' : 'not-allowed'
-                                            }}
-                                        >
-                                            Add
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+      <div
+        style={{
+          background: 'white',
+          borderRadius: '12px',
+          width: '90%',
+          maxWidth: '900px',
+          maxHeight: '80vh',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div style={{ padding: '20px', borderBottom: '1px solid #eee' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ margin: 0, fontSize: '1.3em', color: '#333' }}>Browse Products</h2>
+            <button
+              onClick={onClose}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '1.5em',
+                cursor: 'pointer',
+                color: '#666'
+              }}
+            >
+              A-
+            </button>
+          </div>
+
+          <input
+            type="text"
+            value={productSearch}
+            onChange={(e) => setProductSearch(e.target.value)}
+            placeholder="Search products..."
+            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
+          />
         </div>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+          {loadingProducts ? (
+            <div style={{ textAlign: 'center', padding: '40px' }}>Loading products...</div>
+          ) : products.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>No products found</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {filterUnavailableProducts(products).map((product) => {
+                const productData = productsWithVariants.get(product.product_id);
+                const isLoading = loadingVariants.has(product.product_id);
+                const selectedVariant = productData ? getSelectedVariant(product.product_id) : null;
+                const allOptionsSelected = productData ?
+                  productData.options.every(opt => productData.selectedOptions[opt.name]) : false;
+                const hasOptions = productData ? productData.options.length > 0 : false;
+                const canAdd = productData ? (hasOptions ? allOptionsSelected && !!selectedVariant : !!productData.variants.find(v => v.available_for_sale)) : false;
+
+                return (
+                  <div
+                    key={product.product_id}
+                    style={{
+                      border: '1px solid #ddd',
+                      borderRadius: '8px',
+                      background: 'white',
+                      display: 'flex',
+                      flexDirection: 'row',
+                      overflow: 'hidden',
+                      transition: 'box-shadow 0.2s',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = 'none';
+                    }}
+                  >
+                    <div style={{
+                      width: '120px',
+                      height: '120px',
+                      flexShrink: 0,
+                      position: 'relative',
+                      backgroundColor: '#f5f5f5',
+                      overflow: 'hidden'
+                    }}>
+                      {(() => {
+                        const imageUrl = getProductImageUrl(product.product_id);
+                        if (imageUrl) {
+                          return (
+                            <img
+                              src={imageUrl}
+                              alt={product.title}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          );
+                        }
+                        return (
+                          <div style={{
+                            width: '100%',
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: '#e5e5e5',
+                            color: '#999',
+                            fontSize: '0.75em'
+                          }}>
+                            No Image
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div>
+                        <h3 style={{
+                          margin: 0,
+                          fontSize: '1em',
+                          fontWeight: '600',
+                          lineHeight: '1.3',
+                          color: '#333'
+                        }}>
+                          {product.title}
+                        </h3>
+                        {product.tags && product.tags.length > 0 && (
+                          <div style={{ fontSize: '0.75em', color: '#666', marginTop: '2px' }}>
+                            {product.tags.slice(0, 2).join(', ')}
+                          </div>
+                        )}
+                      </div>
+
+                      {isLoading && (
+                        <div style={{ color: '#666', fontSize: '0.85em' }}>
+                          Loading options...
+                        </div>
+                      )}
+
+                      {productData && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                          {productData.options.map((option) => {
+                            const availableValues = getAvailableOptionValues(product.product_id, option.name);
+                            const displayValues = availableValues.length > 0 ? availableValues : option.values;
+                            const selectedValue = productData.selectedOptions[option.name];
+
+                            return (
+                              <div key={option.name}>
+                                <label style={{
+                                  display: 'block',
+                                  marginBottom: '6px',
+                                  fontSize: '0.8em',
+                                  fontWeight: '600',
+                                  color: '#555'
+                                }}>
+                                  {option.name}: {selectedValue && <span style={{ color: '#008060' }}>{selectedValue}</span>}
+                                </label>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                  {displayValues.map((value) => {
+                                    const isSelected = selectedValue === value;
+                                    return (
+                                      <button
+                                        key={value}
+                                        onClick={() => handleOptionChange(product.product_id, option.name, value)}
+                                        style={{
+                                          padding: '6px 12px',
+                                          border: isSelected ? '2px solid #008060' : '1px solid #ddd',
+                                          borderRadius: '4px',
+                                          background: isSelected ? '#e8f5f2' : 'white',
+                                          color: isSelected ? '#008060' : '#333',
+                                          fontSize: '0.8em',
+                                          fontWeight: isSelected ? '600' : '400',
+                                          cursor: 'pointer',
+                                          transition: 'all 0.15s',
+                                          minWidth: '40px',
+                                          textAlign: 'center'
+                                        }}
+                                        onMouseEnter={(e) => {
+                                          if (!isSelected) {
+                                            e.currentTarget.style.borderColor = '#999';
+                                            e.currentTarget.style.background = '#f9f9f9';
+                                          }
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          if (!isSelected) {
+                                            e.currentTarget.style.borderColor = '#ddd';
+                                            e.currentTarget.style.background = 'white';
+                                          }
+                                        }}
+                                      >
+                                        {value}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                                {hasOptions && allOptionsSelected && !selectedVariant && (
+                                  <div style={{ color: '#d72c2c', fontSize: '0.8em', marginTop: '6px' }}>
+                                    Selected combination is unavailable.
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {productData && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        paddingRight: '12px',
+                        paddingLeft: '12px'
+                      }}>
+                        <button
+                          onClick={() => {
+                            if (!productData) return;
+                            if (hasOptions) {
+                              if (!allOptionsSelected) {
+                                alert('Please select all options');
+                                return;
+                              }
+                              if (!selectedVariant) {
+                                alert('Selected combination is unavailable.');
+                                return;
+                              }
+                              onAdd({
+                                sku: selectedVariant.sku,
+                                variant_id: Number(selectedVariant.variant_id),
+                                title: `${product.title} - ${selectedVariant.variant_title}`,
+                                price: String(selectedVariant.price || '0'),
+                                qty: 1
+                              });
+                              onClose();
+                              return;
+                            }
+
+                            const availableVariant = productData.variants.find(v => v.available_for_sale);
+                            if (!availableVariant) {
+                              alert('This product is currently unavailable.');
+                              return;
+                            }
+                            onAdd({
+                              sku: availableVariant.sku,
+                              variant_id: Number(availableVariant.variant_id),
+                              title: `${product.title} - ${availableVariant.variant_title}`,
+                              price: String(availableVariant.price || '0'),
+                              qty: 1
+                            });
+                            onClose();
+                          }}
+                          disabled={!canAdd}
+                          style={{
+                            padding: '10px 20px',
+                            background: !canAdd ? '#ccc' : '#008060',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '6px',
+                            cursor: !canAdd ? 'not-allowed' : 'pointer',
+                            fontWeight: '600',
+                            fontSize: '0.9em',
+                            whiteSpace: 'nowrap',
+                            minWidth: '100px'
+                          }}
+                        >
+                          Add
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };
-

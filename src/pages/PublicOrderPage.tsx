@@ -41,6 +41,10 @@ export default function PublicOrderPage() {
 
   const handleSave = async () => {
     if (!order) return;
+    if (!isEditable) {
+      alert('Order cannot be modified in current status.');
+      return;
+    }
     setSaving(true);
     try {
       const updatedOrder = await patchPublicOrder(token!, {
@@ -96,7 +100,8 @@ export default function PublicOrderPage() {
   if (!order) return <div style={{ padding: '40px', textAlign: 'center' }}>Order not found</div>;
 
   const isCompleted = order.status === 'COMPLETED';
-  const readOnly = isCompleted;
+  const isEditable = order.status === 'DRAFT' || order.status === 'SENT' || order.status === 'OPENED';
+  const readOnly = !isEditable;
 
   return (
     <div className="public-order-page" style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto' }}>
@@ -111,6 +116,10 @@ export default function PublicOrderPage() {
       {isCompleted ? (
         <div style={{ padding: '20px', background: '#e3f1df', borderRadius: '8px', color: '#007a5c', marginBottom: '20px', fontWeight: 'bold' }}>
             This order has been completed.
+        </div>
+      ) : !isEditable ? (
+        <div style={{ padding: '16px', background: '#fff4e5', borderRadius: '8px', marginBottom: '20px', color: '#7a4b00', fontWeight: 'bold' }}>
+            This order can no longer be modified.
         </div>
       ) : (
         <div style={{ padding: '16px', background: '#f5f5f5', borderRadius: '8px', marginBottom: '20px', color: '#444' }}>
