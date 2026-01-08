@@ -1,9 +1,10 @@
 import DashboardTable from './DashboardTable';
-
+import DashboardCards from './DashboardCards';
 function Dashboard() {
     return (
         <div className="dashboard">
-            <DashboardTable />
+            {/* <DashboardTable /> */}
+            <DashboardCards />
         </div>
     )
 }

@@ -8,15 +8,15 @@
       "category": "dealer"
     },
     {
-      "id": "product_category",
-      "field": "product_category_name",
-      "displayName": "Product Category",
-      "category": "product"
-    },
-    {
       "id": "product_name",
       "field": "product_name",
       "displayName": "Product Name",
+      "category": "product"
+    },
+    {
+      "id": "product_category",
+      "field": "product_category_name",
+      "displayName": "Product Category",
       "category": "product"
     },
     {

@@ -30,6 +30,11 @@ export type SkuAvailability = {
   inventory_quantity: number | null;
 };
 
+export type SkuImage = {
+  sku: string;
+  image_url: string | null;
+};
+
 export async function fetchProducts(params: {
   query?: string;
   limit?: number;
@@ -74,4 +79,14 @@ export async function fetchSkuAvailability(skus: string[]) {
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json() as Promise<{ items: SkuAvailability[] }>;
+}
+
+export async function fetchSkuImages(skus: string[]) {
+  const res = await fetch(`${API_BASE}/api/catalog/variant-images`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ skus }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json() as Promise<{ items: SkuImage[] }>;
 }
