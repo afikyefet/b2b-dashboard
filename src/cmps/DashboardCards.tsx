@@ -267,6 +267,31 @@ function DashboardCards() {
         addSku(sku, initialQty);
     };
 
+    const handleSelectAll = () => {
+        filteredData.forEach(row => {
+            const sku = row.variant_sku_real;
+            if (!sku || isInCart(sku)) return;
+
+            let initialQty = 1;
+            const sellNow = row.how_much_to_sell_now;
+            if (sellNow !== null && sellNow !== undefined) {
+                const parsed = parseFloat(String(sellNow));
+                if (!isNaN(parsed) && parsed > 0) {
+                    initialQty = Math.round(parsed);
+                }
+            }
+            addSku(sku, initialQty);
+        });
+    };
+
+    const handleDeselectAll = () => {
+        filteredSkus.forEach(sku => {
+            if (isInCart(sku)) {
+                removeSku(sku);
+            }
+        });
+    };
+
     return (
         <div className="dashboard-container">
             <div className="dashboard-main">
@@ -278,6 +303,24 @@ function DashboardCards() {
                     hasActiveFilters={!!(hasActiveFilters() || hasActiveSort)}
                     isRefreshing={(loadingData || loadingHeaders) && originalData.length > 0 && headers.length > 0}
                 />
+                <div className="cards-actions">
+                    <button
+                        type="button"
+                        className="cards-action-btn"
+                        onClick={handleSelectAll}
+                        disabled={filteredSkus.length === 0}
+                    >
+                        Select All
+                    </button>
+                    <button
+                        type="button"
+                        className="cards-action-btn ghost"
+                        onClick={handleDeselectAll}
+                        disabled={filteredSkus.length === 0}
+                    >
+                        Deselect All
+                    </button>
+                </div>
                 <div className="dashboard-cards-grid">
                     {filteredData.map((row: DashboardDataRow) => {
                         const rowId = getRowId(row);
@@ -320,19 +363,12 @@ function DashboardCards() {
                                 </div>
                                 <div className="card-body">
                                 <div className="card-header">
-                                    <label className="card-title">
-                                        <input
-                                            type="checkbox"
-                                            checked={selected}
-                                            onChange={() => toggleSelection(row)}
-                                            onClick={(e) => e.stopPropagation()}
-                                            disabled={!sku}
-                                        />
+                                    <div className="card-title">
                                         <span>
                                             <span className="product-name">{row.product_name || "Unnamed Product"}</span>
                                             <span className="product-company">{row.customer_company || ""}</span>
                                         </span>
-                                    </label>
+                                    </div>
                                     <div className="card-badges">
                                         {availabilityLoading && sku && !availability && <span className="stock-spinner" />}
                                         {!availabilityLoading && sku && isAvailable !== null && (

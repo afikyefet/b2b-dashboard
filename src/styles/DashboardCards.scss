@@ -5,6 +5,36 @@
   align-items: start;
 }
 
+.cards-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cards-action-btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #008060;
+  background: #008060;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.cards-action-btn.ghost {
+  background: #fff;
+  color: #008060;
+  border-color: #cfe6df;
+}
+
+.cards-action-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .dashboard-card {
   border: 1px solid #e5e7eb;
   border-radius: 10px;
