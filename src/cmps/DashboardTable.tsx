@@ -211,19 +211,12 @@ function DashboardTable() {
             <div className="dashboard-main">
                 <DashboardFilter
                     filterOptions={filterOptions}
+                    originalData={originalData}
+                    filteredData={filteredData}
+                    onResetAll={handleResetAll}
+                    hasActiveFilters={!!(hasActiveFilters() || hasActiveSort)}
+                    isRefreshing={(loadingData || loadingHeaders) && originalData.length > 0 && headers.length > 0}
                 />
-                <div className="dashboard-controls">
-                    {(hasActiveFilters() || hasActiveSort) && (
-                        <button className="btn-reset-all" onClick={handleResetAll}>
-                            Reset All
-                        </button>
-                    )}
-                    {(loadingData || loadingHeaders) && originalData.length > 0 && headers.length > 0 && (
-                        <div style={{ marginLeft: 'auto', fontSize: '0.85em', color: '#6b7280' }}>
-                            Refreshing...
-                        </div>
-                    )}
-                </div>
                 <div className="dashboard-table">
                     <DashboardHeaders
                         headers={headers}

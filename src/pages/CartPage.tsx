@@ -765,7 +765,7 @@ export default function CartPage() {
                                     {filterUnavailableProducts(products).map((product) => {
                                         const productData = productsWithVariants.get(product.product_id);
                                         const isLoading = loadingVariants.has(product.product_id);
-                                        const selectedVariant = productData ? getSelectedVariant(product.product_id) : null;
+                                        // const selectedVariant = productData ? getSelectedVariant(product.product_id) : null;
                                         const allOptionsSelected = productData ?
                                             productData.options.every(opt => productData.selectedOptions[opt.name]) : false;
 

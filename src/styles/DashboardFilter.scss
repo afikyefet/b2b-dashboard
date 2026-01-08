@@ -5,45 +5,91 @@
   background-color: $bg-primary;
   border: 1px solid $border-color;
   border-radius: $border-radius;
-  padding: $spacing-md;
-  margin-bottom: $spacing-md;
+  padding: $spacing-sm $spacing-md;
+  margin-bottom: $spacing-sm;
 }
 
 .filter-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $spacing-md;
+  gap: $spacing-sm;
+  margin-bottom: $spacing-sm;
+
+  .filter-title {
+    display: flex;
+    align-items: baseline;
+    gap: $spacing-sm;
+  }
 
   h3 {
     margin: 0;
-    font-size: $font-size-lg;
+    font-size: $font-size-base;
     font-weight: 600;
     color: $text-primary;
+  }
+
+  .filter-refreshing {
+    font-size: $font-size-xs;
+    color: $text-tertiary;
+  }
+
+  .filter-actions {
+    display: flex;
+    align-items: center;
+    gap: $spacing-sm;
+    flex-wrap: wrap;
+  }
+
+  .filter-action-btn {
+    padding: 6px 12px;
+    border-radius: $border-radius-sm;
+    font-size: $font-size-xs;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background-color $transition-fast, border-color $transition-fast, color $transition-fast;
+
+    &.primary {
+      background-color: $primary-color;
+      color: white;
+      border-color: $primary-color;
+    }
+
+    &.secondary {
+      background-color: $bg-tertiary;
+      color: $text-primary;
+      border-color: $border-color;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 }
 
 .general-search {
-  margin-bottom: $spacing-md;
-  padding-bottom: $spacing-md;
+  margin-bottom: $spacing-sm;
+  padding-bottom: $spacing-sm;
   border-bottom: 1px solid $border-color;
   
   input {
     width: 100%;
-    max-width: 500px;
+    max-width: 460px;
   }
 }
 
 .filter-inputs {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: $spacing-md;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: $spacing-sm;
 }
 
 .filter-group {
   display: flex;
   flex-direction: column;
-  gap: $spacing-xs;
+  gap: 4px;
 
   label {
     font-size: $font-size-sm;
@@ -52,10 +98,10 @@
   }
 
   input {
-    padding: $spacing-sm $spacing-md;
+    padding: 6px 10px;
     border: 1px solid $border-color;
     border-radius: $border-radius-sm;
-    font-size: $font-size-sm;
+    font-size: $font-size-xs;
     font-family: $font-family;
     color: $text-primary;
     background-color: $bg-primary;
@@ -85,10 +131,10 @@
 
   .multi-select-button {
     width: 100%;
-    padding: $spacing-sm $spacing-md;
+    padding: 6px 10px;
     border: 1px solid $border-color;
     border-radius: $border-radius-sm;
-    font-size: $font-size-sm;
+    font-size: $font-size-xs;
     font-family: $font-family;
     color: $text-primary;
     background-color: $bg-primary;
@@ -118,7 +164,7 @@
     border: 1px solid $border-color;
     border-radius: $border-radius-sm;
     box-shadow: $shadow-md;
-    max-height: 250px;
+    max-height: 220px;
     overflow-y: auto;
     z-index: 100;
     margin-top: $spacing-xs;
@@ -128,7 +174,7 @@
       display: flex;
       align-items: center;
       gap: $spacing-sm;
-      padding: $spacing-sm;
+      padding: 6px 8px;
       cursor: pointer;
       border-radius: $border-radius-sm;
       transition: background-color $transition-fast;
@@ -146,10 +192,42 @@
 
       span {
         flex: 1;
-        font-size: $font-size-sm;
+        font-size: $font-size-xs;
         color: $text-primary;
       }
     }
+  }
+}
+
+.range-filters-section {
+  margin-bottom: $spacing-md;
+  padding-bottom: $spacing-sm;
+  border-bottom: 1px solid $border-color;
+
+  h4 {
+    margin: 0 0 $spacing-sm 0;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  .range-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(140px, 1fr));
+    gap: $spacing-sm;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+.categorical-filters-section {
+  h4 {
+    margin: 0 0 $spacing-sm 0;
+    font-size: $font-size-sm;
+    font-weight: 600;
+    color: $text-primary;
   }
 }
 

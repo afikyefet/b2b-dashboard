@@ -14,15 +14,26 @@ export interface SortConfig {
   direction: SortDirection;
 }
 
+// Range Filter Type
+export interface RangeFilter {
+  min: number | null;
+  max: number | null;
+}
+
 // Filtering Types
 export interface FilterConfig {
   generalSearch?: string;
-  dealerName?: string;
+  dealerName?: string | null;
   productCategory?: string[];
   productName?: string[];
   variantSku?: string[];
   variantSize?: string[];
   variantColor?: string[];
+  productSellType?: string[];
+  whenToSellRange?: RangeFilter;
+  howMuchToSellNowRange?: RangeFilter;
+  sellRateRange?: RangeFilter;
+  lastStockRange?: RangeFilter;
 }
 
 // Dropdown Options
@@ -33,6 +44,7 @@ export interface FilterOptions {
   variantSkus: string[];
   variantSizes: string[];
   variantColors: string[];
+  productSellTypes: string[];
 }
 
 export interface DashboardHeader {

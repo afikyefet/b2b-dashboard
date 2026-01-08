@@ -1,4 +1,4 @@
-import type { DashboardDataResponse, DashboardHeadersDataResponse, DashboardHeadersResponse, FilterConfig, SortConfig } from '../types/dashboard.types';
+import type { DashboardDataResponse, DashboardDataRow, DashboardHeadersDataResponse, DashboardHeadersResponse, FilterConfig, SortConfig } from '../types/dashboard.types';
 
 // function getDashboardData(): Promise<DashboardDataResponse> {
 //     return fetch('BigQueryDashboardData.json')
@@ -38,9 +38,6 @@ import type { DashboardDataResponse, DashboardHeadersDataResponse, DashboardHead
 //     throw new Error("API did not return JSON");
 //   }
 // }
-
-type DistributionInsightRow = DashboardDataRow; // replace later
-type DashboardDataResponse = DistributionInsightRow[];
 
 export async function getDashboardData(): Promise<DashboardDataResponse> {
   const res = await fetch("/api/distribution-insights?pageSize=500", {
@@ -162,6 +159,46 @@ function filterDashboardData(data: DashboardDataResponse, filters: FilterConfig)
             }
         }
 
+        // Product Sell Type filter (multi-select - exact match)
+        if (filters.productSellType && filters.productSellType.length > 0) {
+            const sellType = String(row.product_sell_type || '').trim();
+            if (!filters.productSellType.includes(sellType)) {
+                return false;
+            }
+        }
+
+        // When to Sell range filter
+        if (filters.whenToSellRange) {
+            const value = parseNumericValue(row.when_to_sell);
+            if (!isInRange(value, filters.whenToSellRange)) {
+                return false;
+            }
+        }
+
+        // How Much to Sell Now range filter
+        if (filters.howMuchToSellNowRange) {
+            const value = parseNumericValue(row.how_much_to_sell_now);
+            if (!isInRange(value, filters.howMuchToSellNowRange)) {
+                return false;
+            }
+        }
+
+        // Sell Rate range filter
+        if (filters.sellRateRange) {
+            const value = parseNumericValue(row.sell_rate);
+            if (!isInRange(value, filters.sellRateRange)) {
+                return false;
+            }
+        }
+
+        // Last Stock range filter
+        if (filters.lastStockRange) {
+            const value = parseNumericValue(row.last_stock);
+            if (!isInRange(value, filters.lastStockRange)) {
+                return false;
+            }
+        }
+
         return true;
     });
 }
@@ -172,6 +209,41 @@ function parseNumericValue(value: unknown): number | null {
     if (typeof value === 'number') return value;
     const num = parseFloat(String(value));
     return isNaN(num) ? null : num;
+}
+
+// Helper to check if a value is within a range filter
+function isInRange(value: number | null, range: { min: number | null; max: number | null }): boolean {
+    if (value === null) return false; // Exclude null values from range filters
+
+    const { min, max } = range;
+
+    // If both min and max are null, no filter applied
+    if (min === null && max === null) return true;
+
+    // Check min bound
+    if (min !== null && value < min) return false;
+
+    // Check max bound
+    if (max !== null && value > max) return false;
+
+    return true;
+}
+
+// Helper to calculate range bounds from data
+function calculateRangeBounds(
+    data: DashboardDataResponse,
+    field: keyof DashboardDataRow
+): { min: number; max: number } {
+    const values = data
+        .map(row => parseNumericValue(row[field]))
+        .filter((v): v is number => v !== null);
+
+    if (values.length === 0) return { min: 0, max: 100 };
+
+    return {
+        min: Math.floor(Math.min(...values)),
+        max: Math.ceil(Math.max(...values)),
+    };
 }
 
 function sortDashboardData(data: DashboardDataResponse, sortConfig: SortConfig): DashboardDataResponse {
@@ -303,6 +375,7 @@ function getFilterOptions(data: DashboardDataResponse): {
     variantSkus: string[];
     variantSizes: string[];
     variantColors: string[];
+    productSellTypes: string[];
 } {
     if (!data || data.length === 0) {
         return {
@@ -312,6 +385,7 @@ function getFilterOptions(data: DashboardDataResponse): {
             variantSkus: [],
             variantSizes: [],
             variantColors: [],
+            productSellTypes: [],
         };
     }
 
@@ -321,6 +395,7 @@ function getFilterOptions(data: DashboardDataResponse): {
     const variantSkus = new Set<string>();
     const variantSizes = new Set<string>();
     const variantColors = new Set<string>();
+    const productSellTypes = new Set<string>();
 
     data.forEach((row) => {
         if (row.customer_company) dealerNames.add(String(row.customer_company));
@@ -329,6 +404,7 @@ function getFilterOptions(data: DashboardDataResponse): {
         if (row.variant_sku_real) variantSkus.add(String(row.variant_sku_real));
         if (row.variant_size) variantSizes.add(String(row.variant_size));
         if (row.variant_color) variantColors.add(String(row.variant_color));
+        if (row.product_sell_type) productSellTypes.add(String(row.product_sell_type));
     });
 
     return {
@@ -338,7 +414,8 @@ function getFilterOptions(data: DashboardDataResponse): {
         variantSkus: Array.from(variantSkus).sort(),
         variantSizes: Array.from(variantSizes).sort(),
         variantColors: Array.from(variantColors).sort(),
+        productSellTypes: Array.from(productSellTypes).sort(),
     };
 }
 
-export { filterDashboardData, sortDashboardData, applyFiltersAndSort, getFilterOptions };
+export { filterDashboardData, sortDashboardData, applyFiltersAndSort, getFilterOptions, calculateRangeBounds };
