@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { listOrders, deleteOrder, type Order } from '../api/orders';
 import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
 
@@ -9,44 +9,39 @@ export default function OrdersList() {
   const [search, setSearch] = useState('');
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
-  const ordersCacheKey = 'orders_cache_v1';
-  const buildCacheKey = (status: string, query: string) => `status=${status || 'ALL'};q=${query || ''}`;
+  const ordersCacheKey = 'orders_cache_v2';
   const readCachedOrders = () => {
     try {
       const raw = localStorage.getItem(ordersCacheKey);
       if (!raw) return null;
-      const parsed = JSON.parse(raw) as { key: string; orders: Order[] };
-      if (!parsed || typeof parsed.key !== 'string' || !Array.isArray(parsed.orders)) return null;
+      const parsed = JSON.parse(raw) as { orders: Order[] };
+      if (!parsed || !Array.isArray(parsed.orders)) return null;
       return parsed;
     } catch {
       return null;
     }
   };
 
-  const writeCachedOrders = (key: string, items: Order[]) => {
+  const writeCachedOrders = (items: Order[]) => {
     try {
-      localStorage.setItem(ordersCacheKey, JSON.stringify({ key, orders: items }));
+      localStorage.setItem(ordersCacheKey, JSON.stringify({ orders: items }));
     } catch {
       // Ignore cache write failures (e.g. quota).
     }
   };
 
   const loadOrders = async (options?: { useCache?: boolean }) => {
-    const cacheKey = buildCacheKey(statusFilter, search);
     if (options?.useCache) {
       const cached = readCachedOrders();
-      if (cached?.key === cacheKey && cached.orders.length > 0) {
+      if (cached?.orders.length > 0) {
         setOrders(cached.orders);
       }
     }
     setLoading(true);
     try {
-      const res = await listOrders({ 
-        status: statusFilter || undefined, 
-        q: search || undefined 
-      });
+      const res = await listOrders();
       setOrders(res);
-      writeCachedOrders(cacheKey, res);
+      writeCachedOrders(res);
     } catch (err) {
       console.error(err);
       alert('Error loading orders');
@@ -57,12 +52,30 @@ export default function OrdersList() {
 
   useEffect(() => {
     loadOrders({ useCache: true });
-  }, [statusFilter]);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    loadOrders({ useCache: true });
   };
+
+  const visibleOrders = useMemo(() => {
+    const status = statusFilter.trim();
+    const query = search.trim().toLowerCase();
+
+    return orders.filter(order => {
+      if (status && order.status !== status) return false;
+      if (!query) return true;
+
+      const haystack = [
+        order.order_id,
+        order.dealer_name,
+        order.dealer_company,
+        order.dealer_email
+      ].filter(Boolean).join(' ').toLowerCase();
+
+      return haystack.includes(query);
+    });
+  }, [orders, statusFilter, search]);
 
   const canDelete = (status: string) => {
     return status === 'DRAFT' || status === 'SENT' || status === 'OPENED';
@@ -139,10 +152,10 @@ export default function OrdersList() {
           <tbody>
             {loading && orders.length === 0 ? (
               <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center' }}>Loading...</td></tr>
-            ) : orders.length === 0 ? (
+            ) : visibleOrders.length === 0 ? (
               <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>No orders found.</td></tr>
             ) : (
-              orders.map(order => (
+              visibleOrders.map(order => (
                 <tr key={order.order_id} style={{ borderBottom: '1px solid #e5e7eb' }}>
                   <td style={{ padding: '12px 16px', fontFamily: 'monospace' }}>{order.order_id.substring(0, 8)}...</td>
                   <td style={{ padding: '12px 16px' }}><OrderStatusBadge status={order.status} /></td>
