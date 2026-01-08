@@ -24,6 +24,12 @@ export type HydratedSkuItem = {
   product_featured_image_url?: string | null;
 };
 
+export type SkuAvailability = {
+  sku: string;
+  available_for_sale: boolean;
+  inventory_quantity: number | null;
+};
+
 export async function fetchProducts(params: {
   query?: string;
   limit?: number;
@@ -58,4 +64,14 @@ export async function fetchProductVariants(productId: string) {
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(await res.text());
   return res.json() as Promise<{ items: HydratedSkuItem[] }>;
+}
+
+export async function fetchSkuAvailability(skus: string[]) {
+  const res = await fetch(`${API_BASE}/api/catalog/availability`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ skus }),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json() as Promise<{ items: SkuAvailability[] }>;
 }

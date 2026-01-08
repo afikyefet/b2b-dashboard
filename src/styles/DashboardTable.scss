@@ -31,7 +31,7 @@
   padding: $spacing-sm;
   box-sizing: border-box;
   
-  // Define the master grid with checkbox column + 12 data columns (added product_sell_type)
+  // Define the master grid with checkbox column + 13 data columns (added in-stock status)
   display: grid;
   grid-template-columns: 
     40px                                              /* Checkbox column */
@@ -39,6 +39,7 @@
     minmax(100px, 0.9fr)   /* Product Category */
     minmax(120px, 1.2fr)    /* Product Name */
     minmax(80px, 0.7fr)     /* Variant Sku */
+    minmax(80px, 0.7fr)     /* In Stock */
     minmax(70px, 0.6fr)     /* Variant Color */
     minmax(70px, 0.6fr)     /* Variant Size */
     minmax(70px, 0.6fr)     /* Current Stock */
@@ -174,16 +175,31 @@
   }
 }
 
+.stock-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #d1d5db;
+  border-top-color: $primary-color;
+  border-radius: 50%;
+  animation: stock-spin 0.9s linear infinite;
+}
+
+@keyframes stock-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 // Responsive adjustments
 @media (max-width: 1600px) {
   .dashboard-table {
-    grid-template-columns: 40px repeat(12, minmax(80px, 1fr));
+    grid-template-columns: 40px repeat(13, minmax(80px, 1fr));
   }
 }
 
 @media (max-width: 1200px) {
   .dashboard-table {
     overflow-x: auto;
-    min-width: 1040px; // 40px checkbox + 1000px for data columns
+    min-width: 1120px; // 40px checkbox + 1080px for data columns
   }
 }

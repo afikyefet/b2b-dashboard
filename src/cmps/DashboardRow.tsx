@@ -1,12 +1,15 @@
 import type { DashboardDataRow, DashboardHeader } from "../types/dashboard.types";
+import type { SkuAvailability } from "../api/catalogApi";
 import { useCart } from '../contexts/CartContext';
 
 interface DashboardRowProps {
     row: DashboardDataRow;
     headers: DashboardHeader[];
+    availabilityBySku: Record<string, SkuAvailability>;
+    availabilityLoading: boolean;
 }
 
-function DashboardRow({ row, headers }: DashboardRowProps) {
+function DashboardRow({ row, headers, availabilityBySku, availabilityLoading }: DashboardRowProps) {
     const { isInCart, addSku, removeSku } = useCart();
     
     // Get SKU for cart operations
@@ -47,6 +50,15 @@ function DashboardRow({ row, headers }: DashboardRowProps) {
         toggleSelection();
     };
 
+    const getInStockStatus = () => {
+        if (!sku) return { status: null as boolean | null, loading: false };
+        const availability = availabilityBySku[sku];
+        if (!availability) return { status: null as boolean | null, loading: availabilityLoading };
+        const inventory = availability.inventory_quantity ?? 0;
+        const status = availability.available_for_sale || inventory > 0;
+        return { status, loading: false };
+    };
+
     return (
         <div className={`dashboard-row ${selected ? 'selected' : ''}`} onClick={handleRowClick}>
             <ul>
@@ -60,6 +72,29 @@ function DashboardRow({ row, headers }: DashboardRowProps) {
                     />
                 </li>
                 {headers.map((header: DashboardHeader) => {
+                    if (header.field === 'in_stock_shopify') {
+                        const { status, loading } = getInStockStatus();
+                        const label = status === null ? 'Unknown' : status ? 'In Stock' : 'Out of Stock';
+                        const badgeStyle = {
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            minWidth: '70px',
+                            padding: '4px 8px',
+                            borderRadius: '999px',
+                            fontSize: '0.75em',
+                            fontWeight: 600,
+                            color: status ? '#0f5132' : status === false ? '#842029' : '#4b5563',
+                            backgroundColor: status ? '#d1e7dd' : status === false ? '#f8d7da' : '#e5e7eb'
+                        } as const;
+
+                        return (
+                            <li key={header.id} title={label || undefined}>
+                                {loading ? <span className="stock-spinner" /> : <span style={badgeStyle}>{label}</span>}
+                            </li>
+                        );
+                    }
+
                     const fieldKey = header.field as keyof DashboardDataRow;
                     
                     // Check if field exists in the row object

@@ -8,6 +8,7 @@ import { useSelector, useDispatch } from "react-redux";
 import type { AppDispatch } from "../store";
 import { selectFilters, setDealerName, resetFilters } from "../store/slices/filterSlice";
 import { getDashboardData, getDashboardHeaders, applyFiltersAndSort, getFilterOptions } from "../services/dashboard.service";
+import { fetchSkuAvailability, type SkuAvailability } from "../api/catalogApi";
 import { getRowId } from "../utils/rowId";
 import "../styles/DashboardTable.scss";
 
@@ -19,9 +20,33 @@ function DashboardTable() {
     const [sortConfig, setSortConfig] = useState<SortConfig>({ field: '', direction: null });
     const [loadingData, setLoadingData] = useState(false);
     const [loadingHeaders, setLoadingHeaders] = useState(false);
+    const [availabilityLoading, setAvailabilityLoading] = useState(false);
+    const [availabilityBySku, setAvailabilityBySku] = useState<Record<string, SkuAvailability>>({});
     const dashboardCacheKey = 'dashboard_table_cache_v1';
     const dataRef = useRef<DashboardDataResponse>([]);
     const headersRef = useRef<DashboardHeader[]>([]);
+    const availabilityRequestId = useRef(0);
+
+    const injectInStockHeader = (baseHeaders: DashboardHeader[]): DashboardHeader[] => {
+        const alreadyExists = baseHeaders.some(header => header.field === 'in_stock_shopify');
+        if (alreadyExists) return baseHeaders;
+
+        const insertAfterIndex = baseHeaders.findIndex(header => header.field === 'variant_sku_real');
+        const inStockHeader: DashboardHeader = {
+            id: 'in_stock_shopify',
+            field: 'in_stock_shopify',
+            displayName: 'In Stock',
+            category: 'inventory'
+        };
+
+        if (insertAfterIndex === -1) {
+            return [...baseHeaders, inStockHeader];
+        }
+
+        const nextHeaders = [...baseHeaders];
+        nextHeaders.splice(insertAfterIndex + 1, 0, inStockHeader);
+        return nextHeaders;
+    };
 
     useEffect(() => {
         dataRef.current = originalData;
@@ -54,8 +79,9 @@ function DashboardTable() {
 
         const cached = readCache();
         if (cached) {
+            const cachedHeaders = injectInStockHeader(cached.headers);
             setOriginalData(cached.data);
-            setHeaders(cached.headers);
+            setHeaders(cachedHeaders);
         }
 
         setLoadingData(true);
@@ -69,8 +95,9 @@ function DashboardTable() {
         setLoadingHeaders(true);
         getDashboardHeaders()
             .then((nextHeaders) => {
-                setHeaders(nextHeaders);
-                writeCache(dataRef.current, nextHeaders);
+                const enrichedHeaders = injectInStockHeader(nextHeaders);
+                setHeaders(enrichedHeaders);
+                writeCache(dataRef.current, enrichedHeaders);
             })
             .finally(() => setLoadingHeaders(false));
     }, []);
@@ -92,6 +119,45 @@ function DashboardTable() {
     const filteredData = useMemo(() => {
         return applyFiltersAndSort(originalData, filters, sortConfig);
     }, [originalData, filters, sortConfig]);
+
+    const filteredSkus = useMemo(() => {
+        const set = new Set<string>();
+        filteredData.forEach(row => {
+            const sku = row.variant_sku_real;
+            if (sku) set.add(String(sku));
+        });
+        return Array.from(set);
+    }, [filteredData]);
+
+    useEffect(() => {
+        if (filteredSkus.length === 0) {
+            setAvailabilityBySku({});
+            setAvailabilityLoading(false);
+            return;
+        }
+
+        const requestId = ++availabilityRequestId.current;
+        setAvailabilityLoading(true);
+
+        fetchSkuAvailability(filteredSkus)
+            .then(({ items }) => {
+                if (availabilityRequestId.current !== requestId) return;
+                const next: Record<string, SkuAvailability> = {};
+                items.forEach(item => {
+                    next[item.sku] = item;
+                });
+                setAvailabilityBySku(next);
+            })
+            .catch((err) => {
+                console.error(err);
+                if (availabilityRequestId.current !== requestId) return;
+                setAvailabilityBySku({});
+            })
+            .finally(() => {
+                if (availabilityRequestId.current !== requestId) return;
+                setAvailabilityLoading(false);
+            });
+    }, [filteredSkus]);
 
     const handleSort = (field: string) => {
         setSortConfig((prev) => {
@@ -169,7 +235,13 @@ function DashboardTable() {
                         {filteredData.map((row: DashboardDataRow) => {
                             const rowId = getRowId(row);
                             return (
-                                <DashboardRow key={rowId} row={row} headers={headers} />
+                            <DashboardRow
+                                key={rowId}
+                                row={row}
+                                headers={headers}
+                                availabilityBySku={availabilityBySku}
+                                availabilityLoading={availabilityLoading}
+                            />
                             );
                         })}
                     </div>
