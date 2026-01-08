@@ -86,9 +86,9 @@
   
   li {
     padding: $spacing-xs $spacing-sm;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
     
     &.checkbox-cell {
       display: flex;

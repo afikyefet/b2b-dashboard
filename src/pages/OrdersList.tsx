@@ -9,7 +9,36 @@ export default function OrdersList() {
   const [search, setSearch] = useState('');
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
-  const loadOrders = async () => {
+  const ordersCacheKey = 'orders_cache_v1';
+  const buildCacheKey = (status: string, query: string) => `status=${status || 'ALL'};q=${query || ''}`;
+  const readCachedOrders = () => {
+    try {
+      const raw = localStorage.getItem(ordersCacheKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { key: string; orders: Order[] };
+      if (!parsed || typeof parsed.key !== 'string' || !Array.isArray(parsed.orders)) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+
+  const writeCachedOrders = (key: string, items: Order[]) => {
+    try {
+      localStorage.setItem(ordersCacheKey, JSON.stringify({ key, orders: items }));
+    } catch {
+      // Ignore cache write failures (e.g. quota).
+    }
+  };
+
+  const loadOrders = async (options?: { useCache?: boolean }) => {
+    const cacheKey = buildCacheKey(statusFilter, search);
+    if (options?.useCache) {
+      const cached = readCachedOrders();
+      if (cached?.key === cacheKey && cached.orders.length > 0) {
+        setOrders(cached.orders);
+      }
+    }
     setLoading(true);
     try {
       const res = await listOrders({ 
@@ -17,6 +46,7 @@ export default function OrdersList() {
         q: search || undefined 
       });
       setOrders(res);
+      writeCachedOrders(cacheKey, res);
     } catch (err) {
       console.error(err);
       alert('Error loading orders');
@@ -26,12 +56,12 @@ export default function OrdersList() {
   };
 
   useEffect(() => {
-    loadOrders();
+    loadOrders({ useCache: true });
   }, [statusFilter]);
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    loadOrders();
+    loadOrders({ useCache: true });
   };
 
   const canDelete = (status: string) => {
@@ -107,7 +137,7 @@ export default function OrdersList() {
             </tr>
           </thead>
           <tbody>
-            {loading ? (
+            {loading && orders.length === 0 ? (
               <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center' }}>Loading...</td></tr>
             ) : orders.length === 0 ? (
               <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>No orders found.</td></tr>

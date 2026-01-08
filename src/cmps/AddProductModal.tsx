@@ -25,6 +25,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productsWithVariants, setProductsWithVariants] = useState<Map<string, ProductWithVariants>>(new Map());
   const [loadingVariants, setLoadingVariants] = useState<Set<string>>(new Set());
+  const productsCacheKey = 'browse_products_cache_v1';
+  const variantsCacheKey = 'browse_product_variants_cache_v1';
 
   const parseProductOptions = (optionsJson: string | null | undefined): ProductOption[] => {
     if (!optionsJson) return [];
@@ -42,7 +44,62 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     return [];
   };
 
-  const loadProducts = async () => {
+  const buildProductsCacheKey = (query: string) => `q=${query || ''}`;
+
+  const readProductsCache = () => {
+    try {
+      const raw = localStorage.getItem(productsCacheKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as { key: string; items: ProductListItem[] };
+      if (!parsed || typeof parsed.key !== 'string' || !Array.isArray(parsed.items)) return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+
+  const writeProductsCache = (key: string, items: ProductListItem[]) => {
+    try {
+      localStorage.setItem(productsCacheKey, JSON.stringify({ key, items }));
+    } catch {
+      // Ignore cache write failures (e.g. quota).
+    }
+  };
+
+  const readVariantsCache = () => {
+    try {
+      const raw = localStorage.getItem(variantsCacheKey);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as Record<string, {
+        product: ProductListItem;
+        variants: HydratedSkuItem[];
+        options: ProductOption[];
+      }>;
+      if (!parsed || typeof parsed !== 'object') return null;
+      return parsed;
+    } catch {
+      return null;
+    }
+  };
+
+  const writeVariantCache = (productId: string, data: { product: ProductListItem; variants: HydratedSkuItem[]; options: ProductOption[] }) => {
+    try {
+      const existing = readVariantsCache() || {};
+      const next = { ...existing, [productId]: data };
+      localStorage.setItem(variantsCacheKey, JSON.stringify(next));
+    } catch {
+      // Ignore cache write failures.
+    }
+  };
+
+  const loadProducts = async (options?: { useCache?: boolean }) => {
+    const cacheKey = buildProductsCacheKey(productSearch);
+    if (options?.useCache) {
+      const cached = readProductsCache();
+      if (cached?.key === cacheKey && cached.items.length > 0) {
+        setProducts(cached.items);
+      }
+    }
     setLoadingProducts(true);
     try {
       const result = await fetchProducts({
@@ -50,6 +107,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         limit: 50,
       });
       setProducts(result.items);
+      writeProductsCache(cacheKey, result.items);
     } catch (err) {
       console.error(err);
       alert('Error loading products');
@@ -58,8 +116,25 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     }
   };
 
-  const loadProductVariants = async (productId: string) => {
+  const loadProductVariants = async (productId: string, options?: { useCache?: boolean }) => {
     if (productsWithVariants.has(productId)) return;
+
+    if (options?.useCache) {
+      const cachedVariants = readVariantsCache();
+      const cached = cachedVariants ? cachedVariants[productId] : undefined;
+      if (cached && cached.variants.length > 0) {
+        setProductsWithVariants(prev => {
+          const newMap = new Map(prev);
+          newMap.set(productId, {
+            product: cached.product,
+            variants: cached.variants,
+            options: cached.options,
+            selectedOptions: {}
+          });
+          return newMap;
+        });
+      }
+    }
 
     setLoadingVariants(prev => new Set(prev).add(productId));
     try {
@@ -125,16 +200,24 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           }, []);
         }
 
+        const productRecord = products.find(p => p.product_id === productId) || products[0];
         setProductsWithVariants(prev => {
           const newMap = new Map(prev);
           newMap.set(productId, {
-            product: products.find(p => p.product_id === productId) || products[0],
+            product: productRecord,
             variants: result.items,
             options: enrichedOptions,
             selectedOptions: {}
           });
           return newMap;
         });
+        if (productRecord) {
+          writeVariantCache(productId, {
+            product: productRecord,
+            variants: result.items,
+            options: enrichedOptions
+          });
+        }
       }
     } catch (err) {
       console.error('Error fetching variants:', err);
@@ -149,7 +232,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
   useEffect(() => {
     if (isOpen && products.length === 0) {
-      loadProducts();
+      loadProducts({ useCache: true });
     }
   }, [isOpen]);
 
@@ -157,7 +240,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     if (isOpen && products.length > 0) {
       products.forEach(product => {
         if (!productsWithVariants.has(product.product_id) && !loadingVariants.has(product.product_id)) {
-          loadProductVariants(product.product_id);
+          loadProductVariants(product.product_id, { useCache: true });
         }
       });
     }
@@ -166,7 +249,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   useEffect(() => {
     if (!isOpen) return;
     const timer = setTimeout(() => {
-      loadProducts();
+      loadProducts({ useCache: true });
     }, 300);
     return () => clearTimeout(timer);
   }, [productSearch, isOpen]);
@@ -176,9 +259,11 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       const productData = productsWithVariants.get(product.product_id);
 
       if (loadingVariants.has(product.product_id)) return true;
-      if (!productData || productData.variants.length === 0) return true;
+      if (!productData || productData.variants.length === 0) return false;
 
-      return productData.variants.some(v => v.available_for_sale);
+      const hasOptions = productData.options.length > 0;
+      const hasAvailableVariant = productData.variants.some(v => v.available_for_sale);
+      return hasOptions || hasAvailableVariant;
     });
   };
 
@@ -442,7 +527,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-          {loadingProducts ? (
+          {loadingProducts && products.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px' }}>Loading products...</div>
           ) : products.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>No products found</div>
