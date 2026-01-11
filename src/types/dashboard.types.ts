@@ -125,5 +125,6 @@ export interface DashboardTableProps {
 export interface DashboardRowProps {
   row: DashboardDataRow;
   headers: DashboardHeader[];
+  selectionDays: number;
 }
 

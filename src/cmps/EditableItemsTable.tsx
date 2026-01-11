@@ -6,9 +6,10 @@ type EditableItemsTableProps = {
   items: OrderItem[];
   onChange: (items: OrderItem[]) => void;
   readOnly?: boolean;
+  store?: string;
 };
 
-export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({ items, onChange, readOnly }) => {
+export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({ items, onChange, readOnly, store }) => {
   const [showAddModal, setShowAddModal] = useState(false);
 
   const handleQtyChange = (index: number, newQty: number) => {
@@ -118,6 +119,7 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({ items, o
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddItem}
+        store={store}
       />
     </div>
   );

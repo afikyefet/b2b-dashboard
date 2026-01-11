@@ -9,6 +9,8 @@ import { selectFilters, setDealerName, resetFilters } from "../store/slices/filt
 import { getDashboardData, getDashboardHeaders, applyFiltersAndSort, getFilterOptions } from "../services/dashboard.service";
 import { fetchSkuAvailability, fetchSkuImages, type SkuAvailability, type SkuImage } from "../api/catalogApi";
 import { getRowId } from "../utils/rowId";
+import { resolveStoreForDealer } from "../utils/storeRouting";
+import { getSelectionQty } from "../utils/selectionQty";
 import "../styles/DashboardCards.scss";
 
 type OrderInfo = {
@@ -31,6 +33,7 @@ function DashboardCards() {
     const [availabilityBySku, setAvailabilityBySku] = useState<Record<string, SkuAvailability>>({});
     const [imagesLoading, setImagesLoading] = useState(false);
     const [imagesBySku, setImagesBySku] = useState<Record<string, string | null>>({});
+    const [smartSelectDays, setSmartSelectDays] = useState(30);
     const dashboardCacheKey = 'dashboard_table_cache_v1';
     const dataRef = useRef<DashboardDataResponse>([]);
     const headersRef = useRef<DashboardHeader[]>([]);
@@ -130,6 +133,8 @@ function DashboardCards() {
         return applyFiltersAndSort(originalData, filters, sortConfig);
     }, [originalData, filters, sortConfig]);
 
+    const storeCode = useMemo(() => resolveStoreForDealer(filters.dealerName), [filters.dealerName]);
+
     const filteredSkus = useMemo(() => {
         const set = new Set<string>();
         filteredData.forEach(row => {
@@ -149,7 +154,7 @@ function DashboardCards() {
         const requestId = ++availabilityRequestId.current;
         setAvailabilityLoading(true);
 
-        fetchSkuAvailability(filteredSkus)
+        fetchSkuAvailability(filteredSkus, storeCode)
             .then(({ items }) => {
                 if (availabilityRequestId.current !== requestId) return;
                 const next: Record<string, SkuAvailability> = {};
@@ -167,7 +172,7 @@ function DashboardCards() {
                 if (availabilityRequestId.current !== requestId) return;
                 setAvailabilityLoading(false);
             });
-    }, [filteredSkus]);
+    }, [filteredSkus, storeCode]);
 
     useEffect(() => {
         if (filteredSkus.length === 0) {
@@ -179,7 +184,7 @@ function DashboardCards() {
         const requestId = ++imagesRequestId.current;
         setImagesLoading(true);
 
-        fetchSkuImages(filteredSkus)
+        fetchSkuImages(filteredSkus, storeCode)
             .then(({ items }) => {
                 if (imagesRequestId.current !== requestId) return;
                 const next: Record<string, string | null> = {};
@@ -197,7 +202,7 @@ function DashboardCards() {
                 if (imagesRequestId.current !== requestId) return;
                 setImagesLoading(false);
             });
-    }, [filteredSkus]);
+    }, [filteredSkus, storeCode]);
 
     const handleSort = (field: string) => {
         setSortConfig((prev) => {
@@ -226,10 +231,12 @@ function DashboardCards() {
 
     const handleResetAll = () => {
         dispatch(resetFilters());
+        setSmartSelectDays(30);
         handleResetSort();
     };
 
     const hasActiveFilters = () => {
+        if (smartSelectDays !== 30) return true;
         if (filters.generalSearch && filters.generalSearch.trim()) return true;
         // Dealer name is always set (required), so ignore it for "Reset All"
         const { dealerName: _dealerName, ...otherFilters } = filters;
@@ -255,15 +262,7 @@ function DashboardCards() {
             return;
         }
 
-        let initialQty = 1;
-        const sellNow = row.how_much_to_sell_now;
-        if (sellNow !== null && sellNow !== undefined) {
-            const parsed = parseFloat(String(sellNow));
-            if (!isNaN(parsed) && parsed > 0) {
-                initialQty = Math.round(parsed);
-            }
-        }
-
+        const initialQty = getSelectionQty(row, smartSelectDays);
         addSku(sku, initialQty);
     };
 
@@ -272,14 +271,7 @@ function DashboardCards() {
             const sku = row.variant_sku_real;
             if (!sku || isInCart(sku)) return;
 
-            let initialQty = 1;
-            const sellNow = row.how_much_to_sell_now;
-            if (sellNow !== null && sellNow !== undefined) {
-                const parsed = parseFloat(String(sellNow));
-                if (!isNaN(parsed) && parsed > 0) {
-                    initialQty = Math.round(parsed);
-                }
-            }
+            const initialQty = getSelectionQty(row, smartSelectDays);
             addSku(sku, initialQty);
         });
     };
@@ -302,6 +294,8 @@ function DashboardCards() {
                     onResetAll={handleResetAll}
                     hasActiveFilters={!!(hasActiveFilters() || hasActiveSort)}
                     isRefreshing={(loadingData || loadingHeaders) && originalData.length > 0 && headers.length > 0}
+                    smartSelectDays={smartSelectDays}
+                    onSmartSelectDaysChange={setSmartSelectDays}
                 />
                 <div className="cards-actions">
                     <button
@@ -345,6 +339,10 @@ function DashboardCards() {
                                 orderNo: row["2_last_sale_order_no"] as string | null | undefined
                             }
                         ].filter(order => order.date);
+                        const productUrl = typeof row.url === "string" ? row.url.trim() : "";
+                        const sellNowValue = smartSelectDays !== 30
+                            ? getSelectionQty(row, smartSelectDays)
+                            : row.how_much_to_sell_now;
 
                         return (
                             <div
@@ -365,7 +363,19 @@ function DashboardCards() {
                                 <div className="card-header">
                                     <div className="card-title">
                                         <span>
-                                            <span className="product-name">{row.product_name || "Unnamed Product"}</span>
+                                            {productUrl ? (
+                                                <a
+                                                    href={productUrl}
+                                                    className="product-name"
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    onClick={(e) => e.stopPropagation()}
+                                                >
+                                                    {row.product_name || "Unnamed Product"}
+                                                </a>
+                                            ) : (
+                                                <span className="product-name">{row.product_name || "Unnamed Product"}</span>
+                                            )}
                                             <span className="product-company">{row.customer_company || ""}</span>
                                         </span>
                                     </div>
@@ -394,7 +404,7 @@ function DashboardCards() {
                                     <div className="section-title">Stock & Sales</div>
                                     <div className="card-fields">
                                         <Field label="Current Stock" value={row.last_stock} />
-                                        <Field label="Sell Now" value={row.how_much_to_sell_now} />
+                                        <Field label="Sell Now" value={sellNowValue} />
                                         <Field label="When to Sell" value={row.when_to_sell} />
                                         <Field label="Sell on Schedule" value={row.how_much_to_sell_on_schedule} />
                                         <Field label="Sell Rate" value={row.sell_rate} />

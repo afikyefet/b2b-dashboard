@@ -6,6 +6,7 @@ import { hydrateBySkus, fetchProducts, fetchProductVariants } from '../api/catal
 import type { ProductListItem, HydratedSkuItem } from '../api/catalogApi';
 import { CreateOrderModal } from '../cmps/CreateOrderModal';
 import { selectDealerName } from '../store/slices/filterSlice';
+import { resolveStoreForDealer } from '../utils/storeRouting';
 import '../styles/App.scss';
 
 type ProductOption = {
@@ -24,6 +25,7 @@ export default function CartPage() {
     const navigate = useNavigate();
     const { cart, hydrated, setQty, removeSku, addSku } = useCart();
     const dealerName = useSelector(selectDealerName);
+    const storeCode = useMemo(() => resolveStoreForDealer(dealerName), [dealerName]);
     const [skuInput, setSkuInput] = useState('');
     const [loadingSku, setLoadingSku] = useState(false);
     
@@ -36,15 +38,16 @@ export default function CartPage() {
     const [loadingProducts, setLoadingProducts] = useState(false);
     const [productsWithVariants, setProductsWithVariants] = useState<Map<string, ProductWithVariants>>(new Map());
     const [loadingVariants, setLoadingVariants] = useState<Set<string>>(new Set());
-    const productsCacheKey = 'cart_browse_products_cache_v1';
-    const variantsCacheKey = 'cart_browse_product_variants_cache_v1';
+    const storeTag = storeCode.toLowerCase();
+    const productsCacheKey = `cart_browse_products_cache_v1_${storeTag}`;
+    const variantsCacheKey = `cart_browse_product_variants_cache_v1_${storeTag}`;
 
     const handleAddSku = async () => {
         if (!skuInput.trim()) return;
         const sku = skuInput.trim();
         setLoadingSku(true);
         try {
-            const { items } = await hydrateBySkus([sku]);
+            const { items } = await hydrateBySkus([sku], storeCode);
             if (items.length > 0) {
                 addSku(sku, 1);
                 setSkuInput('');
@@ -77,7 +80,7 @@ export default function CartPage() {
     };
 
     // Load products
-    const buildProductsCacheKey = (query: string) => `q=${query || ''}`;
+    const buildProductsCacheKey = (query: string) => `store=${storeTag}|q=${query || ''}`;
 
     const readProductsCache = () => {
         try {
@@ -138,6 +141,7 @@ export default function CartPage() {
             const result = await fetchProducts({
                 query: productSearch || undefined,
                 limit: 50,
+                store: storeCode,
             });
             setProducts(result.items);
             writeProductsCache(cacheKey, result.items);
@@ -206,7 +210,7 @@ export default function CartPage() {
         
         setLoadingVariants(prev => new Set(prev).add(productId));
         try {
-            const result = await fetchProductVariants(productId);
+            const result = await fetchProductVariants(productId, storeCode);
             if (result.items && result.items.length > 0) {
                 const firstVariant = result.items[0];
                 const options = parseProductOptions(firstVariant.product_options);
@@ -308,7 +312,7 @@ export default function CartPage() {
         if (showProductModal && products.length === 0) {
             loadProducts({ useCache: true });
         }
-    }, [showProductModal]);
+    }, [showProductModal, storeCode]);
 
     // Auto-load variants for products when they're loaded
     useEffect(() => {
@@ -319,7 +323,15 @@ export default function CartPage() {
                 }
             });
         }
-    }, [products, showProductModal]);
+    }, [products, showProductModal, storeCode]);
+
+    useEffect(() => {
+        if (!showProductModal) return;
+        setProducts([]);
+        setProductsWithVariants(new Map());
+        setLoadingVariants(new Set());
+        loadProducts({ useCache: true });
+    }, [storeCode, showProductModal]);
 
     // Load products when search changes (debounced)
     useEffect(() => {
@@ -330,7 +342,7 @@ export default function CartPage() {
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [productSearch, showProductModal]);
+    }, [productSearch, showProductModal, storeCode]);
 
     // Get available variants based on current option selections (partial matching)
     const getAvailableVariants = (productId: string): HydratedSkuItem[] => {

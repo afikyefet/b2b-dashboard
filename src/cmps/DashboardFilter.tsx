@@ -29,13 +29,16 @@ interface DashboardFilterProps {
     onResetAll: () => void;
     hasActiveFilters: boolean;
     isRefreshing: boolean;
+    smartSelectDays: number;
+    onSmartSelectDaysChange: (days: number) => void;
 }
 
-function DashboardFilter({ filterOptions, originalData, filteredData, onResetAll, hasActiveFilters, isRefreshing }: DashboardFilterProps) {
+function DashboardFilter({ filterOptions, originalData, filteredData, onResetAll, hasActiveFilters, isRefreshing, smartSelectDays, onSmartSelectDaysChange }: DashboardFilterProps) {
     const dispatch = useDispatch<AppDispatch>();
     const filters = useSelector(selectFilters);
     const { cart, removeSku } = useCart();
     const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+    const [filtersExpanded, setFiltersExpanded] = useState(false);
     const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
     // Calculate range bounds from original data
@@ -129,8 +132,38 @@ function DashboardFilter({ filterOptions, originalData, filteredData, onResetAll
                     <h3>Filters</h3>
                     {isRefreshing && <span className="filter-refreshing">Refreshing…</span>}
                 </div>
+            </div>
+            
+            <div className="filter-toolbar">
+                <div className="filter-search">
+                    <label htmlFor="generalSearch">Search</label>
+                    <input
+                        id="generalSearch"
+                        type="text"
+                        value={filters.generalSearch || ''}
+                        onChange={(e) => handleGeneralSearchChange(e.target.value)}
+                        placeholder="Search across all fields..."
+                    />
+                </div>
                 <div className="filter-actions">
-                    <SmartSelection filteredData={filteredData} />
+                    <div className="smart-select-days">
+                        <label htmlFor="smartSelectDays">Days of stock</label>
+                        <input
+                            id="smartSelectDays"
+                            type="number"
+                            min={1}
+                            step={1}
+                            value={smartSelectDays}
+                            onChange={(e) => {
+                                const next = parseInt(e.target.value, 10);
+                                if (Number.isNaN(next)) {
+                                    return;
+                                }
+                                onSmartSelectDaysChange(Math.max(1, next));
+                            }}
+                        />
+                    </div>
+                    <SmartSelection filteredData={filteredData} days={smartSelectDays} />
                     <button
                         className="filter-action-btn secondary"
                         onClick={handleClearCart}
@@ -148,20 +181,22 @@ function DashboardFilter({ filterOptions, originalData, filteredData, onResetAll
                         Reset Filters
                     </button>
                 </div>
-            </div>
-            
-            {/* General Search */}
-            <div className="filter-group general-search">
-                <label htmlFor="generalSearch">General Search</label>
-                <input
-                    id="generalSearch"
-                    type="text"
-                    value={filters.generalSearch || ''}
-                    onChange={(e) => handleGeneralSearchChange(e.target.value)}
-                    placeholder="Search across all fields..."
-                />
+                <button
+                    className="filter-toggle"
+                    type="button"
+                    onClick={() => setFiltersExpanded((prev) => !prev)}
+                    aria-expanded={filtersExpanded}
+                >
+                    <span className="filter-toggle-label">
+                        {filtersExpanded ? 'Hide Filters' : 'Show Filters'}
+                    </span>
+                    <span className={`filter-toggle-chevron${filtersExpanded ? ' open' : ''}`} aria-hidden="true">
+                        {'>'}
+                    </span>
+                </button>
             </div>
 
+            <div className={`filter-advanced${filtersExpanded ? ' open' : ' collapsed'}`}>
             {/* Range Filters Section */}
             <div className="range-filters-section">
                 <h4>Range Filters</h4>
@@ -437,6 +472,7 @@ function DashboardFilter({ filterOptions, originalData, filteredData, onResetAll
                         )}
                     </div>
                 </div>
+            </div>
             </div>
             </div>
         </div>

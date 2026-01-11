@@ -261,6 +261,7 @@ export default function OrderDetails() {
             <EditableItemsTable 
                 items={items} 
                 onChange={setItems} 
+                store={order?.shopify_store}
             />
           </div>
 

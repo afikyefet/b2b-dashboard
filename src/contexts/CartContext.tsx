@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { hydrateBySkus } from "../api/catalogApi";
 import type { HydratedSkuItem } from "../api/catalogApi";
 import { selectDealerName } from "../store/slices/filterSlice";
+import { resolveStoreForDealer } from "../utils/storeRouting";
 
 export type CartItem = { sku: string; qty: number; qty_recommended?: number };
 
@@ -63,6 +64,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return cartByDealer[dealerName] || [];
   }, [cartByDealer, dealerName]);
 
+  const storeCode = useMemo(() => resolveStoreForDealer(dealerName), [dealerName]);
+
   const skus = useMemo(() => cart.map((c) => c.sku), [cart]);
 
   // Save cart to localStorage whenever it changes
@@ -80,7 +83,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       
       setLoading(true);
       try {
-        const { items } = await hydrateBySkus(skus);
+        const { items } = await hydrateBySkus(skus, storeCode);
         if (cancelled) return;
         
         setHydrated(prev => {
@@ -98,7 +101,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return () => {
       cancelled = true;
     };
-  }, [skus.join("|")]);
+  }, [skus.join("|"), storeCode]);
 
   function addSku(sku: string, initialQty: number = 1) {
     if (!dealerName) return; // Can't add items without a dealer selected

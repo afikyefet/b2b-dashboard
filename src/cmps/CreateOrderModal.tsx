@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createOrder } from '../api/orders';
+import { resolveStoreForDealer, type StoreCode } from '../utils/storeRouting';
 
 type CreateOrderModalProps = {
   isOpen: boolean;
@@ -16,20 +17,21 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
     dealer_email: '',
     dealer_company: '',
     notes: '',
-    currency: 'USD'
+    currency: 'USD',
+    shopify_store: 'US' as StoreCode
   });
 
   // Auto-fill company name when modal opens or defaultCompany changes
   useEffect(() => {
-    if (isOpen && defaultCompany) {
-      setFormData(prev => {
-        // Only update if company field is empty
-        if (!prev.dealer_company) {
-          return { ...prev, dealer_company: defaultCompany };
-        }
-        return prev;
-      });
-    }
+    if (!isOpen) return;
+    const resolvedStore = resolveStoreForDealer(defaultCompany);
+    const currency = resolvedStore === 'EU' ? 'EUR' : 'USD';
+    setFormData(prev => ({
+      ...prev,
+      dealer_company: prev.dealer_company || defaultCompany || prev.dealer_company,
+      shopify_store: resolvedStore,
+      currency
+    }));
   }, [isOpen, defaultCompany]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -98,6 +100,24 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
                         onChange={e => setFormData({...formData, dealer_company: e.target.value})}
                         style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
                     />
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>Store</label>
+                    <select
+                        value={formData.shopify_store}
+                        onChange={e => {
+                            const nextStore = e.target.value as StoreCode;
+                            setFormData(prev => ({
+                                ...prev,
+                                shopify_store: nextStore,
+                                currency: nextStore === 'EU' ? 'EUR' : 'USD'
+                            }));
+                        }}
+                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', background: 'white' }}
+                    >
+                        <option value="US">US Shopify</option>
+                        <option value="EU">EU Shopify</option>
+                    </select>
                 </div>
                 <div style={{ marginBottom: '16px' }}>
                     <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>Notes</label>

@@ -10,6 +10,7 @@ import { selectFilters, setDealerName, resetFilters } from "../store/slices/filt
 import { getDashboardData, getDashboardHeaders, applyFiltersAndSort, getFilterOptions } from "../services/dashboard.service";
 import { fetchSkuAvailability, type SkuAvailability } from "../api/catalogApi";
 import { getRowId } from "../utils/rowId";
+import { resolveStoreForDealer } from "../utils/storeRouting";
 import "../styles/DashboardTable.scss";
 
 function DashboardTable() {
@@ -22,6 +23,7 @@ function DashboardTable() {
     const [loadingHeaders, setLoadingHeaders] = useState(false);
     const [availabilityLoading, setAvailabilityLoading] = useState(false);
     const [availabilityBySku, setAvailabilityBySku] = useState<Record<string, SkuAvailability>>({});
+    const [smartSelectDays, setSmartSelectDays] = useState(30);
     const dashboardCacheKey = 'dashboard_table_cache_v1';
     const dataRef = useRef<DashboardDataResponse>([]);
     const headersRef = useRef<DashboardHeader[]>([]);
@@ -120,6 +122,8 @@ function DashboardTable() {
         return applyFiltersAndSort(originalData, filters, sortConfig);
     }, [originalData, filters, sortConfig]);
 
+    const storeCode = useMemo(() => resolveStoreForDealer(filters.dealerName), [filters.dealerName]);
+
     const filteredSkus = useMemo(() => {
         const set = new Set<string>();
         filteredData.forEach(row => {
@@ -139,7 +143,7 @@ function DashboardTable() {
         const requestId = ++availabilityRequestId.current;
         setAvailabilityLoading(true);
 
-        fetchSkuAvailability(filteredSkus)
+        fetchSkuAvailability(filteredSkus, storeCode)
             .then(({ items }) => {
                 if (availabilityRequestId.current !== requestId) return;
                 const next: Record<string, SkuAvailability> = {};
@@ -157,7 +161,7 @@ function DashboardTable() {
                 if (availabilityRequestId.current !== requestId) return;
                 setAvailabilityLoading(false);
             });
-    }, [filteredSkus]);
+    }, [filteredSkus, storeCode]);
 
     const handleSort = (field: string) => {
         setSortConfig((prev) => {
@@ -186,10 +190,12 @@ function DashboardTable() {
 
     const handleResetAll = () => {
         dispatch(resetFilters());
+        setSmartSelectDays(30);
         handleResetSort();
     };
 
     const hasActiveFilters = () => {
+        if (smartSelectDays !== 30) return true;
         if (filters.generalSearch && filters.generalSearch.trim()) return true;
         // Dealer name is always set (required), so ignore it for "Reset All"
         const { dealerName: _dealerName, ...otherFilters } = filters;
@@ -216,6 +222,8 @@ function DashboardTable() {
                     onResetAll={handleResetAll}
                     hasActiveFilters={!!(hasActiveFilters() || hasActiveSort)}
                     isRefreshing={(loadingData || loadingHeaders) && originalData.length > 0 && headers.length > 0}
+                    smartSelectDays={smartSelectDays}
+                    onSmartSelectDaysChange={setSmartSelectDays}
                 />
                 <div className="dashboard-table">
                     <DashboardHeaders
@@ -234,6 +242,7 @@ function DashboardTable() {
                                 headers={headers}
                                 availabilityBySku={availabilityBySku}
                                 availabilityLoading={availabilityLoading}
+                                selectionDays={smartSelectDays}
                             />
                             );
                         })}

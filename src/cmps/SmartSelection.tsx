@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import type { DashboardDataRow } from '../types/dashboard.types';
 import { useCart } from '../contexts/CartContext';
+import { getSelectionQty } from '../utils/selectionQty';
 import '../styles/SmartSelection.scss';
 
 interface SmartSelectionProps {
   filteredData: DashboardDataRow[];
+  days: number;
 }
 
 const PRESET_RANGES = [
@@ -14,7 +16,7 @@ const PRESET_RANGES = [
   { label: '90+ days', min: 90, max: null },
 ];
 
-function SmartSelection({ filteredData }: SmartSelectionProps) {
+function SmartSelection({ filteredData, days }: SmartSelectionProps) {
   const { addSku, isInCart } = useCart();
   const [isOpen, setIsOpen] = useState(false);
   const [customMin, setCustomMin] = useState('');
@@ -46,15 +48,7 @@ function SmartSelection({ filteredData }: SmartSelectionProps) {
       const inRange = whenToSell >= min && (max === null || whenToSell <= max);
 
       if (inRange) {
-        let initialQty = 1;
-        const sellNow = row.how_much_to_sell_now;
-
-        if (sellNow !== null && sellNow !== undefined) {
-          const parsed = parseFloat(String(sellNow));
-          if (!isNaN(parsed) && parsed > 0) {
-            initialQty = Math.round(parsed);
-          }
-        }
+        const initialQty = getSelectionQty(row, days);
 
         addSku(sku, initialQty);
         selectedCount++;

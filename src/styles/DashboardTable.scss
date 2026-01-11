@@ -166,6 +166,15 @@
   }
 }
 
+.product-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.product-link:hover {
+  text-decoration: underline;
+}
+
 .dashboard-row.selected ul {
   background-color: rgba($primary-color, 0.08);
   border-left-color: $primary-color; // Change color only, size already reserved

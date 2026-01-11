@@ -1,15 +1,17 @@
 import type { DashboardDataRow, DashboardHeader } from "../types/dashboard.types";
 import type { SkuAvailability } from "../api/catalogApi";
 import { useCart } from '../contexts/CartContext';
+import { getSelectionQty } from "../utils/selectionQty";
 
 interface DashboardRowProps {
     row: DashboardDataRow;
     headers: DashboardHeader[];
     availabilityBySku: Record<string, SkuAvailability>;
     availabilityLoading: boolean;
+    selectionDays: number;
 }
 
-function DashboardRow({ row, headers, availabilityBySku, availabilityLoading }: DashboardRowProps) {
+function DashboardRow({ row, headers, availabilityBySku, availabilityLoading, selectionDays }: DashboardRowProps) {
     const { isInCart, addSku, removeSku } = useCart();
     
     // Get SKU for cart operations
@@ -24,17 +26,7 @@ function DashboardRow({ row, headers, availabilityBySku, availabilityLoading }: 
         if (selected) {
             removeSku(sku);
         } else {
-            // Get initial quantity from "how_much_to_sell_now"
-            let initialQty = 1;
-            const sellNow = row.how_much_to_sell_now;
-            
-            if (sellNow !== null && sellNow !== undefined) {
-                const parsed = parseFloat(String(sellNow));
-                if (!isNaN(parsed) && parsed > 0) {
-                    initialQty = Math.round(parsed);
-                }
-            }
-            
+            const initialQty = getSelectionQty(row, selectionDays);
             addSku(sku, initialQty);
         }
     };
@@ -58,6 +50,8 @@ function DashboardRow({ row, headers, availabilityBySku, availabilityLoading }: 
         const status = availability.available_for_sale || inventory > 0;
         return { status, loading: false };
     };
+
+    const productUrl = typeof row.url === 'string' ? row.url.trim() : '';
 
     return (
         <div className={`dashboard-row ${selected ? 'selected' : ''}`} onClick={handleRowClick}>
@@ -136,6 +130,22 @@ function DashboardRow({ row, headers, availabilityBySku, availabilityLoading }: 
                             const stringValue = String(value).trim();
                             displayValue = stringValue || '';
                         }
+                    }
+                    if (fieldKey === 'product_name' && productUrl) {
+                        const label = displayValue && displayValue !== 'null' ? displayValue : 'View product';
+                        return (
+                            <li key={header.id} title={label}>
+                                <a
+                                    href={productUrl}
+                                    className="product-link"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    {label}
+                                </a>
+                            </li>
+                        );
                     }
                     return (
                         <li key={header.id} title={displayValue || undefined}>

@@ -316,13 +316,13 @@ function applyDefaultSort(data: DashboardDataResponse): DashboardDataResponse {
         const aSellRate = parseNumericValue(a.sell_rate);
         const bSellRate = parseNumericValue(b.sell_rate);
 
-        // Handle nulls in sell_rate (put at start for descending)
+        // Handle nulls in sell_rate (put at end for descending)
         if (aSellRate === null && bSellRate === null) {
             // Both null, proceed to tertiary sort
         } else if (aSellRate === null) {
-            return -1; // a (null) goes to start for descending
+            return 1; // a (null) goes to end for descending
         } else if (bSellRate === null) {
-            return 1; // b (null) goes to start for descending
+            return -1; // b (null) goes to end for descending
         } else {
             const sellRateComparison = bSellRate - aSellRate; // Descending (high to low)
             if (sellRateComparison !== 0) {

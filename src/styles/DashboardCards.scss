@@ -118,6 +118,11 @@
   color: #111827;
   font-size: 0.95rem;
   line-height: 1.2;
+  text-decoration: none;
+}
+
+.product-name:hover {
+  text-decoration: underline;
 }
 
 .product-company {

@@ -134,6 +134,7 @@ export default function PublicOrderPage() {
             items={items} 
             onChange={setItems} 
             readOnly={readOnly}
+            store={order?.shopify_store}
         />
       </div>
 

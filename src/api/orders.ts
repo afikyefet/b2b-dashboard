@@ -37,6 +37,7 @@ export type Order = {
   items: OrderItem[];
   subtotal: string;
 
+  shopify_store?: string;
   shopify_checkout_url?: string;
 
   last_opened_at?: string | null;
@@ -49,6 +50,7 @@ export type CreateOrderPayload = {
   dealer_company?: string;
   notes?: string;
   currency?: string;
+  shopify_store?: string;
   items: { sku: string; qty: number; variant_id?: number; qty_recommended?: number | null; qty_sales?: number | null }[];
 };
 

@@ -35,25 +35,33 @@ export type SkuImage = {
   image_url: string | null;
 };
 
+function addStoreParam(url: URL, store?: string) {
+  if (store) url.searchParams.set("store", store);
+}
+
 export async function fetchProducts(params: {
   query?: string;
   limit?: number;
   offset?: number;
   tag?: string;
+  store?: string;
 }) {
   const url = new URL(`${API_BASE}/api/products`);
   if (params.query) url.searchParams.set("query", params.query);
   if (params.tag) url.searchParams.set("tag", params.tag);
   url.searchParams.set("limit", String(params.limit ?? 50));
   url.searchParams.set("offset", String(params.offset ?? 0));
+  addStoreParam(url, params.store);
 
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(await res.text());
   return res.json() as Promise<{ items: ProductListItem[]; limit: number; offset: number }>;
 }
 
-export async function hydrateBySkus(skus: string[]) {
-  const res = await fetch(`${API_BASE}/api/catalog/by-skus`, {
+export async function hydrateBySkus(skus: string[], store?: string) {
+  const url = new URL(`${API_BASE}/api/catalog/by-skus`);
+  addStoreParam(url, store);
+  const res = await fetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ skus }),
@@ -62,17 +70,20 @@ export async function hydrateBySkus(skus: string[]) {
   return res.json() as Promise<{ items: HydratedSkuItem[] }>;
 }
 
-export async function fetchProductVariants(productId: string) {
+export async function fetchProductVariants(productId: string, store?: string) {
   const url = new URL(`${API_BASE}/api/catalog/product/variants`);
   url.searchParams.set("product_id", productId);
+  addStoreParam(url, store);
 
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error(await res.text());
   return res.json() as Promise<{ items: HydratedSkuItem[] }>;
 }
 
-export async function fetchSkuAvailability(skus: string[]) {
-  const res = await fetch(`${API_BASE}/api/catalog/availability`, {
+export async function fetchSkuAvailability(skus: string[], store?: string) {
+  const url = new URL(`${API_BASE}/api/catalog/availability`);
+  addStoreParam(url, store);
+  const res = await fetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ skus }),
@@ -81,8 +92,10 @@ export async function fetchSkuAvailability(skus: string[]) {
   return res.json() as Promise<{ items: SkuAvailability[] }>;
 }
 
-export async function fetchSkuImages(skus: string[]) {
-  const res = await fetch(`${API_BASE}/api/catalog/variant-images`, {
+export async function fetchSkuImages(skus: string[], store?: string) {
+  const url = new URL(`${API_BASE}/api/catalog/variant-images`);
+  addStoreParam(url, store);
+  const res = await fetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ skus }),

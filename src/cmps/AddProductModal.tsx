@@ -5,6 +5,7 @@ type AddProductModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (item: { sku: string; variant_id: number; title: string; price: string; qty: number }) => void;
+  store?: string;
 };
 
 type ProductOption = {
@@ -19,14 +20,15 @@ type ProductWithVariants = {
   selectedOptions: Record<string, string>;
 };
 
-export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAdd }) => {
+export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAdd, store }) => {
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [productsWithVariants, setProductsWithVariants] = useState<Map<string, ProductWithVariants>>(new Map());
   const [loadingVariants, setLoadingVariants] = useState<Set<string>>(new Set());
-  const productsCacheKey = 'browse_products_cache_v1';
-  const variantsCacheKey = 'browse_product_variants_cache_v1';
+  const storeTag = (store || 'US').toLowerCase();
+  const productsCacheKey = `browse_products_cache_v1_${storeTag}`;
+  const variantsCacheKey = `browse_product_variants_cache_v1_${storeTag}`;
 
   const parseProductOptions = (optionsJson: string | null | undefined): ProductOption[] => {
     if (!optionsJson) return [];
@@ -44,7 +46,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     return [];
   };
 
-  const buildProductsCacheKey = (query: string) => `q=${query || ''}`;
+  const buildProductsCacheKey = (query: string) => `store=${storeTag}|q=${query || ''}`;
 
   const readProductsCache = () => {
     try {
@@ -105,6 +107,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       const result = await fetchProducts({
         query: productSearch || undefined,
         limit: 50,
+        store,
       });
       setProducts(result.items);
       writeProductsCache(cacheKey, result.items);
@@ -138,7 +141,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
     setLoadingVariants(prev => new Set(prev).add(productId));
     try {
-      const result = await fetchProductVariants(productId);
+      const result = await fetchProductVariants(productId, store);
       if (result.items && result.items.length > 0) {
         const firstVariant = result.items[0];
         const options = parseProductOptions(firstVariant.product_options);
@@ -231,10 +234,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   };
 
   useEffect(() => {
-    if (isOpen && products.length === 0) {
-      loadProducts({ useCache: true });
-    }
-  }, [isOpen]);
+    if (!isOpen) return;
+    setProducts([]);
+    setProductsWithVariants(new Map());
+    setLoadingVariants(new Set());
+    loadProducts({ useCache: true });
+  }, [isOpen, storeTag]);
 
   useEffect(() => {
     if (isOpen && products.length > 0) {
@@ -244,7 +249,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
         }
       });
     }
-  }, [products, isOpen]);
+  }, [products, isOpen, storeTag]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -252,7 +257,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
       loadProducts({ useCache: true });
     }, 300);
     return () => clearTimeout(timer);
-  }, [productSearch, isOpen]);
+  }, [productSearch, isOpen, storeTag]);
 
   const filterUnavailableProducts = (items: ProductListItem[]): ProductListItem[] => {
     return items.filter(product => {
