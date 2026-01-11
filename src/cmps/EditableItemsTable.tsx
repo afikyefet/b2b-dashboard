@@ -38,7 +38,11 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({ items, o
         qty: newItems[existingIndex].qty + newItem.qty
       };
     } else {
-      newItems.push(newItem);
+      newItems.push({
+        ...newItem,
+        qty_recommended: newItem.qty,
+        qty_sales: newItem.qty
+      });
     }
     onChange(newItems);
   };

@@ -536,6 +536,7 @@ export default function CartPage() {
             return {
                 sku: item.sku,
                 qty: item.qty,
+                qty_recommended: item.qty_recommended ?? item.qty,
                 variant_id: details?.variant_id ? Number(details.variant_id) : undefined
             };
         });

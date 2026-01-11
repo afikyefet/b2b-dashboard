@@ -4,7 +4,7 @@ import { hydrateBySkus } from "../api/catalogApi";
 import type { HydratedSkuItem } from "../api/catalogApi";
 import { selectDealerName } from "../store/slices/filterSlice";
 
-export type CartItem = { sku: string; qty: number };
+export type CartItem = { sku: string; qty: number; qty_recommended?: number };
 
 // Store cart items per dealer: Record<dealerName, CartItem[]>
 type CartByDealer = Record<string, CartItem[]>;
@@ -107,8 +107,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const dealerCart = prev[dealerName] || [];
       const existing = dealerCart.find((p) => p.sku === sku);
       const updatedCart = existing 
-        ? dealerCart.map((p) => (p.sku === sku ? { ...p, qty: p.qty + 1 } : p))
-        : [...dealerCart, { sku, qty: Math.max(1, initialQty) }];
+        ? dealerCart.map((p) => (p.sku === sku ? { ...p, qty: p.qty + 1, qty_recommended: p.qty_recommended ?? p.qty } : p))
+        : [...dealerCart, { sku, qty: Math.max(1, initialQty), qty_recommended: Math.max(1, initialQty) }];
       
       const updated = {
         ...prev,
@@ -174,4 +174,3 @@ export function useCart() {
   }
   return context;
 }
-

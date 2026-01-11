@@ -15,6 +15,8 @@ export type OrderItem = {
   title: string;
   price: string; // decimal string
   qty: number;
+  qty_recommended?: number | null;
+  qty_sales?: number | null;
 };
 
 export type Order = {
@@ -47,7 +49,7 @@ export type CreateOrderPayload = {
   dealer_company?: string;
   notes?: string;
   currency?: string;
-  items: { sku: string; qty: number; variant_id?: number }[];
+  items: { sku: string; qty: number; variant_id?: number; qty_recommended?: number | null; qty_sales?: number | null }[];
 };
 
 export type UpdateOrderPayload = {
@@ -56,7 +58,7 @@ export type UpdateOrderPayload = {
   dealer_email?: string;
   dealer_company?: string;
   notes?: string;
-  items?: { sku: string; qty: number; variant_id?: number }[];
+  items?: { sku: string; qty: number; variant_id?: number; qty_recommended?: number | null; qty_sales?: number | null }[];
 };
 
 type OrderResponse = {

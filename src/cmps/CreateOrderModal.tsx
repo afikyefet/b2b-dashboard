@@ -4,7 +4,7 @@ import { createOrder } from '../api/orders';
 type CreateOrderModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  cartItems: { sku: string; qty: number; variant_id?: number }[];
+  cartItems: { sku: string; qty: number; variant_id?: number; qty_recommended?: number | null }[];
   defaultCompany?: string;
   onOrderCreated: (orderId: string) => void;
 };

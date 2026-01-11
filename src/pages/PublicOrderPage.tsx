@@ -52,7 +52,8 @@ export default function PublicOrderPage() {
         items: items.map(i => ({ 
             sku: i.sku, 
             qty: i.qty, 
-            variant_id: i.variant_id 
+            variant_id: i.variant_id,
+            qty_recommended: i.qty_recommended ?? null
         })),
       });
       
