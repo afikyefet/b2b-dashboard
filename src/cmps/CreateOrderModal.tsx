@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createOrder } from '../api/orders';
-import { resolveStoreForDealer, type StoreCode } from '../utils/storeRouting';
+import { resolveStoreForDealer } from '../utils/storeRouting';
 
 type CreateOrderModalProps = {
   isOpen: boolean;
@@ -17,20 +17,21 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
     dealer_email: '',
     dealer_company: '',
     notes: '',
-    currency: 'USD',
-    shopify_store: 'US' as StoreCode
+    currency: 'USD'
   });
+
+  const getCurrencyForDealer = (dealerCompany: string, dealerName: string) => {
+    const resolvedStore = resolveStoreForDealer(dealerCompany || dealerName);
+    return resolvedStore === 'EU' ? 'EUR' : 'USD';
+  };
 
   // Auto-fill company name when modal opens or defaultCompany changes
   useEffect(() => {
     if (!isOpen) return;
-    const resolvedStore = resolveStoreForDealer(defaultCompany);
-    const currency = resolvedStore === 'EU' ? 'EUR' : 'USD';
     setFormData(prev => ({
       ...prev,
       dealer_company: prev.dealer_company || defaultCompany || prev.dealer_company,
-      shopify_store: resolvedStore,
-      currency
+      currency: getCurrencyForDealer(prev.dealer_company || defaultCompany || '', prev.dealer_name)
     }));
   }, [isOpen, defaultCompany]);
 
@@ -78,7 +79,14 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
                         required
                         type="text" 
                         value={formData.dealer_name}
-                        onChange={e => setFormData({...formData, dealer_name: e.target.value})}
+                        onChange={e => {
+                            const dealerName = e.target.value;
+                            setFormData(prev => ({
+                                ...prev,
+                                dealer_name: dealerName,
+                                currency: getCurrencyForDealer(prev.dealer_company, dealerName)
+                            }));
+                        }}
                         style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
                     />
                 </div>
@@ -97,27 +105,16 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
                     <input 
                         type="text" 
                         value={formData.dealer_company}
-                        onChange={e => setFormData({...formData, dealer_company: e.target.value})}
-                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                    />
-                </div>
-                <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>Store</label>
-                    <select
-                        value={formData.shopify_store}
                         onChange={e => {
-                            const nextStore = e.target.value as StoreCode;
+                            const dealerCompany = e.target.value;
                             setFormData(prev => ({
                                 ...prev,
-                                shopify_store: nextStore,
-                                currency: nextStore === 'EU' ? 'EUR' : 'USD'
+                                dealer_company: dealerCompany,
+                                currency: getCurrencyForDealer(dealerCompany, prev.dealer_name)
                             }));
                         }}
-                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd', background: 'white' }}
-                    >
-                        <option value="US">US Shopify</option>
-                        <option value="EU">EU Shopify</option>
-                    </select>
+                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
+                    />
                 </div>
                 <div style={{ marginBottom: '16px' }}>
                     <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>Notes</label>
