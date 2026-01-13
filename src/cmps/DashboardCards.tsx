@@ -204,23 +204,6 @@ function DashboardCards() {
             });
     }, [filteredSkus, storeCode]);
 
-    const handleSort = (field: string) => {
-        setSortConfig((prev) => {
-            // If clicking the same field, cycle through: none -> asc -> desc -> none
-            if (prev.field === field) {
-                if (prev.direction === null) {
-                    return { field, direction: 'asc' };
-                } else if (prev.direction === 'asc') {
-                    return { field, direction: 'desc' };
-                } else {
-                    return { field: '', direction: null };
-                }
-            }
-            // If clicking a different field, start with asc
-            return { field, direction: 'asc' };
-        });
-    };
-
     // const handleFilterChange = (_newFilters: FilterConfig) => {
         // Filters are now managed by Redux, this is kept for compatibility
     // };

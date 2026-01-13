@@ -1,4 +1,4 @@
-import DashboardTable from './DashboardTable';
+// import DashboardTable from './DashboardTable';
 import DashboardCards from './DashboardCards';
 function Dashboard() {
     return (

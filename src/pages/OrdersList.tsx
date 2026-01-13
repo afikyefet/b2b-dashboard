@@ -33,7 +33,7 @@ export default function OrdersList() {
   const loadOrders = async (options?: { useCache?: boolean }) => {
     if (options?.useCache) {
       const cached = readCachedOrders();
-      if (cached?.orders.length > 0) {
+      if (cached && cached.orders && cached.orders.length > 0) {
         setOrders(cached.orders);
       }
     }
