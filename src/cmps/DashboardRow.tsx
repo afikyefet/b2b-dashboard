@@ -38,7 +38,7 @@ function DashboardRow({ row, headers, availabilityBySku, availabilityLoading, se
 
     const handleRowClick = () => {
         // Optional: Only toggle if clicking the row background, not specific interactive elements
-        // But for now, match previous behavior
+        // But for now, match previous behavio
         toggleSelection();
     };
 
