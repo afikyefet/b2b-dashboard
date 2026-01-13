@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '../store';
@@ -7,6 +7,7 @@ import { useDrawer } from '../contexts/DrawerContext';
 import { useCart } from '../contexts/CartContext';
 import { getDashboardData } from '../services/dashboard.service';
 import { getFilterOptions } from '../services/dashboard.service';
+import { resolveStoreForDealer } from '../utils/storeRouting';
 import '../styles/AppHeader.scss'
 
 function AppHeader() {
@@ -19,6 +20,7 @@ function AppHeader() {
     const [dealerOptions, setDealerOptions] = useState<string[]>([]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
+    const dealerRegion = useMemo(() => (dealerName ? resolveStoreForDealer(dealerName) : null), [dealerName]);
 
     // Check if we're on the cart page
     const isCartPage = location.pathname === '/cart';
@@ -82,6 +84,7 @@ function AppHeader() {
                             >
                                 <span className="dealer-label">Viewing:</span>
                                 <span className="dealer-name">{dealerName}</span>
+                                {dealerRegion && <span className="dealer-region">{dealerRegion}</span>}
                                 <span className="dropdown-arrow">▼</span>
                             </button>
                             {isDropdownOpen && dealerOptions.length > 0 && (
