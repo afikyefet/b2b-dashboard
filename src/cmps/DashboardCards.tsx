@@ -377,13 +377,13 @@ function DashboardCards() {
                                     <div className="card-fields">
                                         <Field label="Category" value={row.product_category_name} />
                                         <Field label="Variant SKU" value={row.variant_sku_real} />
-                                        <Field label="In Stock" value={isAvailable === null ? null : isAvailable ? "Yes" : "No"} />
+                                        {/* <Field label="In Stock" value={isAvailable === null ? null : isAvailable ? "Yes" : "No"} /> */}
                                         <Field label="Color" value={row.variant_color} />
                                         <Field label="Size" value={row.variant_size} />
                                     </div>
                                 </div>
 
-                                <div className="card-section">
+                                {/* <div className="card-section">
                                     <div className="section-title">Stock & Sales</div>
                                     <div className="card-fields">
                                         <Field label="Current Stock" value={row.last_stock} />
@@ -392,6 +392,17 @@ function DashboardCards() {
                                         <Field label="Sell on Schedule" value={row.how_much_to_sell_on_schedule} />
                                         <Field label="Sell Rate" value={row.sell_rate} />
                                         <Field label="Sell Type" value={row.product_sell_type} />
+                                    </div>
+                                </div> */}
+                                <div className="card-section">
+                                    <div className="section-title">Sales</div>
+                                    <div className="card-fields">
+                                        {/* <Field label="Current Stock" value={row.last_stock} /> */}
+                                        <Field label="Sell Now" value={sellNowValue} />
+                                        {/* <Field label="When to Sell" value={row.when_to_sell} /> */}
+                                        {/* <Field label="Sell on Schedule" value={row.how_much_to_sell_on_schedule} /> */}
+                                        {/* <Field label="Sell Rate" value={row.sell_rate} /> */}
+                                        {/* <Field label="Sell Type" value={row.product_sell_type} /> */}
                                     </div>
                                 </div>
 

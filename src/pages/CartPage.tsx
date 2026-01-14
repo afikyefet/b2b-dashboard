@@ -7,6 +7,7 @@ import type { ProductListItem, HydratedSkuItem } from '../api/catalogApi';
 import { CreateOrderModal } from '../cmps/CreateOrderModal';
 import { selectDealerName } from '../store/slices/filterSlice';
 import { resolveStoreForDealer } from '../utils/storeRouting';
+import { getNoOrderNoteBySku } from '../utils/cartOrderNotes';
 import '../styles/App.scss';
 
 type ProductOption = {
@@ -41,6 +42,7 @@ export default function CartPage() {
     const storeTag = storeCode.toLowerCase();
     const productsCacheKey = `cart_browse_products_cache_v1_${storeTag}`;
     const variantsCacheKey = `cart_browse_product_variants_cache_v1_${storeTag}`;
+    const noOrderNoteBySku = useMemo(() => getNoOrderNoteBySku(dealerName), [dealerName]);
 
     const handleAddSku = async () => {
         if (!skuInput.trim()) return;
@@ -554,6 +556,20 @@ export default function CartPage() {
         });
     }, [cart, hydrated]);
 
+    const sortedCart = useMemo(() => {
+        const items = [...cart];
+        items.sort((a, b) => {
+            const aTitle = (hydrated[a.sku]?.product_title || '').trim();
+            const bTitle = (hydrated[b.sku]?.product_title || '').trim();
+            const aKey = aTitle || a.sku;
+            const bKey = bTitle || b.sku;
+            const primary = aKey.localeCompare(bKey, undefined, { sensitivity: 'base' });
+            if (primary !== 0) return primary;
+            return a.sku.localeCompare(b.sku, undefined, { sensitivity: 'base' });
+        });
+        return items;
+    }, [cart, hydrated]);
+
     return (
         <div className="cart-page" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', zIndex: 100 }}>
             <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
@@ -586,8 +602,9 @@ export default function CartPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {cart.map((item) => {
+                                {sortedCart.map((item) => {
                                     const details = hydrated[item.sku];
+                                    const showNoOrderNote = noOrderNoteBySku[item.sku];
 
                                     return (
                                         <tr key={item.sku} style={{ borderBottom: '1px solid #eee' }}>
@@ -597,9 +614,21 @@ export default function CartPage() {
                                                         <div style={{ fontWeight: 'bold' }}>{details.product_title}</div>
                                                         <div style={{ fontSize: '0.85em', color: '#666' }}>{details.variant_title}</div>
                                                         <div style={{ fontSize: '0.8em', color: '#999' }}>SKU: {item.sku}</div>
+                                                        {showNoOrderNote && (
+                                                            <div style={{ fontSize: '0.75em', color: '#b45309', marginTop: '4px' }}>
+                                                                wasnt ordered in the past year
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ) : (
-                                                    <span>Loading {item.sku}...</span>
+                                                    <div>
+                                                        <span>Loading {item.sku}...</span>
+                                                        {showNoOrderNote && (
+                                                            <div style={{ fontSize: '0.75em', color: '#b45309', marginTop: '4px' }}>
+                                                                wasnt ordered in the past year
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 )}
                                             </td>
                                             <td style={{ padding: '12px' }}>

@@ -1,6 +1,10 @@
+import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { useDrawer } from '../contexts/DrawerContext';
 import { useCart } from '../contexts/CartContext';
+import { selectDealerName } from '../store/slices/filterSlice';
+import { getNoOrderNoteBySku } from '../utils/cartOrderNotes';
 import '../styles/SelectedSkusSidebar.scss';
 
 // Prop interface kept for compatibility if needed, but props are unused
@@ -13,6 +17,22 @@ function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
     const navigate = useNavigate();
     const { isOpen, toggleDrawer } = useDrawer();
     const { cart, hydrated, setQty, removeSku } = useCart();
+    const dealerName = useSelector(selectDealerName);
+    const noOrderNoteBySku = useMemo(() => getNoOrderNoteBySku(dealerName), [dealerName]);
+
+    const sortedCart = useMemo(() => {
+        const items = [...cart];
+        items.sort((a, b) => {
+            const aTitle = (hydrated[a.sku]?.product_title || '').trim();
+            const bTitle = (hydrated[b.sku]?.product_title || '').trim();
+            const aKey = aTitle || a.sku;
+            const bKey = bTitle || b.sku;
+            const primary = aKey.localeCompare(bKey, undefined, { sensitivity: 'base' });
+            if (primary !== 0) return primary;
+            return a.sku.localeCompare(b.sku, undefined, { sensitivity: 'base' });
+        });
+        return items;
+    }, [cart, hydrated]);
 
     const handleGoToCart = () => {
         navigate('/cart');
@@ -64,8 +84,9 @@ function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
                                 <>
                                     
                                     <div className="sku-list" style={{ flex: 1, overflowY: 'auto' }}>
-                                        {cart.map((item) => {
+                                        {sortedCart.map((item) => {
                                             const details = hydrated[item.sku];
+                                            const showNoOrderNote = noOrderNoteBySku[item.sku];
                                             return (
                                                 <div key={item.sku} className="sku-item" style={{ flexDirection: 'column', alignItems: 'flex-start', gap: '5px' }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%' }}>
@@ -101,6 +122,11 @@ function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
                                                             />
                                                         </div>
                                                     </div>
+                                                    {showNoOrderNote && (
+                                                        <div style={{ fontSize: '0.75em', color: '#b45309' }}>
+                                                            wasnt ordered in the past year
+                                                        </div>
+                                                    )}
                                                 </div>
                                             );
                                         })}

@@ -163,7 +163,11 @@ function DashboardFilter({ filterOptions, originalData, filteredData, onResetAll
                             }}
                         />
                     </div>
-                    <SmartSelection filteredData={filteredData} days={smartSelectDays} />
+                    <SmartSelection
+                        filteredData={filteredData}
+                        days={smartSelectDays}
+                        onSmartSelectDaysChange={onSmartSelectDaysChange}
+                    />
                     <button
                         className="filter-action-btn secondary"
                         onClick={handleClearCart}
