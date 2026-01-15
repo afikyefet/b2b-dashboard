@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   preview: {
-    allowedHosts: ["b2b-dashboard-1rf3.onrender.com"],
+    allowedHosts: ["https://backend-b2b-dashboard-368038783836.europe-west1.run.app"],
   },
   resolve: {
     dedupe: ['react', 'react-dom'],

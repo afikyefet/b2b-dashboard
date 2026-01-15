@@ -1,6 +1,8 @@
 import type { DashboardDataResponse, DashboardDataRow, DashboardHeadersDataResponse, DashboardHeadersResponse, FilterConfig, SortConfig } from '../types/dashboard.types';
 import { authFetch } from '../api/client';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL ?? '';
+
 // function getDashboardData(): Promise<DashboardDataResponse> {
 //     return fetch('BigQueryDashboardData.json')
 //         .then(response => response.json())
@@ -41,7 +43,7 @@ import { authFetch } from '../api/client';
 // }
 
 export async function getDashboardData(): Promise<DashboardDataResponse> {
-  const res = await authFetch("/api/distribution-insights?pageSize=500", {
+  const res = await authFetch(`${API_BASE}/api/distribution-insights?pageSize=500`, {
     credentials: "include",
   });
 
