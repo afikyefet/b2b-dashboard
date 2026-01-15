@@ -75,7 +75,7 @@ export async function getDashboardData(): Promise<DashboardDataResponse> {
 
 
 function getDashboardHeaders(): Promise<DashboardHeadersDataResponse> {
-    return fetch('BigQueryDashboardHeaders.json')
+    return fetch('/BigQueryDashboardHeaders.json')
         .then(response => response.json())
         .then((data: DashboardHeadersResponse) => {
             return data.headers || [];
