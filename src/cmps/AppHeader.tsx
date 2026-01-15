@@ -5,6 +5,7 @@ import type { AppDispatch } from '../store';
 import { selectDealerName, setDealerName, resetFilters } from '../store/slices/filterSlice';
 import { useDrawer } from '../contexts/DrawerContext';
 import { useCart } from '../contexts/CartContext';
+import { useAuth } from '../contexts/AuthContext';
 import { getDashboardData } from '../services/dashboard.service';
 import { getFilterOptions } from '../services/dashboard.service';
 import { resolveStoreForDealer } from '../utils/storeRouting';
@@ -17,6 +18,7 @@ function AppHeader() {
     const dealerName = useSelector(selectDealerName);
     const { cart } = useCart();
     const { isOpen: isDrawerOpen, toggleDrawer } = useDrawer();
+    const { email, authDisabled, signOut } = useAuth();
     const [dealerOptions, setDealerOptions] = useState<string[]>([]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -60,6 +62,11 @@ function AppHeader() {
         dispatch(setDealerName(dealer));
         dispatch(resetFilters()); // Reset all filters except dealer name when changing dealer
         setIsDropdownOpen(false);
+    };
+
+    const handleSignOut = () => {
+        signOut();
+        navigate('/login');
     };
 
     return (
@@ -154,6 +161,16 @@ function AppHeader() {
                         Orders
                     </button>
                 </div>
+                {!authDisabled && (
+                    <div className="header-auth">
+                        <span className="auth-email" title={email || undefined}>
+                            {email || 'Signed in'}
+                        </span>
+                        <button className="auth-signout" type="button" onClick={handleSignOut}>
+                            Sign out
+                        </button>
+                    </div>
+                )}
             </div>
         </header>
     )

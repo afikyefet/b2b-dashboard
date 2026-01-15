@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { fetchProducts, fetchProductVariants, type ProductListItem, type HydratedSkuItem } from '../api/catalogApi';
+import { getPublicProducts, getPublicProductVariants } from '../api/publicOrders';
 
 type AddProductModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (item: { sku: string; variant_id: number; title: string; price: string; qty: number }) => void;
   store?: string;
+  publicToken?: string;
 };
 
 type ProductOption = {
@@ -20,7 +22,7 @@ type ProductWithVariants = {
   selectedOptions: Record<string, string>;
 };
 
-export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAdd, store }) => {
+export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAdd, store, publicToken }) => {
   const [products, setProducts] = useState<ProductListItem[]>([]);
   const [productSearch, setProductSearch] = useState('');
   const [loadingProducts, setLoadingProducts] = useState(false);
@@ -104,11 +106,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     }
     setLoadingProducts(true);
     try {
-      const result = await fetchProducts({
-        query: productSearch || undefined,
-        limit: 50,
-        store,
-      });
+      const result = publicToken
+        ? await getPublicProducts(publicToken, { query: productSearch || undefined, limit: 50 })
+        : await fetchProducts({
+            query: productSearch || undefined,
+            limit: 50,
+            store,
+          });
       setProducts(result.items);
       writeProductsCache(cacheKey, result.items);
     } catch (err) {
@@ -141,7 +145,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
     setLoadingVariants(prev => new Set(prev).add(productId));
     try {
-      const result = await fetchProductVariants(productId, store);
+      const result = publicToken
+        ? await getPublicProductVariants(publicToken, productId)
+        : await fetchProductVariants(productId, store);
       if (result.items && result.items.length > 0) {
         const firstVariant = result.items[0];
         const options = parseProductOptions(firstVariant.product_options);

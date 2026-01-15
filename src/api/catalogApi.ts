@@ -1,3 +1,5 @@
+import { authFetch } from './client';
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 export type ProductListItem = {
@@ -53,7 +55,7 @@ export async function fetchProducts(params: {
   url.searchParams.set("offset", String(params.offset ?? 0));
   addStoreParam(url, params.store);
 
-  const res = await fetch(url.toString());
+  const res = await authFetch(url.toString());
   if (!res.ok) throw new Error(await res.text());
   return res.json() as Promise<{ items: ProductListItem[]; limit: number; offset: number }>;
 }
@@ -61,7 +63,7 @@ export async function fetchProducts(params: {
 export async function hydrateBySkus(skus: string[], store?: string) {
   const url = new URL(`${API_BASE}/api/catalog/by-skus`);
   addStoreParam(url, store);
-  const res = await fetch(url.toString(), {
+  const res = await authFetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ skus }),
@@ -75,7 +77,7 @@ export async function fetchProductVariants(productId: string, store?: string) {
   url.searchParams.set("product_id", productId);
   addStoreParam(url, store);
 
-  const res = await fetch(url.toString());
+  const res = await authFetch(url.toString());
   if (!res.ok) throw new Error(await res.text());
   return res.json() as Promise<{ items: HydratedSkuItem[] }>;
 }
@@ -83,7 +85,7 @@ export async function fetchProductVariants(productId: string, store?: string) {
 export async function fetchSkuAvailability(skus: string[], store?: string) {
   const url = new URL(`${API_BASE}/api/catalog/availability`);
   addStoreParam(url, store);
-  const res = await fetch(url.toString(), {
+  const res = await authFetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ skus }),
@@ -95,7 +97,7 @@ export async function fetchSkuAvailability(skus: string[], store?: string) {
 export async function fetchSkuImages(skus: string[], store?: string) {
   const url = new URL(`${API_BASE}/api/catalog/variant-images`);
   addStoreParam(url, store);
-  const res = await fetch(url.toString(), {
+  const res = await authFetch(url.toString(), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ skus }),

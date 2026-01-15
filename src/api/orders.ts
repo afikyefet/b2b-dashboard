@@ -1,4 +1,6 @@
 
+import { authFetch } from './client';
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL;
 
 export type OrderStatus =
@@ -69,7 +71,7 @@ type OrderResponse = {
 };
 
 export async function createOrder(payload: CreateOrderPayload): Promise<Order> {
-  const res = await fetch(`${API_BASE}/api/orders`, {
+  const res = await authFetch(`${API_BASE}/api/orders`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -85,7 +87,7 @@ export async function listOrders(params?: { status?: string; q?: string }): Prom
   if (params?.status) url.searchParams.set("status", params.status);
   if (params?.q) url.searchParams.set("q", params.q);
 
-  const res = await fetch(url.toString(), { credentials: "include" });
+  const res = await authFetch(url.toString(), { credentials: "include" });
   if (!res.ok) throw new Error(await res.text());
   const data: { order: Order }[] = await res.json();
   return data.map(item => item.order);
@@ -93,14 +95,14 @@ export async function listOrders(params?: { status?: string; q?: string }): Prom
 
 export async function getOrder(id?: string): Promise<Order> {
   if (!id || id === 'undefined') throw new Error("Missing order id");
-  const res = await fetch(`${API_BASE}/api/orders/${id}`, { credentials: "include" });
+  const res = await authFetch(`${API_BASE}/api/orders/${id}`, { credentials: "include" });
   if (!res.ok) throw new Error("order not found");
   const data: OrderResponse = await res.json();
   return data.order;
 }
 
 export async function patchOrder(id: string, payload: UpdateOrderPayload): Promise<Order> {
-  const res = await fetch(`${API_BASE}/api/orders/${id}`, {
+  const res = await authFetch(`${API_BASE}/api/orders/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -112,7 +114,7 @@ export async function patchOrder(id: string, payload: UpdateOrderPayload): Promi
 }
 
 export async function sendOrder(id: string): Promise<Order> {
-  const res = await fetch(`${API_BASE}/api/orders/${id}/send`, {
+  const res = await authFetch(`${API_BASE}/api/orders/${id}/send`, {
     method: "POST",
     credentials: "include",
   });
@@ -122,7 +124,7 @@ export async function sendOrder(id: string): Promise<Order> {
 }
 
 export async function deleteOrder(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/orders/${id}`, {
+  const res = await authFetch(`${API_BASE}/api/orders/${id}`, {
     method: "DELETE",
     credentials: "include",
   });

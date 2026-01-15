@@ -155,6 +155,38 @@ header {
   margin-left: auto;
 }
 
+.header-auth {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  margin-left: $spacing-md;
+}
+
+.auth-email {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: $font-size-sm;
+  color: $text-secondary;
+}
+
+.auth-signout {
+  border: 1px solid $border-color;
+  border-radius: $border-radius-sm;
+  background: $bg-tertiary;
+  color: $text-primary;
+  padding: 6px 10px;
+  font-size: $font-size-sm;
+  cursor: pointer;
+  transition: background-color $transition-fast, border-color $transition-fast;
+
+  &:hover {
+    background-color: $bg-secondary;
+    border-color: $primary-color;
+  }
+}
+
 .drawer-toggle-button-header {
   width: 45px;
   height: 45px;

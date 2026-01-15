@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useParams } from 'react-router-dom';
 import { hydrateBySkus, type HydratedSkuItem } from '../api/catalogApi';
 import { type Order, type OrderItem } from '../api/orders';
-import { getPublicOrder, patchPublicOrder } from '../api/publicOrders';
+import { getPublicCatalog, getPublicOrder, patchPublicOrder } from '../api/publicOrders';
 import { AddProductModal } from '../cmps/AddProductModal';
 import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
+import { useAuth } from '../contexts/AuthContext';
 import { useDirtyState } from '../hooks/useDirtyState';
 import '../styles/PublicOrderPage.scss';
 
@@ -113,6 +114,7 @@ function buildCartUrl(
 export default function PublicOrderPage() {
   const { token } = useParams<{ token: string }>();
   const isValidToken = token && token !== 'undefined';
+  const { isAuthenticated } = useAuth();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -202,16 +204,18 @@ export default function PublicOrderPage() {
     let isActive = true;
     setHydrating(true);
     setHydrateError(null);
-    hydrateBySkus(skus, order.shopify_store)
-      .then(result => {
+    const hydratePromise = isAuthenticated
+      ? hydrateBySkus(skus, order.shopify_store)
+      : getPublicCatalog(token!);
+
+    hydratePromise.then(result => {
         if (!isActive) return;
         const map: Record<string, HydratedSkuItem> = {};
         result.items.forEach(item => {
           if (item.sku) map[item.sku] = item;
         });
         setSkuDetails(map);
-      })
-      .catch(err => {
+      }).catch(err => {
         console.error(err);
         if (!isActive) return;
         setHydrateError('Unable to load product details.');
@@ -224,7 +228,7 @@ export default function PublicOrderPage() {
     return () => {
       isActive = false;
     };
-  }, [items, order]);
+  }, [isAuthenticated, items, order, token]);
 
   const storeCode = normalizeStore(order?.shopify_store);
   const storeDomain = STORE_DOMAINS[storeCode];
@@ -651,6 +655,7 @@ export default function PublicOrderPage() {
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddItem}
         store={order?.shopify_store}
+        publicToken={token || undefined}
       />
     </div>
   );

@@ -1,4 +1,5 @@
 import type { DashboardDataResponse, DashboardDataRow, DashboardHeadersDataResponse, DashboardHeadersResponse, FilterConfig, SortConfig } from '../types/dashboard.types';
+import { authFetch } from '../api/client';
 
 // function getDashboardData(): Promise<DashboardDataResponse> {
 //     return fetch('BigQueryDashboardData.json')
@@ -40,7 +41,7 @@ import type { DashboardDataResponse, DashboardDataRow, DashboardHeadersDataRespo
 // }
 
 export async function getDashboardData(): Promise<DashboardDataResponse> {
-  const res = await fetch("/api/distribution-insights?pageSize=500", {
+  const res = await authFetch("/api/distribution-insights?pageSize=500", {
     credentials: "include",
   });
 
