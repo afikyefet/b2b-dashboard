@@ -30,9 +30,9 @@ function AppHeader() {
         let cancelled = false;
         getDashboardData()
             .then((data) => {
-                console.log('[AppHeader] dashboard data', data);
+                // console.log('[AppHeader] dashboard data', data);
                 const options = getFilterOptions(data);
-                console.log('[AppHeader] dealer options', options.dealerNames);
+                // console.log('[AppHeader] dealer options', options.dealerNames);
                 if (!cancelled) setDealerOptions(options.dealerNames);
             })
             .catch((error) => {

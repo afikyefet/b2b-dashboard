@@ -45,8 +45,8 @@ export async function getDashboardData(): Promise<DashboardDataResponse> {
   });
 
   const text = await res.text();
-  console.log('[dashboard.service] /api/distribution-insights status', res.status, 'content-type', res.headers.get('content-type'));
-  console.log('[dashboard.service] response text (slice)', text.slice(0, 300));
+//   console.log('[dashboard.service] /api/distribution-insights status', res.status, 'content-type', res.headers.get('content-type'));
+//   console.log('[dashboard.service] response text (slice)', text.slice(0, 300));
   if (!res.ok) throw new Error(text);
 
   let json: unknown;
@@ -59,12 +59,12 @@ export async function getDashboardData(): Promise<DashboardDataResponse> {
 
   // normalize: endpoint returns { rows, nextPageToken }
   if (Array.isArray(json)) {
-    console.log('[dashboard.service] normalized rows from array', json.length);
+    // console.log('[dashboard.service] normalized rows from array', json.length);
     return json;
   }
   if (json && typeof json === 'object' && Array.isArray((json as { rows?: unknown }).rows)) {
     const rows = (json as { rows: DashboardDataResponse }).rows;
-    console.log('[dashboard.service] normalized rows from object', rows.length);
+    // console.log('[dashboard.service] normalized rows from object', rows.length);
     return rows;
   }
 
