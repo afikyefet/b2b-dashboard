@@ -5,7 +5,7 @@
 
   .smart-selection-button {
     padding: 6px 12px;
-    background-color: #008060;
+    background-color: $primary-color;
     color: white;
     border: none;
     border-radius: 4px;
@@ -16,11 +16,11 @@
     white-space: nowrap;
 
     &:hover {
-      background-color: #006f55;
+      background-color: $primary-hover;
     }
 
     &:active {
-      background-color: #005f48;
+      background-color: $primary-active;
     }
   }
 
@@ -65,7 +65,7 @@
       }
 
       &.custom {
-        color: #008060;
+        color: $primary-color;
         font-weight: 500;
       }
 
@@ -130,7 +130,7 @@
 
           &:focus {
             outline: none;
-            border-color: #0066cc;
+            border-color: $primary-color;
           }
         }
       }
@@ -151,11 +151,11 @@
         border: none;
 
         &.btn-select {
-          background-color: #0066cc;
+          background-color: $primary-color;
           color: white;
 
           &:hover {
-            background-color: #0052a3;
+            background-color: $primary-hover;
           }
         }
 

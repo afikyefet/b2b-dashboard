@@ -10,6 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getDashboardData } from '../services/dashboard.service';
 import { getFilterOptions } from '../services/dashboard.service';
 import { resolveStoreForDealer } from '../utils/storeRouting';
+import { applyDealerTheme, getDealerTheme } from '../utils/dealerTheme';
 import { cn } from '../lib/utils';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -51,6 +52,10 @@ function AppHeader() {
             cancelled = true;
         };
     }, []);
+
+    useEffect(() => {
+        applyDealerTheme(getDealerTheme(dealerName));
+    }, [dealerName]);
 
     const handleDealerSelect = (dealer: string) => {
         dispatch(setDealerName(dealer));

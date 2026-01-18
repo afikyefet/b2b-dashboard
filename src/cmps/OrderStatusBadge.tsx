@@ -5,11 +5,11 @@ import { cn } from '../lib/utils';
 
 const STATUS_STYLES: Record<OrderStatus, string> = {
   DRAFT: 'bg-muted text-muted-foreground',
-  SENT: 'bg-[#c0e0ff] text-[#005bd3]',
-  OPENED: 'bg-[#fff7cc] text-[#8a6116]',
-  CHECKOUT_CREATED: 'bg-[#e3f1df] text-[#007a5c]',
-  COMPLETED: 'bg-[#008060] text-white',
-  CANCELLED: 'bg-[#ffc9c9] text-[#d72c2c]',
+  SENT: 'bg-primary/10 text-primary',
+  OPENED: 'bg-warning/15 text-warning',
+  CHECKOUT_CREATED: 'bg-success/10 text-success',
+  COMPLETED: 'bg-primary text-primary-foreground',
+  CANCELLED: 'bg-destructive/10 text-destructive',
 };
 
 export const OrderStatusBadge: React.FC<{ status: OrderStatus }> = ({ status }) => {

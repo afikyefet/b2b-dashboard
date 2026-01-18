@@ -62,21 +62,21 @@
 }
 
 .public-order-alert--success {
-  background: #e3f1df;
-  color: #007a5c;
-  border-color: #c4e0c0;
+  background: hsl(var(--success) / 0.1);
+  color: hsl(var(--success));
+  border-color: hsl(var(--success) / 0.3);
 }
 
 .public-order-alert--warning {
-  background: #fff4e5;
-  color: #7a4b00;
-  border-color: #f5d5a6;
+  background: hsl(var(--warning) / 0.15);
+  color: hsl(var(--warning));
+  border-color: hsl(var(--warning) / 0.3);
 }
 
 .public-order-alert--info {
-  background: #eef2ff;
-  color: #3730a3;
-  border-color: #c7d2fe;
+  background: hsl(var(--primary) / 0.1);
+  color: hsl(var(--primary));
+  border-color: hsl(var(--primary) / 0.3);
 }
 
 .public-order-layout {

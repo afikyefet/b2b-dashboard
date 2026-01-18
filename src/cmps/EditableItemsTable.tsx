@@ -127,7 +127,7 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({
         <Button
           onClick={() => setShowAddModal(true)}
           variant="outline"
-          className="gap-2 border-[#008060] text-[#008060] hover:bg-[#008060] hover:text-white"
+          className="gap-2 border-primary text-primary hover:bg-primary hover:text-primary-foreground"
         >
           <Plus className="h-4 w-4" />
           Add Product

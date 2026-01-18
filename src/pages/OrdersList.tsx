@@ -161,7 +161,7 @@ export default function OrdersList() {
               onChange={(e) => setSearch(e.target.value)}
               className="h-9"
             />
-            <Button type="submit" className="h-9 bg-[#008060] text-white hover:bg-[#006f55]">
+            <Button type="submit" className="h-9 bg-primary text-primary-foreground hover:bg-primary/90">
               Search
             </Button>
           </form>

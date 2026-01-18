@@ -283,7 +283,7 @@ function DashboardCards() {
             <div className="flex flex-wrap items-center gap-2">
                 <Button
                     type="button"
-                    className="h-9 bg-[#008060] px-4 text-xs font-semibold text-white hover:bg-[#006f55]"
+                    className="h-9 bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
                     onClick={handleSelectAll}
                     disabled={filteredSkus.length === 0}
                 >
@@ -292,7 +292,7 @@ function DashboardCards() {
                 <Button
                     type="button"
                     variant="outline"
-                    className="h-9 border-[#cfe6df] px-4 text-xs font-semibold text-[#008060] hover:bg-[#e8f5f2]"
+                    className="h-9 border-primary/20 px-4 text-xs font-semibold text-primary hover:bg-primary/10"
                     onClick={handleDeselectAll}
                     disabled={filteredSkus.length === 0}
                 >
@@ -333,7 +333,7 @@ function DashboardCards() {
                             key={rowId}
                             className={cn(
                                 "rounded-lg border bg-card p-4 shadow-sm transition",
-                                selected ? "border-[#008060] ring-1 ring-[#008060]/20" : "border-border hover:border-primary/40"
+                                selected ? "border-primary ring-1 ring-primary/20" : "border-border hover:border-primary/40"
                             )}
                             onClick={() => toggleSelection(row)}
                             role="button"
@@ -345,7 +345,7 @@ function DashboardCards() {
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     {imagesLoading && sku && imageUrl === null ? (
-                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-[#008060]" />
+                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-primary" />
                                     ) : imageUrl ? (
                                         <img src={imageUrl} alt={row.product_name || "Product"} className="h-full w-full object-cover" />
                                     ) : (
@@ -376,13 +376,15 @@ function DashboardCards() {
                                         </div>
                                         <div className="flex flex-wrap items-center gap-2">
                                             {availabilityLoading && sku && !availability && (
-                                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-[#008060]" />
+                                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-primary" />
                                             )}
                                             {!availabilityLoading && sku && isAvailable !== null && (
                                                 <Badge
                                                     className={cn(
                                                         "rounded-full px-2 text-[10px] uppercase tracking-wide",
-                                                        isAvailable ? "bg-[#d1e7dd] text-[#0f5132]" : "bg-[#f8d7da] text-[#842029]"
+                                                        isAvailable
+                                                            ? "bg-success/10 text-success"
+                                                            : "bg-destructive/10 text-destructive"
                                                     )}
                                                 >
                                                     {isAvailable ? "In Stock" : "Out of Stock"}
@@ -465,7 +467,7 @@ function OrderBadge({ status, days, date, orderNo }: OrderInfo) {
         <Badge
             className={cn(
                 "rounded-full px-3 text-[11px] font-semibold",
-                isClosed ? "bg-[#e7f5ec] text-[#13643f]" : "bg-[#fff4e5] text-[#7a4b00]"
+                isClosed ? "bg-success/10 text-success" : "bg-warning/15 text-warning"
             )}
             title={tooltip}
         >

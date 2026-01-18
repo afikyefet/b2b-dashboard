@@ -79,8 +79,8 @@ function DashboardRow({ row, headers, availabilityBySku, availabilityLoading, se
                                         status === null
                                             ? "bg-muted text-muted-foreground"
                                             : status
-                                                ? "bg-[#d1e7dd] text-[#0f5132]"
-                                                : "bg-[#f8d7da] text-[#842029]"
+                                            ? "bg-success/10 text-success"
+                                            : "bg-destructive/10 text-destructive"
                                     )}
                                 >
                                     {label}

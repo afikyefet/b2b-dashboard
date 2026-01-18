@@ -700,7 +700,7 @@ export default function CartPage() {
 
                     <Button
                         onClick={() => setShowProductModal(true)}
-                        className="w-full bg-[#008060] text-white hover:bg-[#006f55]"
+                        className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                         type="button"
                     >
                         + Browse Products
@@ -720,7 +720,7 @@ export default function CartPage() {
                                     "w-full",
                                     cart.length === 0
                                         ? "bg-muted text-muted-foreground"
-                                        : "bg-[#008060] text-white hover:bg-[#006f55]"
+                                        : "bg-primary text-primary-foreground hover:bg-primary/90"
                                 )}
                                 type="button"
                             >
@@ -745,7 +745,7 @@ export default function CartPage() {
                                 <Button
                                     onClick={handleAddSku}
                                     disabled={loadingSku}
-                                    className="bg-[#008060] text-white hover:bg-[#006f55]"
+                                    className="bg-primary text-primary-foreground hover:bg-primary/90"
                                     type="button"
                                 >
                                     {loadingSku ? '...' : 'Add'}
@@ -864,7 +864,7 @@ export default function CartPage() {
                                                                                     className={cn(
                                                                                         "h-8 px-3 text-xs",
                                                                                         isSelected
-                                                                                            ? "bg-[#008060] text-white hover:bg-[#006f55]"
+                                                                                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
                                                                                             : "border-border"
                                                                                     )}
                                                                                     onClick={() => handleOptionChange(product.product_id, option.name, value)}
@@ -914,7 +914,7 @@ export default function CartPage() {
                                                             "h-10 px-6",
                                                             productData.options.length > 0 && !allOptionsSelected
                                                                 ? "bg-muted text-muted-foreground"
-                                                                : "bg-[#008060] text-white hover:bg-[#006f55]"
+                                                                : "bg-primary text-primary-foreground hover:bg-primary/90"
                                                         )}
                                                         type="button"
                                                     >

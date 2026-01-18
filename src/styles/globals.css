@@ -10,7 +10,7 @@
     --card-foreground: 222.2 47.4% 11.2%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 47.4% 11.2%;
-    --primary: 221.2 83.2% 53.3%;
+    --primary: 165 100% 25%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -22,7 +22,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 165 100% 25%;
     --radius: 0.5rem;
     --success: 160.1 84.1% 39.4%;
     --success-foreground: 0 0% 100%;
@@ -31,8 +31,8 @@
     --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
       "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
       "Helvetica Neue", sans-serif;
-    --primary-color: #2563eb;
-    --primary-hover: #1d4ed8;
+    --primary-color: #008060;
+    --primary-hover: #006f55;
     --secondary-color: #64748b;
     --success-color: #10b981;
     --danger-color: #ef4444;

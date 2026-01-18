@@ -8,6 +8,7 @@ import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
 import { useAuth } from '../contexts/AuthContext';
 import { useDirtyState } from '../hooks/useDirtyState';
 import { matchStoreForDealer, normalizeStore, type StoreCode } from '../utils/storeRouting';
+import { applyDealerTheme, getDealerTheme } from '../utils/dealerTheme';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -147,6 +148,20 @@ function formatTime(value: Date | null) {
   return value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+function normalizeCurrency(value?: string | null) {
+  const raw = (value || '').trim().toUpperCase();
+  if (raw.startsWith('EUR')) return 'EUR';
+  if (raw.startsWith('USD')) return 'USD';
+  return 'USD';
+}
+
+function formatMoney(value: number | string | null | undefined, currency: string) {
+  if (value === null || value === undefined) return null;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  if (Number.isNaN(parsed)) return null;
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(parsed);
+}
+
 function buildCartUrl(
   items: OrderItem[],
   detailsBySku: Record<string, HydratedSkuItem>,
@@ -224,6 +239,7 @@ export default function PublicOrderPage() {
   const storeCode = resolveOrderStore(order);
   const storeDomain = STORE_DOMAINS[storeCode];
   const cartDomain = resolveCartDomain(order, storeDomain);
+  const currencyCode = normalizeCurrency(order?.currency);
 
   const loadOrder = useCallback(async () => {
     if (!isValidToken) return;
@@ -251,6 +267,11 @@ export default function PublicOrderPage() {
   useEffect(() => {
     orderRef.current = order;
   }, [order]);
+
+  useEffect(() => {
+    const dealerKey = order?.dealer_company || order?.dealer_name || '';
+    applyDealerTheme(getDealerTheme(dealerKey));
+  }, [order?.dealer_company, order?.dealer_name]);
 
   useEffect(() => {
     itemsRef.current = items;
@@ -294,17 +315,17 @@ export default function PublicOrderPage() {
       : getPublicCatalog(token!);
 
     hydratePromise.then(result => {
-        if (!isActive) return;
-        const map: Record<string, HydratedSkuItem> = {};
-        result.items.forEach(item => {
-          if (item.sku) map[item.sku] = item;
-        });
-        setSkuDetails(map);
-      }).catch(err => {
-        console.error(err);
-        if (!isActive) return;
-        setHydrateError('Unable to load product details.');
-      })
+      if (!isActive) return;
+      const map: Record<string, HydratedSkuItem> = {};
+      result.items.forEach(item => {
+        if (item.sku) map[item.sku] = item;
+      });
+      setSkuDetails(map);
+    }).catch(err => {
+      console.error(err);
+      if (!isActive) return;
+      setHydrateError('Unable to load product details.');
+    })
       .finally(() => {
         if (!isActive) return;
         setHydrating(false);
@@ -489,9 +510,9 @@ export default function PublicOrderPage() {
   }, [items, itemsDirty.isDirty, order, readOnly, scheduleAutoSave]);
 
   const alertBase = "rounded-lg border px-4 py-3 text-sm font-semibold";
-  const alertSuccess = `${alertBase} bg-[#e3f1df] text-[#007a5c] border-[#c4e0c0]`;
-  const alertWarning = `${alertBase} bg-[#fff4e5] text-[#7a4b00] border-[#f5d5a6]`;
-  const alertInfo = `${alertBase} bg-[#eef2ff] text-[#3730a3] border-[#c7d2fe]`;
+  const alertSuccess = `${alertBase} bg-success/10 text-success border-success/30`;
+  const alertWarning = `${alertBase} bg-warning/15 text-warning border-warning/30`;
+  const alertInfo = `${alertBase} bg-primary/10 text-primary border-primary/30`;
 
   const autoSaveStatus = useMemo(() => {
     if (readOnly) return null;
@@ -664,7 +685,17 @@ export default function PublicOrderPage() {
               const productTitle = details?.product_title || titleSplit.product || item.title;
               const variantTitle = details?.variant_title || titleSplit.variant || item.title;
               const meta = parseVariantMeta(variantTitle);
-              const imageUrl = details?.variant_image_url || null;
+              const imageUrl =
+                details?.variant_image_url || details?.product_featured_image_url || null;
+              const priceLabel =
+                formatMoney(details?.price ?? item.price, currencyCode) || 'N/A';
+              const compareAtLabel = formatMoney(details?.compare_at_price ?? null, currencyCode);
+              const showCompareAt =
+                details?.compare_at_price !== null &&
+                details?.price !== null &&
+                details?.compare_at_price !== undefined &&
+                details?.price !== undefined &&
+                details?.compare_at_price > details?.price;
 
               return (
                 <Card key={`${item.variant_id}-${idx}`} className="overflow-hidden">
@@ -678,11 +709,29 @@ export default function PublicOrderPage() {
                     </div>
                     <CardContent className="space-y-3 p-4">
                       <div>
-                        <h3 className="text-sm font-semibold text-foreground">{productTitle || 'Untitled Product'}</h3>
+                        <h3 className="text-base font-semibold text-foreground">
+                          {productTitle || 'Untitled Product'}
+                        </h3>
                         {variantTitle && <p className="text-xs text-muted-foreground">{variantTitle}</p>}
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                          <span className="font-semibold text-foreground">{priceLabel}</span>
+                          {showCompareAt && compareAtLabel && (
+                            <span className="text-muted-foreground line-through">
+                              {compareAtLabel}
+                            </span>
+                          )}
+                          {details?.available_for_sale === false && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              Not available
+                            </Badge>
+                          )}
+                        </div>
                       </div>
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                         <span>SKU: {item.sku || 'N/A'}</span>
+                        {item.qty_recommended ? (
+                          <span>Recommended: {item.qty_recommended}</span>
+                        ) : null}
                         {meta.color && <Badge variant="secondary" className="text-[10px]">Color: {meta.color}</Badge>}
                         {meta.size && <Badge variant="secondary" className="text-[10px]">Size: {meta.size}</Badge>}
                         {meta.extra && <Badge variant="secondary" className="text-[10px]">Option: {meta.extra}</Badge>}
@@ -792,7 +841,7 @@ export default function PublicOrderPage() {
                       <Button
                         onClick={handleCreateCart}
                         disabled={cartLoading}
-                        className="bg-[#008060] text-white hover:bg-[#006f55]"
+                        className="bg-primary text-primary-foreground hover:bg-primary/90"
                       >
                         {cartLoading ? 'Opening Cart...' : 'Open Cart'}
                       </Button>

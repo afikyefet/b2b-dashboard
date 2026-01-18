@@ -1,6 +1,7 @@
 // Color Palette
-$primary-color: #2563eb;
-$primary-hover: #1d4ed8;
+$primary-color: #008060;
+$primary-hover: #006f55;
+$primary-active: #005f48;
 $secondary-color: #64748b;
 $success-color: #10b981;
 $danger-color: #ef4444;
@@ -55,6 +56,7 @@ $transition-slow: 300ms ease-in-out;
   --primary-color: #{$primary-color};
   --primary-hover: #{$primary-hover};
   --secondary-color: #{$secondary-color};
+  --primary-active: #{$primary-active};
   --success-color: #{$success-color};
   --danger-color: #{$danger-color};
   --warning-color: #{$warning-color};

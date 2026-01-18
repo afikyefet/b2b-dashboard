@@ -295,7 +295,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             <Button type="button" variant="outline" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" disabled={loading} className="bg-[#008060] text-white hover:bg-[#006f55]">
+            <Button type="submit" disabled={loading} className="bg-primary text-primary-foreground hover:bg-primary/90">
               {loading ? 'Creating...' : 'Create Order'}
             </Button>
           </DialogFooter>

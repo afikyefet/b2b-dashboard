@@ -611,7 +611,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                                         className={cn(
                                           "h-8 px-3 text-xs",
                                           isSelected
-                                            ? "bg-[#008060] text-white hover:bg-[#006f55]"
+                                            ? "bg-primary text-primary-foreground hover:bg-primary/90"
                                             : "border-border"
                                         )}
                                         onClick={() => handleOptionChange(product.product_id, option.name, value)}
@@ -677,7 +677,7 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             "h-10 px-6",
                             !canAdd
                               ? "bg-muted text-muted-foreground"
-                              : "bg-[#008060] text-white hover:bg-[#006f55]"
+                              : "bg-primary text-primary-foreground hover:bg-primary/90"
                           )}
                           type="button"
                         >

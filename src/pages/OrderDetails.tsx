@@ -310,7 +310,7 @@ export default function OrderDetails() {
                     className={cn(
                       "w-full",
                       order.status === 'DRAFT'
-                        ? "bg-[#008060] text-white hover:bg-[#006f55]"
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
                         : "bg-muted text-muted-foreground"
                     )}
                   >
@@ -331,7 +331,7 @@ export default function OrderDetails() {
               <CardContent>
                 <Button
                   asChild
-                  className="w-full bg-[#008060] text-white hover:bg-[#006f55]"
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
                 >
                   <a href={order.shopify_checkout_url} target="_blank" rel="noreferrer">
                     View Checkout
@@ -353,7 +353,7 @@ export default function OrderDetails() {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-[#008060] text-white hover:bg-[#006f55]"
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               {saving ? 'Saving...' : 'Save Changes'}
             </Button>
