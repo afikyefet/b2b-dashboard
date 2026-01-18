@@ -936,6 +936,7 @@ export default function CartPage() {
                 onClose={() => setShowCreateOrderModal(false)}
                 cartItems={cartItemsForOrder}
                 defaultCompany={dealerName || undefined}
+                store={storeCode}
                 onOrderCreated={(orderId) => {
                     setShowCreateOrderModal(false);
                     navigate(`/orders/${orderId}`);

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { createOrder } from '../api/orders';
-import { resolveStoreForDealer } from '../utils/storeRouting';
+import { getCompanyContacts, type CompanyContact } from '../api/shopifyCompanyContacts';
+import { resolveStoreForDealer, type StoreCode } from '../utils/storeRouting';
 import { Button } from '../components/ui/button';
 import {
   Dialog,
@@ -12,6 +13,13 @@ import {
 } from '../components/ui/dialog';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import { Textarea } from '../components/ui/textarea';
 
 type CreateOrderModalProps = {
@@ -19,6 +27,7 @@ type CreateOrderModalProps = {
   onClose: () => void;
   cartItems: { sku: string; qty: number; variant_id?: number; qty_recommended?: number | null }[];
   defaultCompany?: string;
+  store?: StoreCode;
   onOrderCreated: (orderId: string) => void;
 };
 
@@ -27,9 +36,15 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   onClose,
   cartItems,
   defaultCompany,
+  store,
   onOrderCreated,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [companyInfo, setCompanyInfo] = useState<{ id: string; name: string } | null>(null);
+  const [customerResults, setCustomerResults] = useState<CompanyContact[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState('');
+  const [customerLoading, setCustomerLoading] = useState(false);
+  const [customerError, setCustomerError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     dealer_name: '',
     dealer_email: '',
@@ -38,7 +53,18 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     currency: 'USD',
   });
 
+  const dealerKey = useMemo(() => {
+    return (formData.dealer_company || defaultCompany || '').trim();
+  }, [formData.dealer_company, defaultCompany]);
+
+  const storeForLookup = useMemo(() => {
+    if (store) return store;
+    if (!dealerKey) return null;
+    return resolveStoreForDealer(dealerKey);
+  }, [store, dealerKey]);
+
   const getStoreForDealer = (dealerCompany: string, dealerName: string) => {
+    if (store) return store;
     return resolveStoreForDealer(dealerCompany || dealerName);
   };
 
@@ -47,15 +73,85 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     return resolvedStore === 'EU' ? 'EUR' : 'USD';
   };
 
-  // Auto-fill company name when modal opens or defaultCompany changes
+  // Sync dealer company with header changes while the modal is open.
   useEffect(() => {
     if (!isOpen) return;
+    const nextCompany = (defaultCompany || '').trim();
+    if (!nextCompany) return;
+    if (nextCompany === formData.dealer_company.trim()) return;
     setFormData((prev) => ({
       ...prev,
-      dealer_company: prev.dealer_company || defaultCompany || prev.dealer_company,
-      currency: getCurrencyForDealer(prev.dealer_company || defaultCompany || '', prev.dealer_name),
+      dealer_company: nextCompany,
+      dealer_name: '',
+      dealer_email: '',
+      currency: getCurrencyForDealer(nextCompany, ''),
     }));
-  }, [isOpen, defaultCompany]);
+    setSelectedCustomerId('');
+    setCompanyInfo(null);
+    setCustomerResults([]);
+    setCustomerError(null);
+  }, [isOpen, defaultCompany, formData.dealer_company]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setCompanyInfo(null);
+      setCustomerResults([]);
+      setSelectedCustomerId('');
+      setCustomerLoading(false);
+      setCustomerError(null);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!dealerKey) {
+      setCompanyInfo(null);
+      setCustomerResults([]);
+      setSelectedCustomerId('');
+      setCustomerLoading(false);
+      setCustomerError(null);
+      return;
+    }
+
+    setCustomerLoading(true);
+    setCustomerError(null);
+    setSelectedCustomerId('');
+    setCompanyInfo(null);
+    setCustomerResults([]);
+    getCompanyContacts(dealerKey, {
+      store: storeForLookup ?? undefined,
+      limit: 250,
+    })
+      .then((data) => {
+        setCompanyInfo({ id: data.company_id, name: data.company_name });
+        setCustomerResults(data.items);
+        if (!formData.dealer_company && data.company_name) {
+          setFormData((prev) => ({
+            ...prev,
+            dealer_company: data.company_name,
+            currency: getCurrencyForDealer(data.company_name, prev.dealer_name),
+          }));
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setCustomerError('Unable to load Shopify customers.');
+      })
+      .finally(() => {
+        setCustomerLoading(false);
+      });
+  }, [isOpen, dealerKey, storeForLookup, formData.dealer_company]);
+
+  const handleCustomerSelect = (customer: CompanyContact) => {
+    const displayName = customer.name || customer.email;
+    setFormData((prev) => ({
+      ...prev,
+      dealer_name: displayName,
+      dealer_email: customer.email || prev.dealer_email,
+      dealer_company: prev.dealer_company || companyInfo?.name || prev.dealer_company,
+      currency: getCurrencyForDealer(prev.dealer_company || companyInfo?.name || '', displayName),
+    }));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +189,54 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           <DialogDescription>Enter the dealer details and submit the order.</DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="shopify-customer">Shopify Customer</Label>
+            <Select
+              value={selectedCustomerId}
+              onValueChange={(value) => {
+                setSelectedCustomerId(value);
+                const selected = customerResults.find((customer) => customer.id === value);
+                if (selected) {
+                  handleCustomerSelect(selected);
+                }
+              }}
+              disabled={!dealerKey || customerLoading}
+            >
+              <SelectTrigger id="shopify-customer">
+                <SelectValue
+                  placeholder={
+                    !dealerKey
+                      ? 'Enter dealer company to load customers'
+                      : customerLoading
+                        ? 'Loading customers...'
+                        : 'Select a customer'
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {customerResults.length === 0 ? (
+                  <SelectItem value="__empty" disabled>
+                    No customers found
+                  </SelectItem>
+                ) : (
+                  customerResults.map((customer) => (
+                    <SelectItem key={customer.id} value={customer.id}>
+                      {customer.name || customer.email}
+                      {customer.email ? ` — ${customer.email}` : ''}
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
+            {companyInfo?.name && (
+              <span className="text-xs text-muted-foreground">
+                Company: {companyInfo.name}
+              </span>
+            )}
+            {customerError && (
+              <span className="text-xs text-destructive">{customerError}</span>
+            )}
+          </div>
           <div className="grid gap-2">
             <Label htmlFor="dealer-name">Dealer Name *</Label>
             <Input
