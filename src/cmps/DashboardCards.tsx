@@ -1,5 +1,6 @@
 import { useCart } from "../contexts/CartContext";
 import DashboardFilter from "./DashboardFilter";
+import SelectedSkusSidebar from "./SelectedSkusSidebar";
 import type { DashboardDataResponse, DashboardDataRow, DashboardHeader, SortConfig } from "../types/dashboard.types";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
@@ -438,6 +439,7 @@ function DashboardCards() {
                     );
                 })}
             </div>
+            <SelectedSkusSidebar filteredData={filteredData} />
         </div>
     );
 }

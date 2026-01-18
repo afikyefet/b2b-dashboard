@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { getOrder, patchOrder, sendOrder, deleteOrder, type Order, type OrderItem } from '../api/orders';
 import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
 import { EditableItemsTable } from '../cmps/EditableItemsTable';
+import { hydrateBySkus, type HydratedSkuItem } from '../api/catalogApi';
 import { useDirtyState } from '../hooks/useDirtyState';
 import { cn } from '../lib/utils';
 import { Button } from '../components/ui/button';
@@ -10,24 +11,26 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
+import { normalizeStore, resolveStoreForDealer } from '../utils/storeRouting';
 
 export default function OrderDetails() {
   const { orderId } = useParams<{ orderId: string }>();
   const navigate = useNavigate();
   // Check for invalid orderId: undefined, empty, or the string "undefined"
   const isValidOrderId = orderId && orderId !== 'undefined';
-  
+
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  
+
   // Form states
   const [dealerName, setDealerName] = useState('');
   const [dealerEmail, setDealerEmail] = useState('');
   const [dealerCompany, setDealerCompany] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<OrderItem[]>([]);
+  const [skuDetails, setSkuDetails] = useState<Record<string, HydratedSkuItem>>({});
 
   // Track which order we've already reset the baseline for
   const resetBaselineForOrderId = useRef<string | null>(null);
@@ -87,32 +90,70 @@ export default function OrderDetails() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loading, order, orderId]);
 
-  const hasUnsavedChanges = 
-    dealerNameDirty.isDirty || 
-    dealerEmailDirty.isDirty || 
-    dealerCompanyDirty.isDirty || 
-    notesDirty.isDirty || 
+  const hasUnsavedChanges =
+    dealerNameDirty.isDirty ||
+    dealerEmailDirty.isDirty ||
+    dealerCompanyDirty.isDirty ||
+    notesDirty.isDirty ||
     itemsDirty.isDirty;
+
+  const storeCode = useMemo(() => {
+    if (!order) return undefined;
+    return (
+      normalizeStore(order.shopify_store) ??
+      resolveStoreForDealer(order.dealer_company || order.dealer_name)
+    );
+  }, [order]);
+
+  useEffect(() => {
+    if (!order) return;
+    const skus = items.map(item => item.sku).filter(Boolean);
+    if (skus.length === 0) {
+      setSkuDetails({});
+      return;
+    }
+
+    let isActive = true;
+    hydrateBySkus(skus, storeCode)
+      .then(({ items: hydrated }) => {
+        if (!isActive) return;
+        const map: Record<string, HydratedSkuItem> = {};
+        hydrated.forEach(item => {
+          if (item.sku) map[item.sku] = item;
+        });
+        setSkuDetails(map);
+      })
+      .catch(err => {
+        console.error('[OrderDetails] failed to hydrate items', err);
+        if (!isActive) return;
+        setSkuDetails({});
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [items, order, storeCode]);
 
   const handleSave = async () => {
     if (!order) return;
     setSaving(true);
     try {
+      const isDraft = order.status === 'DRAFT';
       const updatedOrder = await patchOrder(orderId!, {
         expected_version: order.version,
         dealer_name: dealerNameDirty.isDirty ? dealerName : undefined,
         dealer_email: dealerEmailDirty.isDirty ? dealerEmail : undefined,
         dealer_company: dealerCompanyDirty.isDirty ? dealerCompany : undefined,
         notes: notesDirty.isDirty ? notes : undefined,
-        items: itemsDirty.isDirty ? items.map(i => ({ 
+        items: itemsDirty.isDirty ? items.map(i => ({
             sku: i.sku, 
-            qty: i.qty, 
-            variant_id: i.variant_id,
-            qty_recommended: i.qty_recommended ?? null,
-            qty_sales: i.qty_sales ?? i.qty
+            qty: isDraft ? (i.qty_sales ?? i.qty) : i.qty,
+          variant_id: i.variant_id,
+          qty_recommended: i.qty_recommended ?? null,
+          qty_sales: i.qty_sales ?? i.qty
         })) : undefined,
       });
-      
+
       setOrder(updatedOrder);
       // Update form values and mark clean
       setDealerName(updatedOrder.dealer_name);
@@ -120,13 +161,13 @@ export default function OrderDetails() {
       setDealerCompany(updatedOrder.dealer_company);
       setNotes(updatedOrder.notes || '');
       setItems(updatedOrder.items);
-      
+
       dealerNameDirty.markClean();
       dealerEmailDirty.markClean();
       dealerCompanyDirty.markClean();
       notesDirty.markClean();
       itemsDirty.markClean();
-      
+
       alert('Changes saved!');
     } catch (err: unknown) {
       console.error(err);
@@ -144,17 +185,17 @@ export default function OrderDetails() {
 
   const handleSend = async () => {
     if (hasUnsavedChanges) {
-        alert('Please save changes before sending.');
-        return;
+      alert('Please save changes before sending.');
+      return;
     }
     if (!confirm('Mark order as SENT?')) return;
     try {
-        const updated = await sendOrder(orderId!);
-        setOrder(updated);
-        alert('Order marked as SENT');
-    } catch(err) {
-        console.error(err);
-        alert('Error sending order');
+      const updated = await sendOrder(orderId!);
+      setOrder(updated);
+      alert('Order marked as SENT');
+    } catch (err) {
+      console.error(err);
+      alert('Error sending order');
     }
   };
 
@@ -182,10 +223,10 @@ export default function OrderDetails() {
   };
 
   const copyLink = () => {
-      if (!order?.share_token) return;
-      const url = `${window.location.origin}/public/order/${order.share_token}`;
-      navigator.clipboard.writeText(url);
-      alert('Link copied to clipboard!');
+    if (!order?.share_token) return;
+    const url = `${window.location.origin}/public/order/${order.share_token}`;
+    navigator.clipboard.writeText(url);
+    alert('Link copied to clipboard!');
   };
 
   // Early return for invalid orderId (after all hooks)
@@ -199,7 +240,7 @@ export default function OrderDetails() {
   const publicLink = `${window.location.origin}/public/order/${order.share_token}`;
 
   return (
-    <div className="mx-auto w-full max-w-[1000px] space-y-6 px-4 pb-20 pt-6">
+    <div className="mx-auto w-full max-w-[1200px] space-y-6 px-4 pb-20 pt-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-3">
           <Button variant="outline" size="sm" onClick={() => navigate('/orders')}>
@@ -225,7 +266,7 @@ export default function OrderDetails() {
         </Button>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-6">
           <Card>
             <CardHeader>
@@ -267,10 +308,11 @@ export default function OrderDetails() {
               <CardTitle>Items</CardTitle>
             </CardHeader>
             <CardContent>
-              <EditableItemsTable 
-                items={items} 
-                onChange={setItems} 
+              <EditableItemsTable
+                items={items}
+                onChange={setItems}
                 store={order?.shopify_store}
+                skuDetails={skuDetails}
               />
             </CardContent>
           </Card>
@@ -280,7 +322,7 @@ export default function OrderDetails() {
               <CardTitle>Notes</CardTitle>
             </CardHeader>
             <CardContent>
-              <Textarea 
+              <Textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 rows={4}
@@ -298,7 +340,7 @@ export default function OrderDetails() {
             <CardContent className="space-y-3">
               {order.share_token ? (
                 <>
-                  <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                  <div className="break-all rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
                     {publicLink}
                   </div>
                   <Button variant="outline" onClick={copyLink} className="w-full">
@@ -345,7 +387,7 @@ export default function OrderDetails() {
 
       {hasUnsavedChanges && (
         <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 px-4 py-4 shadow-lg">
-          <div className="mx-auto flex w-full max-w-[1000px] flex-wrap items-center justify-end gap-3">
+          <div className="mx-auto flex w-full max-w-[1200px] flex-wrap items-center justify-end gap-3">
             <span className="text-sm font-semibold text-destructive">Unsaved Changes</span>
             <Button variant="outline" onClick={() => loadOrder()}>
               Discard

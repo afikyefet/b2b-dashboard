@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { type OrderItem } from '../api/orders';
+import type { HydratedSkuItem } from '../api/catalogApi';
 import { AddProductModal } from './AddProductModal';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -18,6 +19,7 @@ type EditableItemsTableProps = {
   onChange: (items: OrderItem[]) => void;
   readOnly?: boolean;
   store?: string;
+  skuDetails?: Record<string, HydratedSkuItem>;
 };
 
 export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({
@@ -25,6 +27,7 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({
   onChange,
   readOnly,
   store,
+  skuDetails,
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
 
@@ -36,7 +39,7 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({
     if (newQty === 0) {
       newItems.splice(index, 1);
     } else {
-      newItems[index] = { ...newItems[index], qty_sales: newQty };
+      newItems[index] = { ...newItems[index], qty: newQty, qty_sales: newQty };
     }
     onChange(newItems);
   };
@@ -54,7 +57,8 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({
     if (existingIndex >= 0) {
       newItems[existingIndex] = {
         ...newItems[existingIndex],
-        qty: newItems[existingIndex].qty + newItem.qty
+        qty: newItems[existingIndex].qty + newItem.qty,
+        qty_sales: (newItems[existingIndex].qty_sales ?? newItems[existingIndex].qty) + newItem.qty,
       };
     } else {
       newItems.push({
@@ -77,39 +81,68 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {items.map((item, idx) => (
-            <TableRow key={`${item.variant_id}-${idx}`}>
-              <TableCell>
-                <div className="font-medium text-foreground">{item.title}</div>
-                <div className="text-xs text-muted-foreground">SKU: {item.sku}</div>
-              </TableCell>
-              <TableCell>
-                {readOnly ? (
-                  getDisplayQty(item)
-                ) : (
-                  <Input
-                    type="number"
-                    min="0"
-                    value={getDisplayQty(item)}
-                    onChange={(e) => handleQtyChange(idx, Number(e.target.value))}
-                    className="h-8 w-24"
-                  />
-                )}
-              </TableCell>
-              {!readOnly && (
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => handleRemove(idx)}
-                    type="button"
-                  >
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </Button>
+          {items.map((item, idx) => {
+            const details = skuDetails?.[item.sku];
+            const imageUrl =
+              details?.variant_image_url || details?.product_featured_image_url || null;
+            const productTitle = details?.product_title || item.title || 'Untitled Product';
+            const variantTitle =
+              details?.variant_title && details?.variant_title !== productTitle
+                ? details.variant_title
+                : null;
+            return (
+              <TableRow key={`${item.variant_id}-${idx}`}>
+                <TableCell>
+                  <div className="flex items-center gap-3">
+                    <div className="h-11 w-11 overflow-hidden rounded-md border border-border bg-muted">
+                      {imageUrl ? (
+                        <img src={imageUrl} alt={productTitle} className="h-full w-full object-cover" />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
+                          No Image
+                        </div>
+                      )}
+                    </div>
+                    <div className="space-y-1">
+                      <div className="font-medium text-foreground">{productTitle}</div>
+                      {variantTitle && (
+                        <div className="text-xs text-muted-foreground">{variantTitle}</div>
+                      )}
+                      <div className="text-xs text-muted-foreground">
+                        SKU: {item.sku || 'N/A'}
+                        {item.qty_recommended ? ` · Rec: ${item.qty_recommended}` : ''}
+                      </div>
+                    </div>
+                  </div>
                 </TableCell>
-              )}
-            </TableRow>
-          ))}
+                <TableCell>
+                  {readOnly ? (
+                    getDisplayQty(item)
+                  ) : (
+                    <Input
+                      type="number"
+                      min="0"
+                      value={getDisplayQty(item)}
+                      onChange={(e) => handleQtyChange(idx, Number(e.target.value))}
+                      className="h-8 w-24"
+                    />
+                  )}
+                </TableCell>
+                {!readOnly && (
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemove(idx)}
+                      type="button"
+                    >
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </TableCell>
+                )}
+              </TableRow>
+            )
+          })}
           {items.length === 0 && (
             <TableRow>
               <TableCell

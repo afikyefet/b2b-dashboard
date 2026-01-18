@@ -148,20 +148,6 @@ function formatTime(value: Date | null) {
   return value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function normalizeCurrency(value?: string | null) {
-  const raw = (value || '').trim().toUpperCase();
-  if (raw.startsWith('EUR')) return 'EUR';
-  if (raw.startsWith('USD')) return 'USD';
-  return 'USD';
-}
-
-function formatMoney(value: number | string | null | undefined, currency: string) {
-  if (value === null || value === undefined) return null;
-  const parsed = typeof value === 'number' ? value : Number(value);
-  if (Number.isNaN(parsed)) return null;
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(parsed);
-}
-
 function buildCartUrl(
   items: OrderItem[],
   detailsBySku: Record<string, HydratedSkuItem>,
@@ -239,7 +225,6 @@ export default function PublicOrderPage() {
   const storeCode = resolveOrderStore(order);
   const storeDomain = STORE_DOMAINS[storeCode];
   const cartDomain = resolveCartDomain(order, storeDomain);
-  const currencyCode = normalizeCurrency(order?.currency);
 
   const loadOrder = useCallback(async () => {
     if (!isValidToken) return;
@@ -685,17 +670,7 @@ export default function PublicOrderPage() {
               const productTitle = details?.product_title || titleSplit.product || item.title;
               const variantTitle = details?.variant_title || titleSplit.variant || item.title;
               const meta = parseVariantMeta(variantTitle);
-              const imageUrl =
-                details?.variant_image_url || details?.product_featured_image_url || null;
-              const priceLabel =
-                formatMoney(details?.price ?? item.price, currencyCode) || 'N/A';
-              const compareAtLabel = formatMoney(details?.compare_at_price ?? null, currencyCode);
-              const showCompareAt =
-                details?.compare_at_price !== null &&
-                details?.price !== null &&
-                details?.compare_at_price !== undefined &&
-                details?.price !== undefined &&
-                details?.compare_at_price > details?.price;
+              const imageUrl = details?.variant_image_url || null;
 
               return (
                 <Card key={`${item.variant_id}-${idx}`} className="overflow-hidden">
@@ -709,29 +684,11 @@ export default function PublicOrderPage() {
                     </div>
                     <CardContent className="space-y-3 p-4">
                       <div>
-                        <h3 className="text-base font-semibold text-foreground">
-                          {productTitle || 'Untitled Product'}
-                        </h3>
+                        <h3 className="text-sm font-semibold text-foreground">{productTitle || 'Untitled Product'}</h3>
                         {variantTitle && <p className="text-xs text-muted-foreground">{variantTitle}</p>}
-                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                          <span className="font-semibold text-foreground">{priceLabel}</span>
-                          {showCompareAt && compareAtLabel && (
-                            <span className="text-muted-foreground line-through">
-                              {compareAtLabel}
-                            </span>
-                          )}
-                          {details?.available_for_sale === false && (
-                            <Badge variant="secondary" className="text-[10px]">
-                              Not available
-                            </Badge>
-                          )}
-                        </div>
                       </div>
                       <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
                         <span>SKU: {item.sku || 'N/A'}</span>
-                        {item.qty_recommended ? (
-                          <span>Recommended: {item.qty_recommended}</span>
-                        ) : null}
                         {meta.color && <Badge variant="secondary" className="text-[10px]">Color: {meta.color}</Badge>}
                         {meta.size && <Badge variant="secondary" className="text-[10px]">Size: {meta.size}</Badge>}
                         {meta.extra && <Badge variant="secondary" className="text-[10px]">Option: {meta.extra}</Badge>}
