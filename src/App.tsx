@@ -5,6 +5,7 @@ import OrdersList from './pages/OrdersList';
 import OrderDetails from './pages/OrderDetails';
 import PublicOrderPage from './pages/PublicOrderPage';
 import AppHeader from './cmps/AppHeader';
+import SelectedSkusSidebar from './cmps/SelectedSkusSidebar';
 import LoginPage from './pages/LoginPage';
 import { useAuth } from './contexts/AuthContext';
 
@@ -13,6 +14,7 @@ function AppShell() {
     <>
       <AppHeader />
       <Outlet />
+      <SelectedSkusSidebar />
     </>
   );
 }
