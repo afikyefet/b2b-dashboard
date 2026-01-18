@@ -138,7 +138,7 @@ export default function OrderDetails() {
     if (!order) return;
     setSaving(true);
     try {
-      const isDraft = order.status === 'DRAFT';
+      const syncQtyToSales = ['DRAFT', 'SENT', 'OPENED', 'CHECKOUT_CREATED'].includes(order.status);
       const updatedOrder = await patchOrder(orderId!, {
         expected_version: order.version,
         dealer_name: dealerNameDirty.isDirty ? dealerName : undefined,
@@ -146,8 +146,8 @@ export default function OrderDetails() {
         dealer_company: dealerCompanyDirty.isDirty ? dealerCompany : undefined,
         notes: notesDirty.isDirty ? notes : undefined,
         items: itemsDirty.isDirty ? items.map(i => ({
-            sku: i.sku, 
-            qty: isDraft ? (i.qty_sales ?? i.qty) : i.qty,
+          sku: i.sku,
+          qty: syncQtyToSales ? (i.qty_sales ?? i.qty) : i.qty,
           variant_id: i.variant_id,
           qty_recommended: i.qty_recommended ?? null,
           qty_sales: i.qty_sales ?? i.qty
