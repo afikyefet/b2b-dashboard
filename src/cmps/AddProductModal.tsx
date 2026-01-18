@@ -135,10 +135,12 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     }
   };
 
-  const loadProductVariants = async (productId: string, options?: { useCache?: boolean }) => {
-    if (productsWithVariants.has(productId)) return;
+  const loadProductVariants = async (productId: string, options?: { useCache?: boolean; revalidate?: boolean }) => {
+    const hasInState = productsWithVariants.has(productId);
+    if (hasInState && !options?.revalidate) return;
+    if (loadingVariants.has(productId)) return;
 
-    if (options?.useCache) {
+    if (options?.useCache && !hasInState) {
       const cachedVariants = readVariantsCache();
       const cached = cachedVariants ? cachedVariants[productId] : undefined;
       if (cached && cached.variants.length > 0) {
@@ -262,8 +264,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   useEffect(() => {
     if (isOpen && products.length > 0) {
       products.forEach(product => {
-        if (!productsWithVariants.has(product.product_id) && !loadingVariants.has(product.product_id)) {
-          loadProductVariants(product.product_id, { useCache: true });
+        if (!loadingVariants.has(product.product_id)) {
+          loadProductVariants(product.product_id, { useCache: true, revalidate: true });
         }
       });
     }

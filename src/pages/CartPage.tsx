@@ -211,10 +211,12 @@ export default function CartPage() {
     };
 
     // Load variants for a product
-    const loadProductVariants = async (productId: string, options?: { useCache?: boolean }) => {
-        if (productsWithVariants.has(productId)) return;
+    const loadProductVariants = async (productId: string, options?: { useCache?: boolean; revalidate?: boolean }) => {
+        const hasInState = productsWithVariants.has(productId);
+        if (hasInState && !options?.revalidate) return;
+        if (loadingVariants.has(productId)) return;
 
-        if (options?.useCache) {
+        if (options?.useCache && !hasInState) {
             const cachedVariants = readVariantsCache();
             const cached = cachedVariants ? cachedVariants[productId] : undefined;
             if (cached && cached.variants.length > 0) {
@@ -341,8 +343,8 @@ export default function CartPage() {
     useEffect(() => {
         if (showProductModal && products.length > 0) {
             products.forEach(product => {
-                if (!productsWithVariants.has(product.product_id) && !loadingVariants.has(product.product_id)) {
-                    loadProductVariants(product.product_id, { useCache: true });
+                if (!loadingVariants.has(product.product_id)) {
+                    loadProductVariants(product.product_id, { useCache: true, revalidate: true });
                 }
             });
         }

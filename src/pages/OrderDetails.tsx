@@ -108,7 +108,8 @@ export default function OrderDetails() {
             sku: i.sku, 
             qty: i.qty, 
             variant_id: i.variant_id,
-            qty_recommended: i.qty_recommended ?? null
+            qty_recommended: i.qty_recommended ?? null,
+            qty_sales: i.qty_sales ?? i.qty
         })) : undefined,
       });
       

@@ -38,8 +38,12 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     currency: 'USD',
   });
 
+  const getStoreForDealer = (dealerCompany: string, dealerName: string) => {
+    return resolveStoreForDealer(dealerCompany || dealerName);
+  };
+
   const getCurrencyForDealer = (dealerCompany: string, dealerName: string) => {
-    const resolvedStore = resolveStoreForDealer(dealerCompany || dealerName);
+    const resolvedStore = getStoreForDealer(dealerCompany, dealerName);
     return resolvedStore === 'EU' ? 'EUR' : 'USD';
   };
 
@@ -57,8 +61,10 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     e.preventDefault();
     setLoading(true);
     try {
+      const shopifyStore = getStoreForDealer(formData.dealer_company, formData.dealer_name);
       const order = await createOrder({
         ...formData,
+        shopify_store: shopifyStore,
         items: cartItems,
       });
       // Reset loading state before navigation to prevent loading loop

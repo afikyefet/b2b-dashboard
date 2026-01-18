@@ -7,6 +7,7 @@ import { AddProductModal } from '../cmps/AddProductModal';
 import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
 import { useAuth } from '../contexts/AuthContext';
 import { useDirtyState } from '../hooks/useDirtyState';
+import { matchStoreForDealer, normalizeStore, type StoreCode } from '../utils/storeRouting';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -23,16 +24,88 @@ type CartBuildResult = {
   reason?: 'missing-domain' | 'empty';
 };
 
-function normalizeStore(store?: string) {
-  const normalized = (store || '').trim().toUpperCase();
-  if (['US', 'USA', 'UNITED STATES', 'UNITED_STATES'].includes(normalized)) return 'US';
-  if (['EU', 'EUR', 'EUROPE'].includes(normalized)) return 'EU';
+function normalizeDomain(domain?: string) {
+  if (!domain) return '';
+  const trimmed = domain.trim();
+  const withoutProtocol = trimmed.replace(/^https?:\/\//i, '');
+  const base = withoutProtocol.split(/[/?#]/)[0];
+  return base.replace(/\/$/, '').toLowerCase();
+}
+
+function normalizeCartDomain(domain?: string) {
+  const normalized = normalizeDomain(domain);
+  if (!normalized) return '';
+  if (normalized === 'checkout.shopify.com' || normalized === 'shopify.com') return '';
+
+  if (normalized.startsWith('checkout.')) {
+    const candidate = normalized.replace(/^checkout\./, '');
+    const knownDomains = [
+      normalizeDomain(STORE_DOMAINS.US),
+      normalizeDomain(STORE_DOMAINS.EU),
+    ].filter(Boolean);
+    if (candidate.endsWith('.myshopify.com') || knownDomains.includes(candidate)) {
+      return candidate;
+    }
+  }
+
+  return normalized;
+}
+
+function getStoreSlug(domain?: string) {
+  const normalized = normalizeDomain(domain);
+  if (!normalized) return '';
+  return normalized.split('.')[0] || '';
+}
+
+function detectStoreByIdentifier(identifier?: string): StoreCode | null {
+  if (!identifier) return null;
+  const normalized = normalizeStore(identifier);
+  if (normalized) return normalized;
+
+  const domain = normalizeDomain(identifier);
+  const usDomain = normalizeDomain(STORE_DOMAINS.US);
+  const euDomain = normalizeDomain(STORE_DOMAINS.EU);
+
+  if (domain && usDomain && domain === usDomain) return 'US';
+  if (domain && euDomain && domain === euDomain) return 'EU';
+
+  const usSlug = getStoreSlug(STORE_DOMAINS.US);
+  const euSlug = getStoreSlug(STORE_DOMAINS.EU);
+
+  if (domain && usSlug && domain === usSlug) return 'US';
+  if (domain && euSlug && domain === euSlug) return 'EU';
+
+  const raw = identifier.trim().toLowerCase();
+  if (/\beu\b/.test(raw) || raw.includes('-eu') || raw.includes('_eu')) return 'EU';
+  if (/\bus\b/.test(raw) || raw.includes('-us') || raw.includes('_us')) return 'US';
+
+  return null;
+}
+
+function resolveOrderStore(order: Order | null): StoreCode {
+  const storeFromField = detectStoreByIdentifier(order?.shopify_store);
+  if (storeFromField) return storeFromField;
+
+  const storeFromCheckout = detectStoreByIdentifier(order?.shopify_checkout_url);
+  if (storeFromCheckout) return storeFromCheckout;
+
+  const dealerMatch = matchStoreForDealer(order?.dealer_company || order?.dealer_name);
+  if (dealerMatch) return dealerMatch;
+
+  const currency = (order?.currency || '').trim().toUpperCase();
+  if (currency.startsWith('EUR')) return 'EU';
+  if (currency.startsWith('USD')) return 'US';
   return 'US';
 }
 
-function normalizeDomain(domain?: string) {
-  if (!domain) return '';
-  return domain.replace(/^https?:\/\//, '').replace(/\/$/, '');
+function resolveCartDomain(order: Order | null, fallbackDomain?: string) {
+  const fromStore = normalizeCartDomain(order?.shopify_store);
+  if (fromStore && fromStore.includes('.')) return fromStore;
+
+  const fromCheckout = normalizeCartDomain(order?.shopify_checkout_url);
+  if (fromCheckout) return fromCheckout;
+
+  return normalizeCartDomain(fallbackDomain);
 }
 
 function splitTitle(title: string) {
@@ -77,9 +150,10 @@ function formatTime(value: Date | null) {
 function buildCartUrl(
   items: OrderItem[],
   detailsBySku: Record<string, HydratedSkuItem>,
-  storeDomain?: string
+  storeDomain?: string,
+  options?: { returnTo?: string }
 ): CartBuildResult {
-  const domain = normalizeDomain(storeDomain);
+  const domain = normalizeCartDomain(storeDomain);
   if (!domain) {
     return { url: '', missingSkus: [], reason: 'missing-domain' };
   }
@@ -111,7 +185,9 @@ function buildCartUrl(
     return { url: '', missingSkus, reason: 'empty' };
   }
 
-  return { url: `https://${domain}/cart/${lineItems.join(',')}`, missingSkus };
+  const returnTo = options?.returnTo?.trim();
+  const returnToParam = returnTo ? `?return_to=${encodeURIComponent(returnTo)}` : '';
+  return { url: `https://${domain}/cart/${lineItems.join(',')}${returnToParam}`, missingSkus };
 }
 
 export default function PublicOrderPage() {
@@ -145,6 +221,9 @@ export default function PublicOrderPage() {
 
   const resetKey = isValidToken ? `${token}-${loadVersion}` : '';
   const itemsDirty = useDirtyState(items, resetKey);
+  const storeCode = resolveOrderStore(order);
+  const storeDomain = STORE_DOMAINS[storeCode];
+  const cartDomain = resolveCartDomain(order, storeDomain);
 
   const loadOrder = useCallback(async () => {
     if (!isValidToken) return;
@@ -211,7 +290,7 @@ export default function PublicOrderPage() {
     setHydrating(true);
     setHydrateError(null);
     const hydratePromise = isAuthenticated
-      ? hydrateBySkus(skus, order.shopify_store)
+      ? hydrateBySkus(skus, storeCode)
       : getPublicCatalog(token!);
 
     hydratePromise.then(result => {
@@ -234,10 +313,7 @@ export default function PublicOrderPage() {
     return () => {
       isActive = false;
     };
-  }, [isAuthenticated, items, order, token]);
-
-  const storeCode = normalizeStore(order?.shopify_store);
-  const storeDomain = STORE_DOMAINS[storeCode];
+  }, [isAuthenticated, items, order, storeCode, token]);
   const isCompleted = order?.status === 'COMPLETED';
   const isEditable =
     order?.status === 'DRAFT' ||
@@ -248,8 +324,8 @@ export default function PublicOrderPage() {
   const totalItems = items.reduce((sum, item) => sum + item.qty, 0);
 
   const cartInfo = useMemo(
-    () => buildCartUrl(items, skuDetails, storeDomain),
-    [items, skuDetails, storeDomain]
+    () => buildCartUrl(items, skuDetails, cartDomain, { returnTo: '/cart' }),
+    [items, skuDetails, cartDomain]
   );
 
   useEffect(() => {
@@ -448,7 +524,7 @@ export default function PublicOrderPage() {
       await saveOrder({ silent: true, source: 'auto' });
     }
 
-    const latestCartInfo = buildCartUrl(items, skuDetails, storeDomain);
+    const latestCartInfo = buildCartUrl(items, skuDetails, cartDomain, { returnTo: '/cart' });
     if (latestCartInfo.reason === 'missing-domain') {
       alert('Missing Shopify store domain. Please configure store domains for this environment.');
       return;
@@ -513,7 +589,6 @@ export default function PublicOrderPage() {
       nextItems.push({
         ...newItem,
         qty_recommended: newItem.qty,
-        qty_sales: newItem.qty,
       });
     }
     setItems(nextItems);
@@ -734,7 +809,7 @@ export default function PublicOrderPage() {
         isOpen={showAddModal}
         onClose={() => setShowAddModal(false)}
         onAdd={handleAddItem}
-        store={order?.shopify_store}
+        store={storeCode}
         publicToken={token || undefined}
       />
     </div>

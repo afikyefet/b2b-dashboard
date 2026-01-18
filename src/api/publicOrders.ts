@@ -7,8 +7,10 @@ export async function getPublicOrder(token: string): Promise<Order> {
   const res = await fetch(`${API_BASE}/public/orders/${token}`);
   if (!res.ok) throw new Error(await res.text());
   const data = await res.json();
+  const shopifyStore = data.shopify_store ?? data.shopifyStore ?? data.store;
   return {
     ...data,
+    shopify_store: shopifyStore,
     shopify_checkout_url: data.checkout_url
   };
 }
@@ -21,8 +23,10 @@ export async function patchPublicOrder(token: string, payload: UpdateOrderPayloa
   });
   if (!res.ok) throw new Error(await res.text());
   const data = await res.json();
+  const shopifyStore = data.shopify_store ?? data.shopifyStore ?? data.store;
   return {
     ...data,
+    shopify_store: shopifyStore,
     shopify_checkout_url: data.checkout_url
   };
 }

@@ -21,8 +21,12 @@ export function normalizeStore(input?: string | null): StoreCode | null {
   return null;
 }
 
-export function resolveStoreForDealer(dealerName?: string | null): StoreCode {
-  if (!dealerName) return "US";
+export function matchStoreForDealer(dealerName?: string | null): StoreCode | null {
+  if (!dealerName) return null;
   const key = dealerName.trim().toLowerCase();
-  return dealerStoreMap[key] ?? "US";
+  return dealerStoreMap[key] ?? null;
+}
+
+export function resolveStoreForDealer(dealerName?: string | null): StoreCode {
+  return matchStoreForDealer(dealerName) ?? "US";
 }

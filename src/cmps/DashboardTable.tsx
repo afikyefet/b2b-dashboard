@@ -25,8 +25,6 @@ function DashboardTable() {
     const [availabilityBySku, setAvailabilityBySku] = useState<Record<string, SkuAvailability>>({});
     const [smartSelectDays, setSmartSelectDays] = useState(30);
     const dashboardCacheKey = 'dashboard_table_cache_v1';
-    const dataRef = useRef<DashboardDataResponse>([]);
-    const headersRef = useRef<DashboardHeader[]>([]);
     const availabilityRequestId = useRef(0);
 
     const injectInStockHeader = (baseHeaders: DashboardHeader[]): DashboardHeader[] => {
@@ -49,14 +47,6 @@ function DashboardTable() {
         nextHeaders.splice(insertAfterIndex + 1, 0, inStockHeader);
         return nextHeaders;
     };
-
-    useEffect(() => {
-        dataRef.current = originalData;
-    }, [originalData]);
-
-    useEffect(() => {
-        headersRef.current = headers;
-    }, [headers]);
 
     useEffect(() => {
         const readCache = () => {
@@ -86,22 +76,35 @@ function DashboardTable() {
             setHeaders(cachedHeaders);
         }
 
-        setLoadingData(true);
-        getDashboardData()
-            .then((data) => {
-                setOriginalData(data);
-                writeCache(data, headersRef.current);
-            })
-            .finally(() => setLoadingData(false));
+        let cancelled = false;
 
-        setLoadingHeaders(true);
-        getDashboardHeaders()
-            .then((nextHeaders) => {
+        const refresh = async () => {
+            setLoadingData(true);
+            setLoadingHeaders(true);
+            try {
+                const [data, nextHeaders] = await Promise.all([
+                    getDashboardData(),
+                    getDashboardHeaders()
+                ]);
+                if (cancelled) return;
                 const enrichedHeaders = injectInStockHeader(nextHeaders);
+                setOriginalData(data);
                 setHeaders(enrichedHeaders);
-                writeCache(dataRef.current, enrichedHeaders);
-            })
-            .finally(() => setLoadingHeaders(false));
+                writeCache(data, enrichedHeaders);
+            } catch (err) {
+                console.error(err);
+            } finally {
+                if (cancelled) return;
+                setLoadingData(false);
+                setLoadingHeaders(false);
+            }
+        };
+
+        refresh();
+
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     // Get filter options from original data

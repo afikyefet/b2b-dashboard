@@ -28,13 +28,15 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({
 }) => {
   const [showAddModal, setShowAddModal] = useState(false);
 
+  const getDisplayQty = (item: OrderItem) => item.qty_sales ?? item.qty;
+
   const handleQtyChange = (index: number, newQty: number) => {
     if (newQty < 0) return;
     const newItems = [...items];
     if (newQty === 0) {
       newItems.splice(index, 1);
     } else {
-      newItems[index] = { ...newItems[index], qty: newQty };
+      newItems[index] = { ...newItems[index], qty_sales: newQty };
     }
     onChange(newItems);
   };
@@ -83,12 +85,12 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({
               </TableCell>
               <TableCell>
                 {readOnly ? (
-                  item.qty
+                  getDisplayQty(item)
                 ) : (
                   <Input
                     type="number"
                     min="0"
-                    value={item.qty}
+                    value={getDisplayQty(item)}
                     onChange={(e) => handleQtyChange(idx, Number(e.target.value))}
                     className="h-8 w-24"
                   />
