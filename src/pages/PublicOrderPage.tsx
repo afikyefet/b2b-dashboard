@@ -131,6 +131,8 @@ export default function PublicOrderPage() {
   const [hydrating, setHydrating] = useState(false);
   const [hydrateError, setHydrateError] = useState<string | null>(null);
   const [cartCopied, setCartCopied] = useState(false);
+  const [isCartLinkExpanded, setIsCartLinkExpanded] = useState(false);
+  const [isCartLinkOverflowing, setIsCartLinkOverflowing] = useState(false);
   const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const scheduleAutoSaveRef = useRef<((delay?: number) => void) | null>(null);
   const savingRef = useRef(false);
@@ -138,6 +140,7 @@ export default function PublicOrderPage() {
   const itemsRef = useRef<OrderItem[]>([]);
   const orderRef = useRef<Order | null>(null);
   const heroRef = useRef<HTMLElement | null>(null);
+  const cartUrlRef = useRef<HTMLDivElement | null>(null);
   const [heroOffset, setHeroOffset] = useState(0);
 
   const resetKey = isValidToken ? `${token}-${loadVersion}` : '';
@@ -248,6 +251,42 @@ export default function PublicOrderPage() {
     () => buildCartUrl(items, skuDetails, storeDomain),
     [items, skuDetails, storeDomain]
   );
+
+  useEffect(() => {
+    if (!cartInfo.url) {
+      setIsCartLinkExpanded(false);
+      setIsCartLinkOverflowing(false);
+      return;
+    }
+    if (isCartLinkExpanded) return;
+    const el = cartUrlRef.current;
+    if (!el) return;
+
+    const updateOverflow = () => {
+      setIsCartLinkOverflowing(el.scrollHeight > el.clientHeight + 1);
+    };
+
+    updateOverflow();
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      observer = new ResizeObserver(updateOverflow);
+      observer.observe(el);
+    }
+    window.addEventListener('resize', updateOverflow);
+
+    return () => {
+      if (observer) observer.disconnect();
+      window.removeEventListener('resize', updateOverflow);
+    };
+  }, [cartInfo.url, isCartLinkExpanded]);
+
+  const cartLinkClampStyles: CSSProperties = {
+    display: '-webkit-box',
+    WebkitLineClamp: 4,
+    WebkitBoxOrient: 'vertical',
+    overflow: 'hidden',
+  };
+  const showCartLinkToggle = isCartLinkOverflowing || isCartLinkExpanded;
 
   const saveOrder = useCallback(async (options?: { silent?: boolean; source?: 'auto' | 'manual' }) => {
     const currentOrder = orderRef.current;
@@ -654,9 +693,23 @@ export default function PublicOrderPage() {
                   </p>
                 ) : (
                   <>
-                    <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                    <div
+                      ref={cartUrlRef}
+                      className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground break-all"
+                      style={isCartLinkExpanded ? undefined : cartLinkClampStyles}
+                    >
                       {cartInfo.url}
                     </div>
+                    {showCartLinkToggle && (
+                      <Button
+                        variant="link"
+                        className="mt-1 h-auto justify-start p-0 text-xs font-semibold"
+                        onClick={() => setIsCartLinkExpanded(prev => !prev)}
+                        aria-expanded={isCartLinkExpanded}
+                      >
+                        {isCartLinkExpanded ? 'Show less' : 'Show more'}
+                      </Button>
+                    )}
                     <div className="grid gap-2">
                       <Button variant="outline" onClick={handleCopyCart}>
                         {cartCopied ? 'Copied' : 'Copy Link'}
