@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import '../styles/LoginPage.scss';
+import { Alert, AlertDescription } from '../components/ui/alert';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 
 type Step = 'email' | 'code';
 
@@ -79,76 +83,102 @@ function LoginPage() {
   };
 
   if (status === 'checking') {
-    return <div className="auth-loading">Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+        Loading...
+      </div>
+    );
   }
 
   return (
-    <div className="login-page">
-      <div className="login-card">
-        <div className="login-header">
-          <h1>B2B Dashboard</h1>
-          <p>Sign in to continue.</p>
-        </div>
-
-        {step === 'email' && (
-          <form className="login-form" onSubmit={handleEmailSubmit}>
-            <label className="login-label" htmlFor="auth-email">Work email</label>
-            <input
-              id="auth-email"
-              type="email"
-              placeholder={allowedDomain ? `name@${allowedDomain}` : 'name@company.com'}
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-            {allowedDomain && (
-              <div className="login-hint">Use your @{allowedDomain} email.</div>
+    <div className="min-h-screen bg-gradient-to-br from-muted/80 to-background px-4 py-10">
+      <div className="mx-auto flex w-full max-w-md flex-col items-center">
+        <Card className="w-full shadow-lg">
+          <CardHeader className="space-y-2">
+            <CardTitle>B2B Dashboard</CardTitle>
+            <CardDescription>Sign in to continue.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {step === 'email' && (
+              <form className="space-y-4" onSubmit={handleEmailSubmit}>
+                <div className="grid gap-2">
+                  <Label htmlFor="auth-email">Work email</Label>
+                  <Input
+                    id="auth-email"
+                    type="email"
+                    placeholder={allowedDomain ? `name@${allowedDomain}` : 'name@company.com'}
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
+                  />
+                  {allowedDomain && (
+                    <p className="text-xs text-muted-foreground">Use your @{allowedDomain} email.</p>
+                  )}
+                </div>
+                <Button type="submit" disabled={isSubmitting || !email.trim()} className="w-full">
+                  {isSubmitting ? 'Sending...' : 'Send code'}
+                </Button>
+              </form>
             )}
-            <button className="btn btn-primary" type="submit" disabled={isSubmitting || !email.trim()}>
-              {isSubmitting ? 'Sending...' : 'Send code'}
-            </button>
-          </form>
-        )}
 
-        {step === 'code' && (
-          <form className="login-form" onSubmit={handleCodeSubmit}>
-            <label className="login-label" htmlFor="auth-code">6-digit code</label>
-            <input
-              id="auth-code"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              placeholder="123456"
-              value={code}
-              onChange={(event) => handleCodeChange(event.target.value)}
-              required
-            />
-            <div className="login-hint">
-              Sent to <strong>{email}</strong>
-            </div>
-            <button className="btn btn-primary" type="submit" disabled={isSubmitting || code.length !== 6}>
-              {isSubmitting ? 'Verifying...' : 'Verify & sign in'}
-            </button>
-            <button className="btn btn-secondary" type="button" onClick={handleResend} disabled={isSubmitting}>
-              Resend code
-            </button>
-            <button
-              className="login-link"
-              type="button"
-              onClick={() => {
-                setStep('email');
-                setCode('');
-                setError('');
-                setInfo('');
-              }}
-              disabled={isSubmitting}
-            >
-              Use a different email
-            </button>
-          </form>
-        )}
+            {step === 'code' && (
+              <form className="space-y-4" onSubmit={handleCodeSubmit}>
+                <div className="grid gap-2">
+                  <Label htmlFor="auth-code">6-digit code</Label>
+                  <Input
+                    id="auth-code"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    placeholder="123456"
+                    value={code}
+                    onChange={(event) => handleCodeChange(event.target.value)}
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Sent to <strong>{email}</strong>
+                  </p>
+                </div>
+                <Button type="submit" disabled={isSubmitting || code.length !== 6} className="w-full">
+                  {isSubmitting ? 'Verifying...' : 'Verify & sign in'}
+                </Button>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={handleResend}
+                  disabled={isSubmitting}
+                  className="w-full"
+                >
+                  Resend code
+                </Button>
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => {
+                    setStep('email');
+                    setCode('');
+                    setError('');
+                    setInfo('');
+                  }}
+                  disabled={isSubmitting}
+                  className="h-auto p-0 text-left text-sm"
+                >
+                  Use a different email
+                </Button>
+              </form>
+            )}
 
-        {error && <div className="login-error">{error}</div>}
-        {info && <div className="login-info">{info}</div>}
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            {info && (
+              <Alert>
+                <AlertDescription>{info}</AlertDescription>
+              </Alert>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

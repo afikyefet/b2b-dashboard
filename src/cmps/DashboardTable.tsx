@@ -11,7 +11,7 @@ import { getDashboardData, getDashboardHeaders, applyFiltersAndSort, getFilterOp
 import { fetchSkuAvailability, type SkuAvailability } from "../api/catalogApi";
 import { getRowId } from "../utils/rowId";
 import { resolveStoreForDealer } from "../utils/storeRouting";
-import "../styles/DashboardTable.scss";
+import { Table, TableBody, TableHeader } from "../components/ui/table";
 
 function DashboardTable() {
     const dispatch = useDispatch<AppDispatch>();
@@ -180,10 +180,6 @@ function DashboardTable() {
         });
     };
 
-    // const handleFilterChange = (_newFilters: FilterConfig) => {
-        // Filters are now managed by Redux, this is kept for compatibility
-    // };
-
     const handleResetSort = () => {
         setSortConfig({ field: '', direction: null });
     };
@@ -209,48 +205,51 @@ function DashboardTable() {
     const hasActiveSort = sortConfig.field && sortConfig.direction;
 
     if (!headers || headers.length === 0) {
-        return <div>Loading...</div>;
+        return <div className="py-10 text-center text-sm text-muted-foreground">Loading...</div>;
     }
 
     return (
-        <div className="dashboard-container">
-            <div className="dashboard-main">
-                <DashboardFilter
-                    filterOptions={filterOptions}
-                    originalData={originalData}
-                    filteredData={filteredData}
-                    onResetAll={handleResetAll}
-                    hasActiveFilters={!!(hasActiveFilters() || hasActiveSort)}
-                    isRefreshing={(loadingData || loadingHeaders) && originalData.length > 0 && headers.length > 0}
-                    smartSelectDays={smartSelectDays}
-                    onSmartSelectDaysChange={setSmartSelectDays}
-                />
-                <div className="dashboard-table">
-                    <DashboardHeaders
-                        headers={headers}
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                        filteredData={filteredData}
-                    />
-                    <div className="dashboard-rows">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-4 pb-10 pt-6">
+            <DashboardFilter
+                filterOptions={filterOptions}
+                originalData={originalData}
+                filteredData={filteredData}
+                onResetAll={handleResetAll}
+                hasActiveFilters={!!(hasActiveFilters() || hasActiveSort)}
+                isRefreshing={(loadingData || loadingHeaders) && originalData.length > 0 && headers.length > 0}
+                smartSelectDays={smartSelectDays}
+                onSmartSelectDaysChange={setSmartSelectDays}
+            />
+            <div className="rounded-lg border border-border bg-card p-2 shadow-sm">
+                <Table className="min-w-[1200px]">
+                    <TableHeader>
+                        <DashboardHeaders
+                            headers={headers}
+                            sortConfig={sortConfig}
+                            onSort={handleSort}
+                            filteredData={filteredData}
+                        />
+                    </TableHeader>
+                    <TableBody>
                         {filteredData.map((row: DashboardDataRow) => {
                             const rowId = getRowId(row);
                             return (
-                            <DashboardRow
-                                key={rowId}
-                                row={row}
-                                headers={headers}
-                                availabilityBySku={availabilityBySku}
-                                availabilityLoading={availabilityLoading}
-                                selectionDays={smartSelectDays}
-                            />
+                                <DashboardRow
+                                    key={rowId}
+                                    row={row}
+                                    headers={headers}
+                                    availabilityBySku={availabilityBySku}
+                                    availabilityLoading={availabilityLoading}
+                                    selectionDays={smartSelectDays}
+                                />
                             );
                         })}
-                    </div>
-                </div>
+                    </TableBody>
+                </Table>
             </div>
             <SelectedSkusSidebar filteredData={filteredData} />
         </div>
     );
 }
+
 export default DashboardTable;

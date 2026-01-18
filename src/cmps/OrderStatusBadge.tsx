@@ -1,32 +1,22 @@
 import React from 'react';
 import { type OrderStatus } from '../api/orders';
+import { Badge } from '../components/ui/badge';
+import { cn } from '../lib/utils';
 
-const STATUS_COLORS: Record<OrderStatus, { bg: string; color: string }> = {
-  DRAFT: { bg: '#e4e5e7', color: '#4a4a4a' },
-  SENT: { bg: '#c0e0ff', color: '#005bd3' },
-  OPENED: { bg: '#fff7cc', color: '#8a6116' },
-  CHECKOUT_CREATED: { bg: '#e3f1df', color: '#007a5c' },
-  COMPLETED: { bg: '#008060', color: '#ffffff' },
-  CANCELLED: { bg: '#ffc9c9', color: '#d72c2c' },
+const STATUS_STYLES: Record<OrderStatus, string> = {
+  DRAFT: 'bg-muted text-muted-foreground',
+  SENT: 'bg-[#c0e0ff] text-[#005bd3]',
+  OPENED: 'bg-[#fff7cc] text-[#8a6116]',
+  CHECKOUT_CREATED: 'bg-[#e3f1df] text-[#007a5c]',
+  COMPLETED: 'bg-[#008060] text-white',
+  CANCELLED: 'bg-[#ffc9c9] text-[#d72c2c]',
 };
 
 export const OrderStatusBadge: React.FC<{ status: OrderStatus }> = ({ status }) => {
-  const style = STATUS_COLORS[status] || STATUS_COLORS.DRAFT;
+  const className = STATUS_STYLES[status] || STATUS_STYLES.DRAFT;
   return (
-    <span
-      style={{
-        display: 'inline-block',
-        padding: '4px 8px',
-        borderRadius: '4px',
-        backgroundColor: style.bg,
-        color: style.color,
-        fontSize: '0.85em',
-        fontWeight: 600,
-        textTransform: 'uppercase',
-      }}
-    >
+    <Badge className={cn('rounded-md px-2 py-1 text-[10px] font-semibold uppercase', className)}>
       {status.replace('_', ' ')}
-    </span>
+    </Badge>
   );
 };
-

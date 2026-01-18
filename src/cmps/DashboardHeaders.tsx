@@ -1,5 +1,7 @@
 import type { DashboardHeader, SortConfig, DashboardDataRow } from "../types/dashboard.types";
 import { useCart } from '../contexts/CartContext';
+import { Checkbox } from "../components/ui/checkbox";
+import { TableHead, TableRow } from "../components/ui/table";
 
 interface DashboardHeadersProps {
     headers: DashboardHeader[];
@@ -22,8 +24,7 @@ function DashboardHeaders({ headers, sortConfig, onSort, filteredData }: Dashboa
     const allSelected = filteredSkus.length > 0 && filteredSkus.every(sku => isInCart(sku));
     const someSelected = filteredSkus.some(sku => isInCart(sku));
 
-    const handleSelectAllClick = (e: React.ChangeEvent<HTMLInputElement>) => {
-        e.stopPropagation();
+    const handleSelectAllClick = () => {
         if (allSelected) {
             // Remove all filtered SKUs from cart
             filteredSkus.forEach(sku => {
@@ -54,8 +55,8 @@ function DashboardHeaders({ headers, sortConfig, onSort, filteredData }: Dashboa
 
     const getSortIndicator = (field: string) => {
         if (sortConfig.field !== field) return null;
-        if (sortConfig.direction === 'asc') return ' ↑';
-        if (sortConfig.direction === 'desc') return ' ↓';
+        if (sortConfig.direction === 'asc') return '^';
+        if (sortConfig.direction === 'desc') return 'v';
         return null;
     };
 
@@ -64,33 +65,32 @@ function DashboardHeaders({ headers, sortConfig, onSort, filteredData }: Dashboa
     };
 
     return (
-        <div className="dashboard-headers">
-            <ul>
-                <li className="checkbox-cell">
-                    <input
-                        type="checkbox"
-                        checked={allSelected}
-                        ref={(input) => {
-                            if (input) input.indeterminate = someSelected && !allSelected;
-                        }}
-                        onChange={handleSelectAllClick}
-                        onClick={(e) => e.stopPropagation()}
-                        title={allSelected ? 'Deselect all' : 'Select all'}
+        <TableRow className="bg-muted/50">
+            <TableHead className="w-10">
+                <div className="flex items-center justify-center">
+                    <Checkbox
+                        checked={allSelected ? true : someSelected ? "indeterminate" : false}
+                        onCheckedChange={handleSelectAllClick}
                     />
-                </li>
-                {headers.map((header: DashboardHeader) => (
-                    <li
-                        key={header.id}
-                        className="sortable-header"
-                        onClick={() => handleHeaderClick(header.field)}
-                        title="Click to sort"
-                    >
-                        {header.displayName}
-                        <span className="sort-indicator">{getSortIndicator(header.field)}</span>
-                    </li>
-                ))}
-            </ul>
-        </div>
+                </div>
+            </TableHead>
+            {headers.map((header: DashboardHeader) => (
+                <TableHead
+                    key={header.id}
+                    className="cursor-pointer text-xs font-semibold"
+                    onClick={() => handleHeaderClick(header.field)}
+                    title="Click to sort"
+                >
+                    <div className="flex items-center justify-between gap-2">
+                        <span>{header.displayName}</span>
+                        {getSortIndicator(header.field) && (
+                            <span className="text-xs text-primary">{getSortIndicator(header.field)}</span>
+                        )}
+                    </div>
+                </TableHead>
+            ))}
+        </TableRow>
     );
 }
+
 export default DashboardHeaders;

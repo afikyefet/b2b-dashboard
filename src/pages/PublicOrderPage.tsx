@@ -7,7 +7,10 @@ import { AddProductModal } from '../cmps/AddProductModal';
 import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
 import { useAuth } from '../contexts/AuthContext';
 import { useDirtyState } from '../hooks/useDirtyState';
-import '../styles/PublicOrderPage.scss';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
 
 const STORE_DOMAINS: Record<string, string | undefined> = {
   US: import.meta.env.VITE_SHOPIFY_STORE_DOMAIN_US,
@@ -370,27 +373,32 @@ export default function PublicOrderPage() {
     };
   }, [items, itemsDirty.isDirty, order, readOnly, scheduleAutoSave]);
 
+  const alertBase = "rounded-lg border px-4 py-3 text-sm font-semibold";
+  const alertSuccess = `${alertBase} bg-[#e3f1df] text-[#007a5c] border-[#c4e0c0]`;
+  const alertWarning = `${alertBase} bg-[#fff4e5] text-[#7a4b00] border-[#f5d5a6]`;
+  const alertInfo = `${alertBase} bg-[#eef2ff] text-[#3730a3] border-[#c7d2fe]`;
+
   const autoSaveStatus = useMemo(() => {
     if (readOnly) return null;
     if (autoSaveState === 'idle' && !lastAutoSaveAt) return null;
 
     if (autoSaveState === 'pending') {
-      return { text: 'Changes detected. Auto-saving soon...', className: 'public-order-alert public-order-alert--info' };
+      return { text: 'Changes detected. Auto-saving soon...', className: alertInfo };
     }
     if (autoSaveState === 'saving') {
-      return { text: 'Auto-saving changes...', className: 'public-order-alert public-order-alert--info' };
+      return { text: 'Auto-saving changes...', className: alertInfo };
     }
     if (autoSaveState === 'error') {
-      return { text: 'Auto-save failed. Please check your connection.', className: 'public-order-alert public-order-alert--warning' };
+      return { text: 'Auto-save failed. Please check your connection.', className: alertWarning };
     }
     const timeLabel = formatTime(lastAutoSaveAt);
     return {
       text: timeLabel
         ? `All changes saved at ${timeLabel}. Cart link updated.`
         : 'All changes saved. Cart link updated.',
-      className: 'public-order-alert public-order-alert--success',
+      className: alertSuccess,
     };
-  }, [autoSaveState, lastAutoSaveAt, readOnly]);
+  }, [autoSaveState, lastAutoSaveAt, readOnly, alertInfo, alertSuccess, alertWarning]);
 
   const handleCreateCart = async () => {
     if (!readOnly && itemsDirty.isDirty) {
@@ -473,24 +481,26 @@ export default function PublicOrderPage() {
   };
 
   if (!isValidToken) {
-    return <div className="public-order-empty">Invalid token</div>;
+    return <div className="py-10 text-center text-sm text-muted-foreground">Invalid token</div>;
   }
 
-  if (loading) return <div className="public-order-empty">Loading Order...</div>;
-  if (!order) return <div className="public-order-empty">Order not found</div>;
+  if (loading) return <div className="py-10 text-center text-sm text-muted-foreground">Loading Order...</div>;
+  if (!order) return <div className="py-10 text-center text-sm text-muted-foreground">Order not found</div>;
 
   const pageStyle: CSSProperties =
     heroOffset > 0 ? { ['--public-hero-offset' as string]: `${heroOffset}px` } : {};
 
   return (
-    <div className="public-order-page" style={pageStyle}>
-      <header className="public-order-hero" ref={heroRef}>
-        <div className="public-order-hero__main">
-          <div className="public-order-hero__eyebrow">Order Review</div>
-          <h1>{order.dealer_company || order.dealer_name || 'Dealer Order'}</h1>
-          <div className="public-order-hero__meta">
+    <div className="mx-auto w-full max-w-[1200px] space-y-6 px-4 pb-16 pt-8" style={pageStyle}>
+      <header className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-border bg-gradient-to-br from-muted to-background p-6 shadow-sm" ref={heroRef}>
+        <div>
+          <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Order Review</div>
+          <h1 className="mt-1 text-2xl font-semibold text-foreground">
+            {order.dealer_company || order.dealer_name || 'Dealer Order'}
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
             <span>{totalItems} items</span>
-            <span className="public-order-hero__dot" />
+            <span className="h-1 w-1 rounded-full bg-muted-foreground/60" />
             <span>{storeCode} store</span>
           </div>
         </div>
@@ -498,42 +508,40 @@ export default function PublicOrderPage() {
       </header>
 
       {isCompleted ? (
-        <div className="public-order-alert public-order-alert--success">
-          This order has been completed.
-        </div>
+        <div className={alertSuccess}>This order has been completed.</div>
       ) : !isEditable ? (
-        <div className="public-order-alert public-order-alert--warning">
-          This order can no longer be modified.
-        </div>
+        <div className={alertWarning}>This order can no longer be modified.</div>
       ) : (
-        <div className="public-order-alert public-order-alert--info">
+        <div className={alertInfo}>
           Changes auto-save after a short pause, and the cart link updates automatically.
         </div>
       )}
 
-      <div className="public-order-layout">
-        <section className="public-order-items">
-          <div className="public-order-items__header">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <section className="space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h2>Items</h2>
-              <p className="public-order-items__hint">
+              <h2 className="text-lg font-semibold text-foreground">Items</h2>
+              <p className="text-sm text-muted-foreground">
                 {hydrating ? 'Loading product details...' : 'Verify sizes, colors, and quantities before sending to Shopify.'}
               </p>
-              {hydrateError && <span className="public-order-error">{hydrateError}</span>}
+              {hydrateError && <span className="text-xs text-destructive">{hydrateError}</span>}
             </div>
             {!readOnly && (
-              <button className="btn btn-secondary" onClick={() => setShowAddModal(true)}>
+              <Button variant="outline" onClick={() => setShowAddModal(true)}>
                 + Add Product
-              </button>
+              </Button>
             )}
           </div>
 
-          <div className="public-order-grid">
+          <div className="space-y-4">
             {items.length === 0 && (
-              <div className="public-order-empty-card">
-                <h3>No items yet</h3>
-                <p>Add products to build your cart.</p>
-              </div>
+              <Card className="border-dashed">
+                <CardContent className="space-y-2 p-8 text-center">
+                  <h3 className="text-lg font-semibold">No items yet</h3>
+                  <p className="text-sm text-muted-foreground">Add products to build your cart.</p>
+                </CardContent>
+              </Card>
             )}
 
             {items.map((item, idx) => {
@@ -545,108 +553,127 @@ export default function PublicOrderPage() {
               const imageUrl = details?.variant_image_url || null;
 
               return (
-                <article key={`${item.variant_id}-${idx}`} className="public-order-card">
-                  <div className="public-order-card__media">
-                    {imageUrl ? (
-                      <img src={imageUrl} alt={productTitle} />
-                    ) : (
-                      <div className="public-order-card__placeholder">No image</div>
-                    )}
-                  </div>
-                  <div className="public-order-card__body">
-                    <div className="public-order-card__titles">
-                      <h3>{productTitle || 'Untitled Product'}</h3>
-                      {variantTitle && <p>{variantTitle}</p>}
-                    </div>
-                    <div className="public-order-card__meta">
-                      <span>SKU: {item.sku || 'N/A'}</span>
-                      {meta.color && <span className="public-order-chip">Color: {meta.color}</span>}
-                      {meta.size && <span className="public-order-chip">Size: {meta.size}</span>}
-                      {meta.extra && <span className="public-order-chip">Option: {meta.extra}</span>}
-                    </div>
-                    <div className="public-order-card__footer">
-                      {readOnly ? (
-                        <div className="public-order-qty-readonly">Qty: {item.qty}</div>
+                <Card key={`${item.variant_id}-${idx}`} className="overflow-hidden">
+                  <div className="grid gap-4 md:grid-cols-[180px_1fr]">
+                    <div className="flex min-h-[140px] items-center justify-center bg-gradient-to-b from-muted to-background">
+                      {imageUrl ? (
+                        <img src={imageUrl} alt={productTitle} className="h-full w-full object-cover" />
                       ) : (
-                        <div className="public-order-qty">
-                          <button
-                            className="public-order-qty__btn"
-                            onClick={() => handleQtyStep(idx, -1)}
-                            aria-label="Decrease quantity"
-                          >
-                            -
-                          </button>
-                          <input
-                            type="number"
-                            min="0"
-                            value={item.qty}
-                            onChange={(e) => handleQtyChange(idx, Number(e.target.value))}
-                          />
-                          <button
-                            className="public-order-qty__btn"
-                            onClick={() => handleQtyStep(idx, 1)}
-                            aria-label="Increase quantity"
-                          >
-                            +
-                          </button>
-                        </div>
-                      )}
-                      {!readOnly && (
-                        <button className="public-order-remove" onClick={() => handleRemove(idx)}>
-                          Remove
-                        </button>
+                        <div className="text-xs uppercase tracking-wide text-muted-foreground">No image</div>
                       )}
                     </div>
+                    <CardContent className="space-y-3 p-4">
+                      <div>
+                        <h3 className="text-sm font-semibold text-foreground">{productTitle || 'Untitled Product'}</h3>
+                        {variantTitle && <p className="text-xs text-muted-foreground">{variantTitle}</p>}
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                        <span>SKU: {item.sku || 'N/A'}</span>
+                        {meta.color && <Badge variant="secondary" className="text-[10px]">Color: {meta.color}</Badge>}
+                        {meta.size && <Badge variant="secondary" className="text-[10px]">Size: {meta.size}</Badge>}
+                        {meta.extra && <Badge variant="secondary" className="text-[10px]">Option: {meta.extra}</Badge>}
+                      </div>
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        {readOnly ? (
+                          <div className="text-sm font-medium text-foreground">Qty: {item.qty}</div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleQtyStep(idx, -1)}
+                              aria-label="Decrease quantity"
+                            >
+                              -
+                            </Button>
+                            <Input
+                              type="number"
+                              min="0"
+                              value={item.qty}
+                              onChange={(e) => handleQtyChange(idx, Number(e.target.value))}
+                              className="h-8 w-20 text-center"
+                            />
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => handleQtyStep(idx, 1)}
+                              aria-label="Increase quantity"
+                            >
+                              +
+                            </Button>
+                          </div>
+                        )}
+                        {!readOnly && (
+                          <Button variant="ghost" className="text-destructive" onClick={() => handleRemove(idx)}>
+                            Remove
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
                   </div>
-                </article>
+                </Card>
               );
             })}
           </div>
         </section>
 
-        <aside className="public-order-sidebar">
-          <div className="public-order-panel">
-            <h3>Summary</h3>
-            <div className="public-order-summary">
-              <div>
-                <span>Items</span>
-                <strong>{totalItems}</strong>
+        <aside className="space-y-4 lg:sticky lg:top-[var(--public-hero-offset)]">
+          <Card>
+            <CardHeader>
+              <CardTitle>Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center justify-between">
+                  <span>Items</span>
+                  <strong className="text-foreground">{totalItems}</strong>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Store</span>
+                  <strong className="text-foreground">{storeCode}</strong>
+                </div>
               </div>
-              <div>
-                <span>Store</span>
-                <strong>{storeCode}</strong>
-              </div>
-            </div>
 
-            {autoSaveStatus && (
-              <div className={autoSaveStatus.className}>
-                {autoSaveStatus.text}
-              </div>
-            )}
-
-            <div className="public-order-cart">
-              <h4>Cart Link</h4>
-              {cartInfo.reason === 'missing-domain' ? (
-                <p>Add store domains to enable cart links.</p>
-              ) : cartInfo.reason === 'empty' ? (
-                <p>Add items to generate a cart link.</p>
-              ) : cartInfo.missingSkus.length > 0 ? (
-                <p>Missing variant IDs for: {cartInfo.missingSkus.join(', ')}</p>
-              ) : (
-                <>
-                  <p className="public-order-cart__url">{cartInfo.url}</p>
-                  <div className="public-order-cart__actions">
-                    <button className="btn btn-secondary" onClick={handleCopyCart}>
-                      {cartCopied ? 'Copied' : 'Copy Link'}
-                    </button>
-                    <button className="btn btn-primary" onClick={handleCreateCart} disabled={cartLoading}>
-                      {cartLoading ? 'Opening Cart...' : 'Open Cart'}
-                    </button>
-                  </div>
-                </>
+              {autoSaveStatus && (
+                <div className={autoSaveStatus.className}>
+                  {autoSaveStatus.text}
+                </div>
               )}
-            </div>
-          </div>
+
+              <div className="space-y-3 border-t border-border pt-4">
+                <h4 className="text-sm font-semibold text-foreground">Cart Link</h4>
+                {cartInfo.reason === 'missing-domain' ? (
+                  <p className="text-sm text-muted-foreground">Add store domains to enable cart links.</p>
+                ) : cartInfo.reason === 'empty' ? (
+                  <p className="text-sm text-muted-foreground">Add items to generate a cart link.</p>
+                ) : cartInfo.missingSkus.length > 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Missing variant IDs for: {cartInfo.missingSkus.join(', ')}
+                  </p>
+                ) : (
+                  <>
+                    <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                      {cartInfo.url}
+                    </div>
+                    <div className="grid gap-2">
+                      <Button variant="outline" onClick={handleCopyCart}>
+                        {cartCopied ? 'Copied' : 'Copy Link'}
+                      </Button>
+                      <Button
+                        onClick={handleCreateCart}
+                        disabled={cartLoading}
+                        className="bg-[#008060] text-white hover:bg-[#006f55]"
+                      >
+                        {cartLoading ? 'Opening Cart...' : 'Open Cart'}
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </aside>
       </div>
 

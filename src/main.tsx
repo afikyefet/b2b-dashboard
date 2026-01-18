@@ -5,7 +5,7 @@ import { store } from './store'
 import { DrawerProvider } from './contexts/DrawerContext'
 import { CartProvider } from './contexts/CartContext'
 import { AuthProvider } from './contexts/AuthContext'
-import './styles/index.scss'
+import './styles/globals.css'
 import App from './App.tsx'
 
 createRoot(document.getElementById('root')!).render(

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
+import { Trash2 } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { hydrateBySkus, fetchProducts, fetchProductVariants } from '../api/catalogApi';
 import type { ProductListItem, HydratedSkuItem } from '../api/catalogApi';
@@ -8,7 +9,27 @@ import { CreateOrderModal } from '../cmps/CreateOrderModal';
 import { selectDealerName } from '../store/slices/filterSlice';
 import { resolveStoreForDealer } from '../utils/storeRouting';
 import { getNoOrderNoteBySku } from '../utils/cartOrderNotes';
-import '../styles/App.scss';
+import { cn } from '../lib/utils';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogHeader,
+    DialogTitle,
+} from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { ScrollArea } from '../components/ui/scroll-area';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from '../components/ui/table';
 
 type ProductOption = {
     name: string;
@@ -571,456 +592,343 @@ export default function CartPage() {
     }, [cart, hydrated]);
 
     return (
-        <div className="cart-page" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto', zIndex: 100 }}>
-            <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
-                <h1>Cart ({cart.length} items)</h1>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                    <button 
-                        onClick={() => navigate('/')} 
-                        className="btn-reset-all" 
-                        style={{ backgroundColor: '#666', borderColor: '#666' }}
-                    >
-                        Back to Dashboard
-                    </button>
+        <div className="mx-auto w-full max-w-[1200px] space-y-6 px-4 pb-12 pt-6">
+            <header className="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-semibold text-foreground">Cart</h1>
+                    <p className="text-sm text-muted-foreground">{cart.length} items</p>
                 </div>
+                <Button
+                    variant="outline"
+                    onClick={() => navigate('/')}
+                    type="button"
+                >
+                    Back to Dashboard
+                </Button>
             </header>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '40px' }}>
-                <div className="cart-list">
+            <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+                <div className="space-y-4">
                     {cart.length === 0 ? (
-                        <div style={{ padding: '40px', textAlign: 'center', background: '#f9f9f9', borderRadius: '8px', marginBottom: '20px' }}>
-                            <h2>Your cart is empty</h2>
-                            <p>Click "Browse Products" below to add items.</p>
-                        </div>
+                        <Card className="border-dashed bg-muted/40">
+                            <CardContent className="space-y-2 p-8 text-center">
+                                <h2 className="text-lg font-semibold">Your cart is empty</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Click "Browse Products" below to add items.
+                                </p>
+                            </CardContent>
+                        </Card>
                     ) : (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '20px' }}>
-                            <thead>
-                                <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
-                                    <th style={{ padding: '12px' }}>Product</th>
-                                    <th style={{ padding: '12px' }}>Quantity</th>
-                                    <th style={{ padding: '12px' }}></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sortedCart.map((item) => {
-                                    const details = hydrated[item.sku];
-                                    const showNoOrderNote = noOrderNoteBySku[item.sku];
+                        <Card className="overflow-hidden">
+                            <CardContent className="p-0">
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Product</TableHead>
+                                            <TableHead className="w-28">Quantity</TableHead>
+                                            <TableHead className="w-14" />
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {sortedCart.map((item) => {
+                                            const details = hydrated[item.sku];
+                                            const showNoOrderNote = noOrderNoteBySku[item.sku];
 
-                                    return (
-                                        <tr key={item.sku} style={{ borderBottom: '1px solid #eee' }}>
-                                            <td style={{ padding: '12px' }}>
-                                                {details ? (
-                                                    <div>
-                                                        <div style={{ fontWeight: 'bold' }}>{details.product_title}</div>
-                                                        <div style={{ fontSize: '0.85em', color: '#666' }}>{details.variant_title}</div>
-                                                        <div style={{ fontSize: '0.8em', color: '#999' }}>SKU: {item.sku}</div>
-                                                        {showNoOrderNote && (
-                                                            <div style={{ fontSize: '0.75em', color: '#b45309', marginTop: '4px' }}>
-                                                                wasnt ordered in the past year
+                                            return (
+                                                <TableRow key={item.sku}>
+                                                    <TableCell>
+                                                        {details ? (
+                                                            <div className="space-y-1">
+                                                                <div className="font-semibold text-foreground">
+                                                                    {details.product_title}
+                                                                </div>
+                                                                <div className="text-xs text-muted-foreground">
+                                                                    {details.variant_title}
+                                                                </div>
+                                                                <div className="text-xs text-muted-foreground">
+                                                                    SKU: {item.sku}
+                                                                </div>
+                                                                {showNoOrderNote && (
+                                                                    <div className="text-xs text-warning">
+                                                                        wasnt ordered in the past year
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="space-y-1">
+                                                                <span className="text-sm text-muted-foreground">
+                                                                    Loading {item.sku}...
+                                                                </span>
+                                                                {showNoOrderNote && (
+                                                                    <div className="text-xs text-warning">
+                                                                        wasnt ordered in the past year
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         )}
-                                                    </div>
-                                                ) : (
-                                                    <div>
-                                                        <span>Loading {item.sku}...</span>
-                                                        {showNoOrderNote && (
-                                                            <div style={{ fontSize: '0.75em', color: '#b45309', marginTop: '4px' }}>
-                                                                wasnt ordered in the past year
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </td>
-                                            <td style={{ padding: '12px' }}>
-                                                <input 
-                                                    type="number" 
-                                                    min="0"
-                                                    value={item.qty}
-                                                    onChange={(e) => setQty(item.sku, Number(e.target.value))}
-                                                    style={{ width: '60px', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                                                />
-                                            </td>
-                                            <td style={{ padding: '12px' }}>
-                                                <button 
-                                                    onClick={() => removeSku(item.sku)}
-                                                    style={{ border: 'none', background: 'none', color: '#ff4d4f', cursor: 'pointer', fontSize: '1.2em' }}
-                                                    title="Remove item"
-                                                >
-                                                    ×
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
+                                                    </TableCell>
+                                                    <TableCell>
+                                                        <Input
+                                                            type="number"
+                                                            min="0"
+                                                            value={item.qty}
+                                                            onChange={(e) => setQty(item.sku, Number(e.target.value))}
+                                                            className="h-8 w-20"
+                                                        />
+                                                    </TableCell>
+                                                    <TableCell className="text-right">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => removeSku(item.sku)}
+                                                            type="button"
+                                                            title="Remove item"
+                                                        >
+                                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                                        </Button>
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
+                                    </TableBody>
+                                </Table>
+                            </CardContent>
+                        </Card>
                     )}
-                    
-                    <button
+
+                    <Button
                         onClick={() => setShowProductModal(true)}
-                        style={{
-                            width: '100%',
-                            padding: '12px',
-                            background: '#008060',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '1em',
-                            fontWeight: 'bold'
-                        }}
+                        className="w-full bg-[#008060] text-white hover:bg-[#006f55]"
+                        type="button"
                     >
                         + Browse Products
-                    </button>
+                    </Button>
                 </div>
 
-                <div className="cart-sidebar">
-                    <div style={{ background: '#f5f5f5', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-                        <h3 style={{ marginTop: 0 }}>Summary</h3>
-                        
-                        <button
-                            onClick={() => setShowCreateOrderModal(true)}
-                            disabled={cart.length === 0}
-                            style={{
-                                width: '100%',
-                                padding: '12px',
-                                background: cart.length === 0 ? '#ccc' : '#008060',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '4px',
-                                cursor: cart.length === 0 ? 'not-allowed' : 'pointer',
-                                fontSize: '1em',
-                                fontWeight: 'bold'
-                            }}
-                        >
-                            Create Order
-                        </button>
-                    </div>
-
-                    <div style={{ background: 'white', border: '1px solid #eee', padding: '20px', borderRadius: '8px' }}>
-                        <h4 style={{ marginTop: 0, marginBottom: '10px' }}>Quick Add by SKU</h4>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                            <input 
-                                type="text" 
-                                value={skuInput}
-                                onChange={(e) => setSkuInput(e.target.value)}
-                                placeholder="Enter SKU"
-                                onKeyDown={(e) => e.key === 'Enter' && handleAddSku()}
-                                style={{ flex: 1, padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                            />
-                            <button 
-                                onClick={handleAddSku}
-                                disabled={loadingSku}
-                                style={{ 
-                                    padding: '8px 16px', 
-                                    background: '#008060', 
-                                    color: 'white', 
-                                    border: 'none', 
-                                    borderRadius: '4px',
-                                    cursor: loadingSku ? 'not-allowed' : 'pointer',
-                                    opacity: loadingSku ? 0.7 : 1
-                                }}
+                <div className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <Button
+                                onClick={() => setShowCreateOrderModal(true)}
+                                disabled={cart.length === 0}
+                                className={cn(
+                                    "w-full",
+                                    cart.length === 0
+                                        ? "bg-muted text-muted-foreground"
+                                        : "bg-[#008060] text-white hover:bg-[#006f55]"
+                                )}
+                                type="button"
                             >
-                                {loadingSku ? '...' : 'Add'}
-                            </button>
-                        </div>
-                        <p style={{ fontSize: '0.8em', color: '#666', marginTop: '8px' }}>
-                            Enter a valid variant SKU to add it directly to the cart.
-                        </p>
-                    </div>
+                                Create Order
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Quick Add by SKU</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <div className="flex gap-2">
+                                <Input
+                                    type="text"
+                                    value={skuInput}
+                                    onChange={(e) => setSkuInput(e.target.value)}
+                                    placeholder="Enter SKU"
+                                    onKeyDown={(e) => e.key === 'Enter' && handleAddSku()}
+                                />
+                                <Button
+                                    onClick={handleAddSku}
+                                    disabled={loadingSku}
+                                    className="bg-[#008060] text-white hover:bg-[#006f55]"
+                                    type="button"
+                                >
+                                    {loadingSku ? '...' : 'Add'}
+                                </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                                Enter a valid variant SKU to add it directly to the cart.
+                            </p>
+                        </CardContent>
+                    </Card>
                 </div>
             </div>
 
-            {/* Product Modal */}
-            {showProductModal && (
-                <div 
-                    style={{
-                        position: 'fixed',
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        bottom: 0,
-                        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        justifyContent: 'center',
-                        zIndex: 1100,
-                        padding: '80px 20px 20px 20px',
-                        overflowY: 'auto'
-                    }}
-                    onClick={() => setShowProductModal(false)}
-                >
-                    <div 
-                        style={{
-                            backgroundColor: 'white',
-                            borderRadius: '8px',
-                            width: '100%',
-                            maxWidth: '900px',
-                            maxHeight: 'calc(100vh - 60px)',
-                            overflow: 'hidden',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            position: 'relative'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Sticky header */}
-                        <div style={{ 
-                            padding: '16px 20px',
-                            borderBottom: '1px solid #eee',
-                            backgroundColor: 'white',
-                            flexShrink: 0
-                        }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                                <h2 style={{ margin: 0 }}>Browse Products</h2>
-                                <button
-                                    onClick={() => setShowProductModal(false)}
-                                    style={{
-                                        border: 'none',
-                                        background: 'none',
-                                        fontSize: '1.5em',
-                                        cursor: 'pointer',
-                                        color: '#666'
-                                    }}
-                                >
-                                    ×
-                                </button>
-                            </div>
-
-                            <input
+            <Dialog open={showProductModal} onOpenChange={setShowProductModal}>
+                <DialogContent className="max-w-4xl p-0">
+                    <div className="border-b border-border p-6">
+                        <DialogHeader>
+                            <DialogTitle>Browse Products</DialogTitle>
+                            <DialogDescription>Choose variants and add them to the cart.</DialogDescription>
+                        </DialogHeader>
+                        <div className="mt-4">
+                            <Input
                                 type="text"
                                 value={productSearch}
                                 onChange={(e) => setProductSearch(e.target.value)}
                                 placeholder="Search products..."
-                                style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
                             />
                         </div>
+                    </div>
 
-                        {/* Scrollable product list */}
-                        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+                    <ScrollArea className="max-h-[70vh]">
+                        <div className="space-y-4 p-6">
                             {loadingProducts && products.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '40px' }}>Loading products...</div>
+                                <div className="py-10 text-center text-sm text-muted-foreground">
+                                    Loading products...
+                                </div>
                             ) : products.length === 0 ? (
-                                <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>No products found</div>
+                                <div className="py-10 text-center text-sm text-muted-foreground">
+                                    No products found
+                                </div>
                             ) : (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                    {filterUnavailableProducts(products).map((product) => {
-                                        const productData = productsWithVariants.get(product.product_id);
-                                        const isLoading = loadingVariants.has(product.product_id);
-                                        // const selectedVariant = productData ? getSelectedVariant(product.product_id) : null;
-                                        const allOptionsSelected = productData ?
-                                            productData.options.every(opt => productData.selectedOptions[opt.name]) : false;
+                                filterUnavailableProducts(products).map((product) => {
+                                    const productData = productsWithVariants.get(product.product_id);
+                                    const isLoading = loadingVariants.has(product.product_id);
+                                    const allOptionsSelected = productData ?
+                                        productData.options.every(opt => productData.selectedOptions[opt.name]) : false;
 
-                                        return (
-                                            <div
-                                                key={product.product_id}
-                                                style={{
-                                                    border: '1px solid #ddd',
-                                                    borderRadius: '8px',
-                                                    background: 'white',
-                                                    display: 'flex',
-                                                    flexDirection: 'row',
-                                                    overflow: 'hidden',
-                                                    transition: 'box-shadow 0.2s',
-                                                }}
-                                                onMouseEnter={(e) => {
-                                                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-                                                }}
-                                                onMouseLeave={(e) => {
-                                                    e.currentTarget.style.boxShadow = 'none';
-                                                }}
-                                            >
-                                                {/* Product Image */}
-                                                <div style={{
-                                                    width: '120px',
-                                                    height: '120px',
-                                                    flexShrink: 0,
-                                                    position: 'relative',
-                                                    backgroundColor: '#f5f5f5',
-                                                    overflow: 'hidden'
-                                                }}>
-                                                    {(() => {
-                                                        const imageUrl = getProductImageUrl(product.product_id);
-                                                        if (imageUrl) {
-                                                            return (
-                                                                <img
-                                                                    src={imageUrl}
-                                                                    alt={product.title}
-                                                                    style={{
-                                                                        width: '100%',
-                                                                        height: '100%',
-                                                                        objectFit: 'cover'
-                                                                    }}
-                                                                />
-                                                            );
-                                                        }
+                                    return (
+                                        <div
+                                            key={product.product_id}
+                                            className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 shadow-sm sm:flex-row"
+                                        >
+                                            <div className="h-28 w-28 flex-shrink-0 overflow-hidden rounded-md bg-muted">
+                                                {(() => {
+                                                    const imageUrl = getProductImageUrl(product.product_id);
+                                                    if (imageUrl) {
                                                         return (
-                                                            <div style={{
-                                                                width: '100%',
-                                                                height: '100%',
-                                                                display: 'flex',
-                                                                alignItems: 'center',
-                                                                justifyContent: 'center',
-                                                                backgroundColor: '#e5e5e5',
-                                                                color: '#999',
-                                                                fontSize: '0.75em'
-                                                            }}>
-                                                                No Image
-                                                            </div>
+                                                            <img
+                                                                src={imageUrl}
+                                                                alt={product.title}
+                                                                className="h-full w-full object-cover"
+                                                            />
                                                         );
-                                                    })()}
+                                                    }
+                                                    return (
+                                                        <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-wide text-muted-foreground">
+                                                            No Image
+                                                        </div>
+                                                    );
+                                                })()}
+                                            </div>
+
+                                            <div className="flex flex-1 flex-col gap-3">
+                                                <div>
+                                                    <h3 className="text-sm font-semibold text-foreground">{product.title}</h3>
+                                                    {product.tags && product.tags.length > 0 && (
+                                                        <div className="mt-2 flex flex-wrap gap-2">
+                                                            {product.tags.slice(0, 2).map((tag) => (
+                                                                <Badge key={tag} variant="secondary" className="text-xs">
+                                                                    {tag}
+                                                                </Badge>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
 
-                                                {/* Product Info & Options */}
-                                                <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                                    <div>
-                                                        <h3 style={{
-                                                            margin: 0,
-                                                            fontSize: '1em',
-                                                            fontWeight: '600',
-                                                            lineHeight: '1.3',
-                                                            color: '#333'
-                                                        }}>
-                                                            {product.title}
-                                                        </h3>
-                                                        {product.tags && product.tags.length > 0 && (
-                                                            <div style={{ fontSize: '0.75em', color: '#666', marginTop: '2px' }}>
-                                                                {product.tags.slice(0, 2).join(', ')}
-                                                            </div>
-                                                        )}
+                                                {isLoading && (
+                                                    <div className="text-xs text-muted-foreground">
+                                                        Loading options...
                                                     </div>
+                                                )}
 
-                                                    {isLoading && (
-                                                        <div style={{ color: '#666', fontSize: '0.85em' }}>
-                                                            Loading options...
-                                                        </div>
-                                                    )}
-
-                                                    {productData && (
-                                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                                            {productData.options.map((option) => {
-                                                                const availableValues = getAvailableOptionValues(product.product_id, option.name);
-                                                                const displayValues = availableValues.length > 0 ? availableValues : option.values;
-                                                                const selectedValue = productData.selectedOptions[option.name];
-
-                                                                return (
-                                                                    <div key={option.name}>
-                                                                        <label style={{
-                                                                            display: 'block',
-                                                                            marginBottom: '6px',
-                                                                            fontSize: '0.8em',
-                                                                            fontWeight: '600',
-                                                                            color: '#555'
-                                                                        }}>
-                                                                            {option.name}: {selectedValue && <span style={{ color: '#008060' }}>{selectedValue}</span>}
-                                                                        </label>
-                                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                                                                            {displayValues.map((value) => {
-                                                                                const isSelected = selectedValue === value;
-                                                                                return (
-                                                                                    <button
-                                                                                        key={value}
-                                                                                        onClick={() => handleOptionChange(product.product_id, option.name, value)}
-                                                                                        style={{
-                                                                                            padding: '6px 12px',
-                                                                                            border: isSelected ? '2px solid #008060' : '1px solid #ddd',
-                                                                                            borderRadius: '4px',
-                                                                                            background: isSelected ? '#e8f5f2' : 'white',
-                                                                                            color: isSelected ? '#008060' : '#333',
-                                                                                            fontSize: '0.8em',
-                                                                                            fontWeight: isSelected ? '600' : '400',
-                                                                                            cursor: 'pointer',
-                                                                                            transition: 'all 0.15s',
-                                                                                            minWidth: '40px',
-                                                                                            textAlign: 'center'
-                                                                                        }}
-                                                                                        onMouseEnter={(e) => {
-                                                                                            if (!isSelected) {
-                                                                                                e.currentTarget.style.borderColor = '#999';
-                                                                                                e.currentTarget.style.background = '#f9f9f9';
-                                                                                            }
-                                                                                        }}
-                                                                                        onMouseLeave={(e) => {
-                                                                                            if (!isSelected) {
-                                                                                                e.currentTarget.style.borderColor = '#ddd';
-                                                                                                e.currentTarget.style.background = 'white';
-                                                                                            }
-                                                                                        }}
-                                                                                    >
-                                                                                        {value}
-                                                                                    </button>
-                                                                                );
-                                                                            })}
-                                                                        </div>
-                                                                    </div>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    )}
-                                                </div>
-
-                                                {/* Add to Cart Button */}
                                                 {productData && (
-                                                    <div style={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        paddingRight: '12px',
-                                                        paddingLeft: '12px'
-                                                    }}>
-                                                        <button
-                                                            onClick={() => {
-                                                                if (allOptionsSelected) {
-                                                                    const variant = getSelectedVariant(product.product_id);
-                                                                    if (variant && variant.sku) {
-                                                                        addSku(variant.sku, 1);
-                                                                        setShowProductModal(false);
-                                                                    } else {
-                                                                        const variantWithSku = productData.variants.find(v => v.sku);
-                                                                        if (variantWithSku) {
-                                                                            addSku(variantWithSku.sku, 1);
-                                                                            setShowProductModal(false);
-                                                                        } else {
-                                                                            alert('Unable to find matching variant.');
-                                                                        }
-                                                                    }
-                                                                } else if (productData.options.length === 0 && productData.variants.length > 0) {
+                                                    <div className="space-y-3">
+                                                        {productData.options.map((option) => {
+                                                            const availableValues = getAvailableOptionValues(product.product_id, option.name);
+                                                            const displayValues = availableValues.length > 0 ? availableValues : option.values;
+                                                            const selectedValue = productData.selectedOptions[option.name];
+
+                                                            return (
+                                                                <div key={option.name}>
+                                                                    <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground">
+                                                                        <span>{option.name}</span>
+                                                                        {selectedValue && (
+                                                                            <span className="text-primary">{selectedValue}</span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex flex-wrap gap-2">
+                                                                        {displayValues.map((value) => {
+                                                                            const isSelected = selectedValue === value;
+                                                                            return (
+                                                                                <Button
+                                                                                    key={value}
+                                                                                    type="button"
+                                                                                    variant={isSelected ? "default" : "outline"}
+                                                                                    className={cn(
+                                                                                        "h-8 px-3 text-xs",
+                                                                                        isSelected
+                                                                                            ? "bg-[#008060] text-white hover:bg-[#006f55]"
+                                                                                            : "border-border"
+                                                                                    )}
+                                                                                    onClick={() => handleOptionChange(product.product_id, option.name, value)}
+                                                                                >
+                                                                                    {value}
+                                                                                </Button>
+                                                                            );
+                                                                        })}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {productData && (
+                                                <div className="flex items-center">
+                                                    <Button
+                                                        onClick={() => {
+                                                            if (allOptionsSelected) {
+                                                                const variant = getSelectedVariant(product.product_id);
+                                                                if (variant && variant.sku) {
+                                                                    addSku(variant.sku, 1);
+                                                                    setShowProductModal(false);
+                                                                } else {
                                                                     const variantWithSku = productData.variants.find(v => v.sku);
                                                                     if (variantWithSku) {
                                                                         addSku(variantWithSku.sku, 1);
                                                                         setShowProductModal(false);
+                                                                    } else {
+                                                                        alert('Unable to find matching variant.');
                                                                     }
-                                                                } else {
-                                                                    alert('Please select all options');
                                                                 }
-                                                            }}
-                                                            disabled={productData.options.length > 0 && !allOptionsSelected}
-                                                            style={{
-                                                                padding: '10px 20px',
-                                                                background: (productData.options.length > 0 && !allOptionsSelected) ? '#ccc' : '#008060',
-                                                                color: 'white',
-                                                                border: 'none',
-                                                                borderRadius: '6px',
-                                                                cursor: (productData.options.length > 0 && !allOptionsSelected) ? 'not-allowed' : 'pointer',
-                                                                fontWeight: '600',
-                                                                fontSize: '0.9em',
-                                                                whiteSpace: 'nowrap',
-                                                                minWidth: '100px'
-                                                            }}
-                                                        >
-                                                            Add to Cart
-                                                        </button>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                                            } else if (productData.options.length === 0 && productData.variants.length > 0) {
+                                                                const variantWithSku = productData.variants.find(v => v.sku);
+                                                                if (variantWithSku) {
+                                                                    addSku(variantWithSku.sku, 1);
+                                                                    setShowProductModal(false);
+                                                                }
+                                                            } else {
+                                                                alert('Please select all options');
+                                                            }
+                                                        }}
+                                                        disabled={productData.options.length > 0 && !allOptionsSelected}
+                                                        className={cn(
+                                                            "h-10 px-6",
+                                                            productData.options.length > 0 && !allOptionsSelected
+                                                                ? "bg-muted text-muted-foreground"
+                                                                : "bg-[#008060] text-white hover:bg-[#006f55]"
+                                                        )}
+                                                        type="button"
+                                                    >
+                                                        Add to Cart
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })
                             )}
                         </div>
-                    </div>
-                </div>
-            )}
-            
+                    </ScrollArea>
+                </DialogContent>
+            </Dialog>
+
             <CreateOrderModal 
                 isOpen={showCreateOrderModal} 
                 onClose={() => setShowCreateOrderModal(false)}

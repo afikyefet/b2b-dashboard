@@ -4,6 +4,12 @@ import { getOrder, patchOrder, sendOrder, deleteOrder, type Order, type OrderIte
 import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
 import { EditableItemsTable } from '../cmps/EditableItemsTable';
 import { useDirtyState } from '../hooks/useDirtyState';
+import { cn } from '../lib/utils';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
 
 export default function OrderDetails() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -183,176 +189,176 @@ export default function OrderDetails() {
 
   // Early return for invalid orderId (after all hooks)
   if (!isValidOrderId) {
-    return <div style={{ padding: '40px', textAlign: 'center' }}>Invalid order ID</div>;
+    return <div className="py-10 text-center text-sm text-muted-foreground">Invalid order ID</div>;
   }
 
-  if (loading) return <div style={{ padding: '40px', textAlign: 'center' }}>Loading Order...</div>;
-  if (!order) return <div style={{ padding: '40px', textAlign: 'center' }}>Order not found</div>;
+  if (loading) return <div className="py-10 text-center text-sm text-muted-foreground">Loading Order...</div>;
+  if (!order) return <div className="py-10 text-center text-sm text-muted-foreground">Order not found</div>;
 
   const publicLink = `${window.location.origin}/public/order/${order.share_token}`;
 
   return (
-    <div className="order-details-page" style={{ padding: '20px', maxWidth: '1000px', margin: '0 auto', paddingBottom: '80px' }}>
-      {/* Top Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button onClick={() => navigate('/orders')} style={{ padding: '6px 12px', cursor: 'pointer' }}>&larr; Back</button>
-          <h1 style={{ margin: 0, fontSize: '1.5em' }}>Order #{order.order_id.substring(0,8)}...</h1>
+    <div className="mx-auto w-full max-w-[1000px] space-y-6 px-4 pb-20 pt-6">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Button variant="outline" size="sm" onClick={() => navigate('/orders')}>
+            Back
+          </Button>
+          <div>
+            <h1 className="text-xl font-semibold text-foreground">
+              Order #{order.order_id.substring(0, 8)}...
+            </h1>
+            <p className="text-xs text-muted-foreground">
+              Updated: {new Date(order.updated_at).toLocaleString()}
+            </p>
+          </div>
           <OrderStatusBadge status={order.status} />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ fontSize: '0.85em', color: '#666' }}>
-            Updated: {new Date(order.updated_at).toLocaleString()}
-          </div>
-          <button
-            onClick={handleDelete}
-            disabled={!canDelete(order.status) || deleting}
-            style={{
-              padding: '6px 12px',
-              background: 'white',
-              border: '1px solid #fca5a5',
-              borderRadius: '4px',
-              color: '#b91c1c',
-              cursor: (!canDelete(order.status) || deleting) ? 'not-allowed' : 'pointer',
-              opacity: (!canDelete(order.status) || deleting) ? 0.5 : 1
-            }}
-          >
-            {deleting ? 'Deleting...' : 'Delete'}
-          </button>
-        </div>
+        <Button
+          variant="outline"
+          onClick={handleDelete}
+          disabled={!canDelete(order.status) || deleting}
+          className="border-destructive/40 text-destructive hover:bg-destructive/10"
+        >
+          {deleting ? 'Deleting...' : 'Delete'}
+        </Button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px' }}>
-        
-        {/* Main Content */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            
-          {/* Dealer Info */}
-          <div style={{ background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginTop: 0 }}>Dealer Information</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85em', color: '#666' }}>Name</label>
-                    <input 
-                        type="text" value={dealerName} onChange={e => setDealerName(e.target.value)} 
-                        style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                    />
-                </div>
-                <div>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85em', color: '#666' }}>Company</label>
-                    <input 
-                        type="text" value={dealerCompany} onChange={e => setDealerCompany(e.target.value)} 
-                        style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                    />
-                </div>
-                <div style={{ gridColumn: 'span 2' }}>
-                    <label style={{ display: 'block', marginBottom: '4px', fontSize: '0.85em', color: '#666' }}>Email</label>
-                    <input 
-                        type="email" value={dealerEmail} onChange={e => setDealerEmail(e.target.value)} 
-                        style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
-                    />
-                </div>
-            </div>
-          </div>
+      <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Dealer Information</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-4 md:grid-cols-2">
+              <div className="grid gap-2">
+                <Label htmlFor="dealer-name">Name</Label>
+                <Input
+                  id="dealer-name"
+                  type="text"
+                  value={dealerName}
+                  onChange={e => setDealerName(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="dealer-company">Company</Label>
+                <Input
+                  id="dealer-company"
+                  type="text"
+                  value={dealerCompany}
+                  onChange={e => setDealerCompany(e.target.value)}
+                />
+              </div>
+              <div className="grid gap-2 md:col-span-2">
+                <Label htmlFor="dealer-email">Email</Label>
+                <Input
+                  id="dealer-email"
+                  type="email"
+                  value={dealerEmail}
+                  onChange={e => setDealerEmail(e.target.value)}
+                />
+              </div>
+            </CardContent>
+          </Card>
 
-          {/* Items */}
-          <div style={{ background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginTop: 0 }}>Items</h3>
-            <EditableItemsTable 
+          <Card>
+            <CardHeader>
+              <CardTitle>Items</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <EditableItemsTable 
                 items={items} 
                 onChange={setItems} 
                 store={order?.shopify_store}
-            />
-          </div>
+              />
+            </CardContent>
+          </Card>
 
-          {/* Notes */}
-          <div style={{ background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-            <h3 style={{ marginTop: 0 }}>Notes</h3>
-            <textarea 
-                value={notes} onChange={e => setNotes(e.target.value)}
+          <Card>
+            <CardHeader>
+              <CardTitle>Notes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Textarea 
+                value={notes}
+                onChange={e => setNotes(e.target.value)}
                 rows={4}
-                style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
                 placeholder="Add notes..."
-            />
-          </div>
+              />
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Sidebar */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Share Card */}
-            <div style={{ background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                <h3 style={{ marginTop: 0 }}>Share</h3>
-                {order.share_token ? (
-                    <>
-                        <div style={{ marginBottom: '10px', fontSize: '0.85em', background: '#f5f5f5', padding: '8px', borderRadius: '4px', wordBreak: 'break-all' }}>
-                            {publicLink}
-                        </div>
-                        <button 
-                            onClick={copyLink}
-                            style={{ width: '100%', marginBottom: '10px', padding: '8px', background: 'white', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}
-                        >
-                            Copy Link
-                        </button>
-                        <button 
-                            onClick={handleSend}
-                            disabled={order.status !== 'DRAFT'}
-                            style={{ 
-                                width: '100%', padding: '8px', 
-                                background: order.status === 'DRAFT' ? '#008060' : '#ccc', 
-                                color: 'white', border: 'none', borderRadius: '4px', cursor: order.status === 'DRAFT' ? 'pointer' : 'not-allowed' 
-                            }}
-                        >
-                            {order.status === 'DRAFT' ? 'Mark as Sent' : `Status: ${order.status}`}
-                        </button>
-                    </>
-                ) : (
-                    <div>No share token available.</div>
-                )}
-            </div>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Share</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {order.share_token ? (
+                <>
+                  <div className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
+                    {publicLink}
+                  </div>
+                  <Button variant="outline" onClick={copyLink} className="w-full">
+                    Copy Link
+                  </Button>
+                  <Button
+                    onClick={handleSend}
+                    disabled={order.status !== 'DRAFT'}
+                    className={cn(
+                      "w-full",
+                      order.status === 'DRAFT'
+                        ? "bg-[#008060] text-white hover:bg-[#006f55]"
+                        : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {order.status === 'DRAFT' ? 'Mark as Sent' : `Status: ${order.status}`}
+                  </Button>
+                </>
+              ) : (
+                <div className="text-sm text-muted-foreground">No share token available.</div>
+              )}
+            </CardContent>
+          </Card>
 
-            {/* Checkout Info */}
-            {order.shopify_checkout_url && (
-                <div style={{ background: 'white', padding: '20px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-                    <h3 style={{ marginTop: 0 }}>Checkout</h3>
-                    <a 
-                        href={order.shopify_checkout_url} target="_blank" rel="noreferrer"
-                        style={{ display: 'block', textAlign: 'center', padding: '10px', background: '#008060', color: 'white', textDecoration: 'none', borderRadius: '4px', fontWeight: 'bold' }}
-                    >
-                        View Checkout
-                    </a>
-                </div>
-            )}
+          {order.shopify_checkout_url && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Checkout</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button
+                  asChild
+                  className="w-full bg-[#008060] text-white hover:bg-[#006f55]"
+                >
+                  <a href={order.shopify_checkout_url} target="_blank" rel="noreferrer">
+                    View Checkout
+                  </a>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
-      {/* Save Bar */}
       {hasUnsavedChanges && (
-        <div style={{ 
-            position: 'fixed', bottom: 0, left: 0, right: 0, 
-            background: 'white', padding: '15px 20px', 
-            borderTop: '1px solid #ddd', boxShadow: '0 -2px 10px rgba(0,0,0,0.1)',
-            display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '20px',
-            zIndex: 1000
-        }}>
-            <span style={{ fontWeight: 'bold', color: '#d72c2c' }}>Unsaved Changes</span>
-            <div style={{ display: 'flex', gap: '10px' }}>
-                <button 
-                    onClick={() => loadOrder()} // simple reset by reload
-                    style={{ padding: '8px 16px', background: 'white', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                    Discard
-                </button>
-                <button 
-                    onClick={handleSave}
-                    disabled={saving}
-                    style={{ padding: '8px 24px', background: '#008060', color: 'white', border: 'none', borderRadius: '4px', cursor: saving ? 'wait' : 'pointer' }}
-                >
-                    {saving ? 'Saving...' : 'Save Changes'}
-                </button>
-            </div>
+        <div className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/95 px-4 py-4 shadow-lg">
+          <div className="mx-auto flex w-full max-w-[1000px] flex-wrap items-center justify-end gap-3">
+            <span className="text-sm font-semibold text-destructive">Unsaved Changes</span>
+            <Button variant="outline" onClick={() => loadOrder()}>
+              Discard
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={saving}
+              className="bg-[#008060] text-white hover:bg-[#006f55]"
+            >
+              {saving ? 'Saving...' : 'Save Changes'}
+            </Button>
+          </div>
         </div>
       )}
     </div>
   );
 }
-

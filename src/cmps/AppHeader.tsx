@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { ChevronDown, ShoppingCart } from 'lucide-react';
 import type { AppDispatch } from '../store';
 import { selectDealerName, setDealerName, resetFilters } from '../store/slices/filterSlice';
 import { useDrawer } from '../contexts/DrawerContext';
@@ -9,7 +10,15 @@ import { useAuth } from '../contexts/AuthContext';
 import { getDashboardData } from '../services/dashboard.service';
 import { getFilterOptions } from '../services/dashboard.service';
 import { resolveStoreForDealer } from '../utils/storeRouting';
-import '../styles/AppHeader.scss'
+import { cn } from '../lib/utils';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
 
 function AppHeader() {
     const navigate = useNavigate();
@@ -21,7 +30,6 @@ function AppHeader() {
     const { email, authDisabled, signOut } = useAuth();
     const [dealerOptions, setDealerOptions] = useState<string[]>([]);
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
     const dealerRegion = useMemo(() => (dealerName ? resolveStoreForDealer(dealerName) : null), [dealerName]);
 
     // Check if we're on the cart page
@@ -32,9 +40,7 @@ function AppHeader() {
         let cancelled = false;
         getDashboardData()
             .then((data) => {
-                // console.log('[AppHeader] dashboard data', data);
                 const options = getFilterOptions(data);
-                // console.log('[AppHeader] dealer options', options.dealerNames);
                 if (!cancelled) setDealerOptions(options.dealerNames);
             })
             .catch((error) => {
@@ -44,18 +50,6 @@ function AppHeader() {
         return () => {
             cancelled = true;
         };
-    }, []);
-
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsDropdownOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
     const handleDealerSelect = (dealer: string) => {
@@ -70,109 +64,105 @@ function AppHeader() {
     };
 
     return (
-        <header>
-            <div className="header-container">
-                <div className="header-logo">
-                    <button
-                        onClick={() => navigate('/')}
-                        type="button"
-                        title="Go to dashboard"
-                    >
-                        <img src="/logo.png" alt="Logo" />
-                    </button>
-                </div>
-                <div className="header-company" ref={dropdownRef}>
-                    {dealerName ? (
-                        <div className="dealer-selector">
-                            <button
-                                className="dealer-selector-button"
-                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                type="button"
+        <header className="sticky top-0 z-50 border-b bg-background shadow-sm">
+            <div className="mx-auto flex w-full max-w-[1200px] items-center gap-4 px-4 py-3">
+                <Button
+                    variant="ghost"
+                    className="h-auto p-0 hover:bg-transparent"
+                    onClick={() => navigate('/')}
+                    type="button"
+                    title="Go to dashboard"
+                >
+                    <img src="/logo.png" alt="Logo" className="h-10 w-auto" />
+                </Button>
+
+                <div className="flex flex-1 justify-center">
+                    <DropdownMenu open={isDropdownOpen} onOpenChange={setIsDropdownOpen}>
+                        <DropdownMenuTrigger asChild>
+                            <Button
+                                variant="outline"
+                                className="h-11 gap-2 rounded-md border-border bg-transparent text-base font-semibold text-foreground hover:bg-muted"
                             >
-                                <span className="dealer-label">Viewing:</span>
-                                <span className="dealer-name">{dealerName}</span>
-                                {dealerRegion && <span className="dealer-region">{dealerRegion}</span>}
-                                <span className="dropdown-arrow">▼</span>
-                            </button>
-                            {isDropdownOpen && dealerOptions.length > 0 && (
-                                <div className="dealer-dropdown">
-                                    {dealerOptions.map((dealer) => (
-                                        <button
-                                            key={dealer}
-                                            className={`dealer-option ${dealer === dealerName ? 'active' : ''}`}
-                                            onClick={() => handleDealerSelect(dealer)}
-                                            type="button"
-                                        >
-                                            {dealer}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="dealer-selector">
-                            <button
-                                className="dealer-selector-button"
-                                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                                type="button"
-                            >
-                                <span>Select Dealer</span>
-                                <span className="dropdown-arrow">▼</span>
-                            </button>
-                            {isDropdownOpen && dealerOptions.length > 0 && (
-                                <div className="dealer-dropdown">
-                                    {dealerOptions.map((dealer) => (
-                                        <button
-                                            key={dealer}
-                                            className="dealer-option"
-                                            onClick={() => handleDealerSelect(dealer)}
-                                            type="button"
-                                        >
-                                            {dealer}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </div>
-                {!isCartPage && (
-                    <div className="header-nav">
-                        <button
-                            className="drawer-toggle-button-header"
-                            onClick={toggleDrawer}
-                            type="button"
-                            title={isDrawerOpen ? 'Close cart drawer' : 'Open cart drawer'}
+                                <span className="text-xs font-medium text-muted-foreground">Viewing:</span>
+                                <span className="text-primary">
+                                    {dealerName || 'Select Dealer'}
+                                </span>
+                                {dealerRegion && (
+                                    <Badge
+                                        variant="secondary"
+                                        className="rounded-full px-2 py-0 text-[0.65rem] uppercase tracking-[0.12em]"
+                                    >
+                                        {dealerRegion}
+                                    </Badge>
+                                )}
+                                <ChevronDown
+                                    className={cn(
+                                        'h-4 w-4 text-muted-foreground transition-transform',
+                                        isDropdownOpen ? 'rotate-180' : ''
+                                    )}
+                                />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                            align="center"
+                            className="max-h-96 w-64 overflow-y-auto p-1"
                         >
-                            <span className="toggle-icon">☰</span>
-                            {!isDrawerOpen && cart.length > 0 && (
-                                <span className="sku-count-badge">{cart.length}</span>
-                            )}
-                        </button>
-                    </div>
-                )}
-                <div className="header-nav">
-                    <button
-                        className="drawer-toggle-button-header"
-                        onClick={() => navigate('/orders')}
-                        type="button"
-                        style={{ marginLeft: '10px' }}
-                    >
-                        Orders
-                    </button>
+                            {dealerOptions.map((dealer) => (
+                                <DropdownMenuItem
+                                    key={dealer}
+                                    onSelect={() => handleDealerSelect(dealer)}
+                                    className={cn(
+                                        'cursor-pointer text-sm',
+                                        dealer === dealerName
+                                            ? 'bg-primary text-primary-foreground focus:bg-primary'
+                                            : 'focus:bg-muted'
+                                    )}
+                                >
+                                    {dealer}
+                                </DropdownMenuItem>
+                            ))}
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
+
+                {!isCartPage && (
+                    <Button
+                        className="relative h-11 w-11 rounded-md p-0"
+                        onClick={toggleDrawer}
+                        type="button"
+                        title={isDrawerOpen ? 'Close cart drawer' : 'Open cart drawer'}
+                    >
+                        <ShoppingCart className="h-5 w-5" />
+                        {!isDrawerOpen && cart.length > 0 && (
+                            <span className="absolute -right-2 -top-2 rounded-full bg-background px-2 py-0.5 text-xs font-semibold text-primary shadow">
+                                {cart.length}
+                            </span>
+                        )}
+                    </Button>
+                )}
+
+                <Button
+                    variant="outline"
+                    className="h-11"
+                    onClick={() => navigate('/orders')}
+                    type="button"
+                >
+                    Orders
+                </Button>
+
                 {!authDisabled && (
-                    <div className="header-auth">
-                        <span className="auth-email" title={email || undefined}>
+                    <div className="flex items-center gap-3">
+                        <span className="max-w-[180px] truncate text-sm text-muted-foreground" title={email || undefined}>
                             {email || 'Signed in'}
                         </span>
-                        <button className="auth-signout" type="button" onClick={handleSignOut}>
+                        <Button variant="secondary" size="sm" type="button" onClick={handleSignOut}>
                             Sign out
-                        </button>
+                        </Button>
                     </div>
                 )}
             </div>
         </header>
-    )
+    );
 }
+
 export default AppHeader;

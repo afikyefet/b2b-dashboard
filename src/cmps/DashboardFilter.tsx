@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { ChevronRight } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "../store";
 import {
@@ -20,7 +21,15 @@ import { calculateRangeBounds } from "../services/dashboard.service";
 import RangeSlider from "./RangeSlider";
 import SmartSelection from "./SmartSelection";
 import { useCart } from "../contexts/CartContext";
-import "../styles/DashboardFilter.scss";
+import { Button } from "../components/ui/button";
+import {
+    DropdownMenu,
+    DropdownMenuCheckboxItem,
+    DropdownMenuContent,
+    DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
+import { Input } from "../components/ui/input";
+import { Label } from "../components/ui/label";
 
 interface DashboardFilterProps {
     filterOptions: FilterOptions;
@@ -33,13 +42,64 @@ interface DashboardFilterProps {
     onSmartSelectDaysChange: (days: number) => void;
 }
 
-function DashboardFilter({ filterOptions, originalData, filteredData, onResetAll, hasActiveFilters, isRefreshing, smartSelectDays, onSmartSelectDaysChange }: DashboardFilterProps) {
+type MultiSelectProps = {
+    label: string;
+    placeholder: string;
+    options: string[];
+    selected: string[];
+    onToggle: (value: string) => void;
+};
+
+function MultiSelect({ label, placeholder, options, selected, onToggle }: MultiSelectProps) {
+    const count = selected.length;
+    return (
+        <div className="space-y-2">
+            <div className="text-xs font-semibold text-muted-foreground">
+                {label} {count > 0 && <span className="text-primary">({count})</span>}
+            </div>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button
+                        variant="outline"
+                        className="h-9 w-full justify-between text-xs text-foreground"
+                        type="button"
+                    >
+                        {count > 0 ? `${count} selected` : placeholder}
+                        <ChevronRight className="h-4 w-4 rotate-90 text-muted-foreground" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="max-h-56 w-64 overflow-y-auto p-1">
+                    {options.map((option) => (
+                        <DropdownMenuCheckboxItem
+                            key={option}
+                            checked={selected.includes(option)}
+                            onCheckedChange={() => onToggle(option)}
+                            onSelect={(event) => event.preventDefault()}
+                            className="text-xs"
+                        >
+                            {option}
+                        </DropdownMenuCheckboxItem>
+                    ))}
+                </DropdownMenuContent>
+            </DropdownMenu>
+        </div>
+    );
+}
+
+function DashboardFilter({
+    filterOptions,
+    originalData,
+    filteredData,
+    onResetAll,
+    hasActiveFilters,
+    isRefreshing,
+    smartSelectDays,
+    onSmartSelectDaysChange,
+}: DashboardFilterProps) {
     const dispatch = useDispatch<AppDispatch>();
     const filters = useSelector(selectFilters);
     const { cart, removeSku } = useCart();
-    const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
     const [filtersExpanded, setFiltersExpanded] = useState(false);
-    const dropdownRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
     // Calculate range bounds from original data
     const rangeBounds = useMemo(() => ({
@@ -49,7 +109,10 @@ function DashboardFilter({ filterOptions, originalData, filteredData, onResetAll
         lastStock: calculateRangeBounds(originalData, 'last_stock'),
     }), [originalData]);
 
-    const handleCheckboxChange = (field: 'productCategory' | 'productName' | 'variantSku' | 'variantSize' | 'variantColor' | 'productSellType', value: string) => {
+    const handleCheckboxChange = (
+        field: 'productCategory' | 'productName' | 'variantSku' | 'variantSize' | 'variantColor' | 'productSellType',
+        value: string
+    ) => {
         switch (field) {
             case 'productCategory':
                 dispatch(toggleProductCategory(value));
@@ -98,57 +161,55 @@ function DashboardFilter({ filterOptions, originalData, filteredData, onResetAll
         cart.forEach(item => removeSku(item.sku));
     };
 
-    const toggleDropdown = (field: string) => {
-        setOpenDropdowns(prev => ({
-            ...prev,
-            [field]: !prev[field]
-        }));
-    };
-
-    // Close dropdowns when clicking outside
     useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            Object.keys(dropdownRefs.current).forEach((field) => {
-                const ref = dropdownRefs.current[field];
-                if (ref && !ref.contains(event.target as Node)) {
-                    setOpenDropdowns(prev => ({ ...prev, [field]: false }));
-                }
-            });
-        };
-
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const getSelectedCount = (field: 'productCategory' | 'productName' | 'variantSku' | 'variantSize' | 'variantColor' | 'productSellType'): number => {
-        const values = filters[field] as string[] | undefined;
-        return values ? values.length : 0;
-    };
+        if (!filtersExpanded && filteredData.length === 0) {
+            setFiltersExpanded(false);
+        }
+    }, [filteredData.length, filtersExpanded]);
 
     return (
-        <div className="dashboard-filter">
-            <div className="filter-header">
-                <div className="filter-title">
-                    <h3>Filters</h3>
-                    {isRefreshing && <span className="filter-refreshing">Refreshing…</span>}
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-foreground">Filters</h3>
+                    {isRefreshing && (
+                        <span className="text-xs text-muted-foreground">Refreshing...</span>
+                    )}
                 </div>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 gap-1 text-xs"
+                    onClick={() => setFiltersExpanded((prev) => !prev)}
+                    type="button"
+                >
+                    {filtersExpanded ? 'Hide Filters' : 'Show Filters'}
+                    <ChevronRight
+                        className={`h-4 w-4 transition-transform ${filtersExpanded ? 'rotate-90' : ''}`}
+                    />
+                </Button>
             </div>
-            
-            <div className="filter-toolbar">
-                <div className="filter-search">
-                    <label htmlFor="generalSearch">Search</label>
-                    <input
+
+            <div className="mt-4 flex flex-wrap items-center gap-3 border-b border-border pb-4">
+                <div className="flex flex-1 items-center gap-2">
+                    <Label htmlFor="generalSearch" className="text-xs font-semibold text-muted-foreground">
+                        Search
+                    </Label>
+                    <Input
                         id="generalSearch"
                         type="text"
                         value={filters.generalSearch || ''}
                         onChange={(e) => handleGeneralSearchChange(e.target.value)}
                         placeholder="Search across all fields..."
+                        className="h-9 max-w-xs text-xs"
                     />
                 </div>
-                <div className="filter-actions">
-                    <div className="smart-select-days">
-                        <label htmlFor="smartSelectDays">Days of stock</label>
-                        <input
+                <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center gap-2">
+                        <Label htmlFor="smartSelectDays" className="text-xs font-semibold text-muted-foreground">
+                            Days of stock
+                        </Label>
+                        <Input
                             id="smartSelectDays"
                             type="number"
                             min={1}
@@ -161,6 +222,7 @@ function DashboardFilter({ filterOptions, originalData, filteredData, onResetAll
                                 }
                                 onSmartSelectDaysChange(Math.max(1, next));
                             }}
+                            className="h-9 w-20 text-xs"
                         />
                     </div>
                     <SmartSelection
@@ -168,317 +230,120 @@ function DashboardFilter({ filterOptions, originalData, filteredData, onResetAll
                         days={smartSelectDays}
                         onSmartSelectDaysChange={onSmartSelectDaysChange}
                     />
-                    <button
-                        className="filter-action-btn secondary"
+                    <Button
+                        variant="secondary"
+                        size="sm"
                         onClick={handleClearCart}
                         type="button"
                         disabled={cart.length === 0}
                     >
                         Clear Cart
-                    </button>
-                    <button
-                        className="filter-action-btn primary"
+                    </Button>
+                    <Button
+                        size="sm"
                         onClick={onResetAll}
                         type="button"
                         disabled={!hasActiveFilters}
                     >
                         Reset Filters
-                    </button>
-                </div>
-                <button
-                    className="filter-toggle"
-                    type="button"
-                    onClick={() => setFiltersExpanded((prev) => !prev)}
-                    aria-expanded={filtersExpanded}
-                >
-                    <span className="filter-toggle-label">
-                        {filtersExpanded ? 'Hide Filters' : 'Show Filters'}
-                    </span>
-                    <span className={`filter-toggle-chevron${filtersExpanded ? ' open' : ''}`} aria-hidden="true">
-                        {'>'}
-                    </span>
-                </button>
-            </div>
-
-            <div className={`filter-advanced${filtersExpanded ? ' open' : ' collapsed'}`}>
-            {/* Range Filters Section */}
-            <div className="range-filters-section">
-                <h4>Range Filters</h4>
-                <div className="range-filters-grid">
-                    <RangeSlider
-                        label="When to Sell (Days)"
-                        field="when_to_sell"
-                        min={rangeBounds.whenToSell.min}
-                        max={rangeBounds.whenToSell.max}
-                        value={filters.whenToSellRange || { min: null, max: null }}
-                        onChange={(value) => handleRangeChange('whenToSell', value)}
-                        step={1}
-                    />
-                    <RangeSlider
-                        label="Recommended Quantity"
-                        field="how_much_to_sell_now"
-                        min={rangeBounds.howMuchToSellNow.min}
-                        max={rangeBounds.howMuchToSellNow.max}
-                        value={filters.howMuchToSellNowRange || { min: null, max: null }}
-                        onChange={(value) => handleRangeChange('howMuchToSellNow', value)}
-                        step={1}
-                    />
-                    <RangeSlider
-                        label="Sell Rate (Daily)"
-                        field="sell_rate"
-                        min={rangeBounds.sellRate.min}
-                        max={rangeBounds.sellRate.max}
-                        value={filters.sellRateRange || { min: null, max: null }}
-                        onChange={(value) => handleRangeChange('sellRate', value)}
-                        step={0.1}
-                        formatValue={(v) => v.toFixed(1)}
-                    />
-                    <RangeSlider
-                        label="Current Stock"
-                        field="last_stock"
-                        min={rangeBounds.lastStock.min}
-                        max={rangeBounds.lastStock.max}
-                        value={filters.lastStockRange || { min: null, max: null }}
-                        onChange={(value) => handleRangeChange('lastStock', value)}
-                        step={1}
-                    />
+                    </Button>
                 </div>
             </div>
 
-            {/* Product Filters Section */}
-            <div className="categorical-filters-section">
-                <h4>Product Filters</h4>
-                <div className="filter-inputs">
-                <div className="filter-group">
-                    <label htmlFor="productSellType">
-                        Product Sell Type
-                        {getSelectedCount('productSellType') > 0 && (
-                            <span className="selection-count">({getSelectedCount('productSellType')})</span>
-                        )}
-                    </label>
-                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.productSellType = el; }}>
-                        <button
-                            className="multi-select-button"
-                            onClick={() => toggleDropdown('productSellType')}
-                            type="button"
-                        >
-                            {getSelectedCount('productSellType') > 0
-                                ? `${getSelectedCount('productSellType')} selected`
-                                : 'Select types...'}
-                            <span className="dropdown-arrow">▼</span>
-                        </button>
-                        {openDropdowns.productSellType && (
-                            <div className="multi-select-dropdown">
-                                {filterOptions.productSellTypes.map((option) => {
-                                    const isChecked = (filters.productSellType || []).includes(option);
-                                    return (
-                                        <label key={option} className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={isChecked}
-                                                onChange={() => handleCheckboxChange('productSellType', option)}
-                                            />
-                                            <span>{option}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        )}
+            {filtersExpanded && (
+                <div className="mt-4 space-y-4">
+                    <div className="space-y-3 border-b border-border pb-4">
+                        <h4 className="text-sm font-semibold text-foreground">Range Filters</h4>
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                            <RangeSlider
+                                label="When to Sell (Days)"
+                                field="when_to_sell"
+                                min={rangeBounds.whenToSell.min}
+                                max={rangeBounds.whenToSell.max}
+                                value={filters.whenToSellRange || { min: null, max: null }}
+                                onChange={(value) => handleRangeChange('whenToSell', value)}
+                                step={1}
+                            />
+                            <RangeSlider
+                                label="Recommended Quantity"
+                                field="how_much_to_sell_now"
+                                min={rangeBounds.howMuchToSellNow.min}
+                                max={rangeBounds.howMuchToSellNow.max}
+                                value={filters.howMuchToSellNowRange || { min: null, max: null }}
+                                onChange={(value) => handleRangeChange('howMuchToSellNow', value)}
+                                step={1}
+                            />
+                            <RangeSlider
+                                label="Sell Rate (Daily)"
+                                field="sell_rate"
+                                min={rangeBounds.sellRate.min}
+                                max={rangeBounds.sellRate.max}
+                                value={filters.sellRateRange || { min: null, max: null }}
+                                onChange={(value) => handleRangeChange('sellRate', value)}
+                                step={0.1}
+                                formatValue={(v) => v.toFixed(1)}
+                            />
+                            <RangeSlider
+                                label="Current Stock"
+                                field="last_stock"
+                                min={rangeBounds.lastStock.min}
+                                max={rangeBounds.lastStock.max}
+                                value={filters.lastStockRange || { min: null, max: null }}
+                                onChange={(value) => handleRangeChange('lastStock', value)}
+                                step={1}
+                            />
+                        </div>
                     </div>
-                </div>
 
-                <div className="filter-group">
-                    <label htmlFor="productCategory">
-                        Product Category
-                        {getSelectedCount('productCategory') > 0 && (
-                            <span className="selection-count">({getSelectedCount('productCategory')})</span>
-                        )}
-                    </label>
-                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.productCategory = el; }}>
-                        <button
-                            className="multi-select-button"
-                            onClick={() => toggleDropdown('productCategory')}
-                            type="button"
-                        >
-                            {getSelectedCount('productCategory') > 0
-                                ? `${getSelectedCount('productCategory')} selected`
-                                : 'Select categories...'}
-                            <span className="dropdown-arrow">▼</span>
-                        </button>
-                        {openDropdowns.productCategory && (
-                            <div className="multi-select-dropdown">
-                                {filterOptions.productCategories.map((option) => {
-                                    const isChecked = (filters.productCategory || []).includes(option);
-                                    return (
-                                        <label key={option} className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={isChecked}
-                                                onChange={() => handleCheckboxChange('productCategory', option)}
-                                            />
-                                            <span>{option}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        )}
+                    <div className="space-y-3">
+                        <h4 className="text-sm font-semibold text-foreground">Product Filters</h4>
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                            <MultiSelect
+                                label="Product Sell Type"
+                                placeholder="Select types..."
+                                options={filterOptions.productSellTypes}
+                                selected={filters.productSellType || []}
+                                onToggle={(value) => handleCheckboxChange('productSellType', value)}
+                            />
+                            <MultiSelect
+                                label="Product Category"
+                                placeholder="Select categories..."
+                                options={filterOptions.productCategories}
+                                selected={filters.productCategory || []}
+                                onToggle={(value) => handleCheckboxChange('productCategory', value)}
+                            />
+                            <MultiSelect
+                                label="Product Name"
+                                placeholder="Select products..."
+                                options={filterOptions.productNames}
+                                selected={filters.productName || []}
+                                onToggle={(value) => handleCheckboxChange('productName', value)}
+                            />
+                            <MultiSelect
+                                label="Variant SKU"
+                                placeholder="Select SKUs..."
+                                options={filterOptions.variantSkus}
+                                selected={filters.variantSku || []}
+                                onToggle={(value) => handleCheckboxChange('variantSku', value)}
+                            />
+                            <MultiSelect
+                                label="Variant Size"
+                                placeholder="Select sizes..."
+                                options={filterOptions.variantSizes}
+                                selected={filters.variantSize || []}
+                                onToggle={(value) => handleCheckboxChange('variantSize', value)}
+                            />
+                            <MultiSelect
+                                label="Variant Color"
+                                placeholder="Select colors..."
+                                options={filterOptions.variantColors}
+                                selected={filters.variantColor || []}
+                                onToggle={(value) => handleCheckboxChange('variantColor', value)}
+                            />
+                        </div>
                     </div>
                 </div>
-
-                <div className="filter-group">
-                    <label htmlFor="productName">
-                        Product Name
-                        {getSelectedCount('productName') > 0 && (
-                            <span className="selection-count">({getSelectedCount('productName')})</span>
-                        )}
-                    </label>
-                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.productName = el; }}>
-                        <button
-                            className="multi-select-button"
-                            onClick={() => toggleDropdown('productName')}
-                            type="button"
-                        >
-                            {getSelectedCount('productName') > 0
-                                ? `${getSelectedCount('productName')} selected`
-                                : 'Select products...'}
-                            <span className="dropdown-arrow">▼</span>
-                        </button>
-                        {openDropdowns.productName && (
-                            <div className="multi-select-dropdown">
-                                {filterOptions.productNames.map((option) => {
-                                    const isChecked = (filters.productName || []).includes(option);
-                                    return (
-                                        <label key={option} className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={isChecked}
-                                                onChange={() => handleCheckboxChange('productName', option)}
-                                            />
-                                            <span>{option}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="filter-group">
-                    <label htmlFor="variantSku">
-                        Variant SKU
-                        {getSelectedCount('variantSku') > 0 && (
-                            <span className="selection-count">({getSelectedCount('variantSku')})</span>
-                        )}
-                    </label>
-                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.variantSku = el; }}>
-                        <button
-                            className="multi-select-button"
-                            onClick={() => toggleDropdown('variantSku')}
-                            type="button"
-                        >
-                            {getSelectedCount('variantSku') > 0
-                                ? `${getSelectedCount('variantSku')} selected`
-                                : 'Select SKUs...'}
-                            <span className="dropdown-arrow">▼</span>
-                        </button>
-                        {openDropdowns.variantSku && (
-                            <div className="multi-select-dropdown">
-                                {filterOptions.variantSkus.map((option) => {
-                                    const isChecked = (filters.variantSku || []).includes(option);
-                                    return (
-                                        <label key={option} className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={isChecked}
-                                                onChange={() => handleCheckboxChange('variantSku', option)}
-                                            />
-                                            <span>{option}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="filter-group">
-                    <label htmlFor="variantSize">
-                        Variant Size
-                        {getSelectedCount('variantSize') > 0 && (
-                            <span className="selection-count">({getSelectedCount('variantSize')})</span>
-                        )}
-                    </label>
-                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.variantSize = el; }}>
-                        <button
-                            className="multi-select-button"
-                            onClick={() => toggleDropdown('variantSize')}
-                            type="button"
-                        >
-                            {getSelectedCount('variantSize') > 0
-                                ? `${getSelectedCount('variantSize')} selected`
-                                : 'Select sizes...'}
-                            <span className="dropdown-arrow">▼</span>
-                        </button>
-                        {openDropdowns.variantSize && (
-                            <div className="multi-select-dropdown">
-                                {filterOptions.variantSizes.map((option) => {
-                                    const isChecked = (filters.variantSize || []).includes(option);
-                                    return (
-                                        <label key={option} className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={isChecked}
-                                                onChange={() => handleCheckboxChange('variantSize', option)}
-                                            />
-                                            <span>{option}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                <div className="filter-group">
-                    <label htmlFor="variantColor">
-                        Variant Color
-                        {getSelectedCount('variantColor') > 0 && (
-                            <span className="selection-count">({getSelectedCount('variantColor')})</span>
-                        )}
-                    </label>
-                    <div className="multi-select-wrapper" ref={(el) => { dropdownRefs.current.variantColor = el; }}>
-                        <button
-                            className="multi-select-button"
-                            onClick={() => toggleDropdown('variantColor')}
-                            type="button"
-                        >
-                            {getSelectedCount('variantColor') > 0
-                                ? `${getSelectedCount('variantColor')} selected`
-                                : 'Select colors...'}
-                            <span className="dropdown-arrow">▼</span>
-                        </button>
-                        {openDropdowns.variantColor && (
-                            <div className="multi-select-dropdown">
-                                {filterOptions.variantColors.map((option) => {
-                                    const isChecked = (filters.variantColor || []).includes(option);
-                                    return (
-                                        <label key={option} className="checkbox-label">
-                                            <input
-                                                type="checkbox"
-                                                checked={isChecked}
-                                                onChange={() => handleCheckboxChange('variantColor', option)}
-                                            />
-                                            <span>{option}</span>
-                                        </label>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-            </div>
-            </div>
+            )}
         </div>
     );
 }

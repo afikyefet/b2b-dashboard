@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { createOrder } from '../api/orders';
 import { resolveStoreForDealer } from '../utils/storeRouting';
+import { Button } from '../components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Textarea } from '../components/ui/textarea';
 
 type CreateOrderModalProps = {
   isOpen: boolean;
@@ -10,14 +22,20 @@ type CreateOrderModalProps = {
   onOrderCreated: (orderId: string) => void;
 };
 
-export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onClose, cartItems, defaultCompany, onOrderCreated }) => {
+export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
+  isOpen,
+  onClose,
+  cartItems,
+  defaultCompany,
+  onOrderCreated,
+}) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     dealer_name: '',
     dealer_email: '',
     dealer_company: '',
     notes: '',
-    currency: 'USD'
+    currency: 'USD',
   });
 
   const getCurrencyForDealer = (dealerCompany: string, dealerName: string) => {
@@ -28,10 +46,10 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
   // Auto-fill company name when modal opens or defaultCompany changes
   useEffect(() => {
     if (!isOpen) return;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
       dealer_company: prev.dealer_company || defaultCompany || prev.dealer_company,
-      currency: getCurrencyForDealer(prev.dealer_company || defaultCompany || '', prev.dealer_name)
+      currency: getCurrencyForDealer(prev.dealer_company || defaultCompany || '', prev.dealer_name),
     }));
   }, [isOpen, defaultCompany]);
 
@@ -41,7 +59,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
     try {
       const order = await createOrder({
         ...formData,
-        items: cartItems
+        items: cartItems,
       });
       // Reset loading state before navigation to prevent loading loop
       setLoading(false);
@@ -57,97 +75,82 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({ isOpen, onCl
   if (!isOpen) return null;
 
   return (
-    <div 
-        style={{
-            position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', 
-            display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1200
-        }}
-        onClick={onClose}
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
+      }}
     >
-        <div 
-            style={{ 
-                backgroundColor: 'white', borderRadius: '8px', width: '100%', maxWidth: '500px', 
-                padding: '24px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)' 
-            }}
-            onClick={e => e.stopPropagation()}
-        >
-            <h2 style={{ marginTop: 0, marginBottom: '20px' }}>Create Order</h2>
-            <form onSubmit={handleSubmit}>
-                <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>Dealer Name *</label>
-                    <input 
-                        required
-                        type="text" 
-                        value={formData.dealer_name}
-                        onChange={e => {
-                            const dealerName = e.target.value;
-                            setFormData(prev => ({
-                                ...prev,
-                                dealer_name: dealerName,
-                                currency: getCurrencyForDealer(prev.dealer_company, dealerName)
-                            }));
-                        }}
-                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                    />
-                </div>
-                <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>Dealer Email *</label>
-                    <input 
-                        required
-                        type="email" 
-                        value={formData.dealer_email}
-                        onChange={e => setFormData({...formData, dealer_email: e.target.value})}
-                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                    />
-                </div>
-                <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>Company</label>
-                    <input 
-                        type="text" 
-                        value={formData.dealer_company}
-                        onChange={e => {
-                            const dealerCompany = e.target.value;
-                            setFormData(prev => ({
-                                ...prev,
-                                dealer_company: dealerCompany,
-                                currency: getCurrencyForDealer(dealerCompany, prev.dealer_name)
-                            }));
-                        }}
-                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                    />
-                </div>
-                <div style={{ marginBottom: '16px' }}>
-                    <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>Notes</label>
-                    <textarea 
-                        value={formData.notes}
-                        onChange={e => setFormData({...formData, notes: e.target.value})}
-                        rows={3}
-                        style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-                    />
-                </div>
-                
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '24px' }}>
-                    <button 
-                        type="button" 
-                        onClick={onClose}
-                        style={{ padding: '8px 16px', background: 'white', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        type="submit" 
-                        disabled={loading}
-                        style={{ 
-                            padding: '8px 24px', background: '#008060', color: 'white', border: 'none', 
-                            borderRadius: '4px', cursor: loading ? 'wait' : 'pointer', fontWeight: '600'
-                        }}
-                    >
-                        {loading ? 'Creating...' : 'Create Order'}
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Create Order</DialogTitle>
+          <DialogDescription>Enter the dealer details and submit the order.</DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="dealer-name">Dealer Name *</Label>
+            <Input
+              id="dealer-name"
+              required
+              type="text"
+              value={formData.dealer_name}
+              onChange={(e) => {
+                const dealerName = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  dealer_name: dealerName,
+                  currency: getCurrencyForDealer(prev.dealer_company, dealerName),
+                }));
+              }}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="dealer-email">Dealer Email *</Label>
+            <Input
+              id="dealer-email"
+              required
+              type="email"
+              value={formData.dealer_email}
+              onChange={(e) =>
+                setFormData({ ...formData, dealer_email: e.target.value })
+              }
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="dealer-company">Company</Label>
+            <Input
+              id="dealer-company"
+              type="text"
+              value={formData.dealer_company}
+              onChange={(e) => {
+                const dealerCompany = e.target.value;
+                setFormData((prev) => ({
+                  ...prev,
+                  dealer_company: dealerCompany,
+                  currency: getCurrencyForDealer(dealerCompany, prev.dealer_name),
+                }));
+              }}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="dealer-notes">Notes</Label>
+            <Textarea
+              id="dealer-notes"
+              value={formData.notes}
+              onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+              rows={3}
+            />
+          </div>
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading} className="bg-[#008060] text-white hover:bg-[#006f55]">
+              {loading ? 'Creating...' : 'Create Order'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 };
-

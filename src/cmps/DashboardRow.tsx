@@ -2,6 +2,10 @@ import type { DashboardDataRow, DashboardHeader } from "../types/dashboard.types
 import type { SkuAvailability } from "../api/catalogApi";
 import { useCart } from '../contexts/CartContext';
 import { getSelectionQty } from "../utils/selectionQty";
+import { Badge } from "../components/ui/badge";
+import { Checkbox } from "../components/ui/checkbox";
+import { TableCell, TableRow } from "../components/ui/table";
+import { cn } from "../lib/utils";
 
 interface DashboardRowProps {
     row: DashboardDataRow;
@@ -31,14 +35,7 @@ function DashboardRow({ row, headers, availabilityBySku, availabilityLoading, se
         }
     };
 
-    const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        e.stopPropagation();
-        toggleSelection();
-    };
-
     const handleRowClick = () => {
-        // Optional: Only toggle if clicking the row background, not specific interactive elements
-        // But for now, match previous behavio
         toggleSelection();
     };
 
@@ -54,107 +51,96 @@ function DashboardRow({ row, headers, availabilityBySku, availabilityLoading, se
     const productUrl = typeof row.url === 'string' ? row.url.trim() : '';
 
     return (
-        <div className={`dashboard-row ${selected ? 'selected' : ''}`} onClick={handleRowClick}>
-            <ul>
-                <li className="checkbox-cell">
-                    <input
-                        type="checkbox"
+        <TableRow
+            className={cn(selected ? "bg-primary/5" : "")}
+            onClick={handleRowClick}
+        >
+            <TableCell className="w-10">
+                <div className="flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
                         checked={selected}
-                        onChange={handleCheckboxChange}
-                        onClick={(e) => e.stopPropagation()}
+                        onCheckedChange={toggleSelection}
                         disabled={!hasSku}
                     />
-                </li>
-                {headers.map((header: DashboardHeader) => {
-                    if (header.field === 'in_stock_shopify') {
-                        const { status, loading } = getInStockStatus();
-                        const label = status === null ? 'Unknown' : status ? 'In Stock' : 'Out of Stock';
-                        const badgeStyle = {
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            minWidth: '70px',
-                            padding: '4px 8px',
-                            borderRadius: '999px',
-                            fontSize: '0.75em',
-                            fontWeight: 600,
-                            color: status ? '#0f5132' : status === false ? '#842029' : '#4b5563',
-                            backgroundColor: status ? '#d1e7dd' : status === false ? '#f8d7da' : '#e5e7eb'
-                        } as const;
-
-                        return (
-                            <li key={header.id} title={label || undefined}>
-                                {loading ? <span className="stock-spinner" /> : <span style={badgeStyle}>{label}</span>}
-                            </li>
-                        );
-                    }
-
-                    const fieldKey = header.field as keyof DashboardDataRow;
-                    
-                    // Check if field exists in the row object
-                    const fieldExists = fieldKey in row;
-                    const value = fieldExists ? row[fieldKey] : undefined;
-                    
-                    // Debug logging for problematic rows
-                    if (row.product_sell_type === 'Problematic Product' && fieldKey === 'product_name') {
-                        // console.log('Problematic Product row:', {
-                        //     field: fieldKey,
-                        //     value: value,
-                        //     hasField: fieldKey in row,
-                        //     rowKeys: Object.keys(row).slice(0, 10),
-                        //     productName: row.product_name
-                        // });
-                    }
-                    
-                    // Handle display values
-                    let displayValue = '';
-                    if (!fieldExists) {
-                        displayValue = '';
-                    } else if (value === null) {
-                        displayValue = 'null';
-                    } else if (value === undefined) {
-                        displayValue = '';
-                    } else {
-                        const isHowMuchToSellField = fieldKey === 'how_much_to_sell_now' || fieldKey === 'how_much_to_sell_on_schedule';
-                        
-                        if (isHowMuchToSellField) {
-                            const numValue = parseFloat(String(value));
-                            if (isNaN(numValue)) {
-                                displayValue = String(value).trim();
-                            } else {
-                                displayValue = Math.round(numValue).toString();
-                            }
-                        } else if (value === 0 || value === '0' || value === '0.0') {
-                            displayValue = String(value);
-                        } else {
-                            const stringValue = String(value).trim();
-                            displayValue = stringValue || '';
-                        }
-                    }
-                    if (fieldKey === 'product_name' && productUrl) {
-                        const label = displayValue && displayValue !== 'null' ? displayValue : 'View product';
-                        return (
-                            <li key={header.id} title={label}>
-                                <a
-                                    href={productUrl}
-                                    className="product-link"
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
+                </div>
+            </TableCell>
+            {headers.map((header: DashboardHeader) => {
+                if (header.field === 'in_stock_shopify') {
+                    const { status, loading } = getInStockStatus();
+                    const label = status === null ? 'Unknown' : status ? 'In Stock' : 'Out of Stock';
+                    return (
+                        <TableCell key={header.id} title={label || undefined}>
+                            {loading ? (
+                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-primary" />
+                            ) : (
+                                <Badge
+                                    className={cn(
+                                        "rounded-full px-2 text-[10px] uppercase tracking-wide",
+                                        status === null
+                                            ? "bg-muted text-muted-foreground"
+                                            : status
+                                                ? "bg-[#d1e7dd] text-[#0f5132]"
+                                                : "bg-[#f8d7da] text-[#842029]"
+                                    )}
                                 >
                                     {label}
-                                </a>
-                            </li>
-                        );
-                    }
-                    return (
-                        <li key={header.id} title={displayValue || undefined}>
-                            {displayValue}
-                        </li>
+                                </Badge>
+                            )}
+                        </TableCell>
                     );
-                })}
-            </ul>
-        </div>
+                }
+
+                const fieldKey = header.field as keyof DashboardDataRow;
+                const fieldExists = fieldKey in row;
+                const value = fieldExists ? row[fieldKey] : undefined;
+                
+                let displayValue = '';
+                if (!fieldExists) {
+                    displayValue = '';
+                } else if (value === null) {
+                    displayValue = 'null';
+                } else if (value === undefined) {
+                    displayValue = '';
+                } else {
+                    const isHowMuchToSellField = fieldKey === 'how_much_to_sell_now' || fieldKey === 'how_much_to_sell_on_schedule';
+                    
+                    if (isHowMuchToSellField) {
+                        const numValue = parseFloat(String(value));
+                        if (isNaN(numValue)) {
+                            displayValue = String(value).trim();
+                        } else {
+                            displayValue = Math.round(numValue).toString();
+                        }
+                    } else if (value === 0 || value === '0' || value === '0.0') {
+                        displayValue = String(value);
+                    } else {
+                        const stringValue = String(value).trim();
+                        displayValue = stringValue || '';
+                    }
+                }
+                if (fieldKey === 'product_name' && productUrl) {
+                    const label = displayValue && displayValue !== 'null' ? displayValue : 'View product';
+                    return (
+                        <TableCell key={header.id} title={label}>
+                            <a
+                                href={productUrl}
+                                className="text-foreground hover:underline"
+                                target="_blank"
+                                rel="noreferrer"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {label}
+                            </a>
+                        </TableCell>
+                    );
+                }
+                return (
+                    <TableCell key={header.id} title={displayValue || undefined}>
+                        {displayValue}
+                    </TableCell>
+                );
+            })}
+        </TableRow>
     );
 }
 

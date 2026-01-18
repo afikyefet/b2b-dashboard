@@ -1,6 +1,17 @@
 import React, { useState } from 'react';
+import { Plus, Trash2 } from 'lucide-react';
 import { type OrderItem } from '../api/orders';
 import { AddProductModal } from './AddProductModal';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
 
 type EditableItemsTableProps = {
   items: OrderItem[];
@@ -9,7 +20,12 @@ type EditableItemsTableProps = {
   store?: string;
 };
 
-export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({ items, onChange, readOnly, store }) => {
+export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({
+  items,
+  onChange,
+  readOnly,
+  store,
+}) => {
   const [showAddModal, setShowAddModal] = useState(false);
 
   const handleQtyChange = (index: number, newQty: number) => {
@@ -49,70 +65,71 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({ items, o
   };
 
   return (
-    <div className="editable-items-table">
-      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '16px' }}>
-        <thead>
-          <tr style={{ borderBottom: '2px solid #eee', textAlign: 'left' }}>
-            <th style={{ padding: '8px' }}>Product</th>
-            <th style={{ padding: '8px' }}>Qty</th>
-            {!readOnly && <th style={{ padding: '8px' }}></th>}
-          </tr>
-        </thead>
-        <tbody>
+    <div className="space-y-4">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Product</TableHead>
+            <TableHead className="w-[120px]">Qty</TableHead>
+            {!readOnly && <TableHead className="w-[80px]" />}
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {items.map((item, idx) => (
-            <tr key={`${item.variant_id}-${idx}`} style={{ borderBottom: '1px solid #eee' }}>
-              <td style={{ padding: '8px' }}>
-                <div style={{ fontWeight: '500' }}>{item.title}</div>
-                <div style={{ fontSize: '0.8em', color: '#666' }}>SKU: {item.sku}</div>
-              </td>
-              <td style={{ padding: '8px' }}>
-                {readOnly ? item.qty : (
-                  <input
+            <TableRow key={`${item.variant_id}-${idx}`}>
+              <TableCell>
+                <div className="font-medium text-foreground">{item.title}</div>
+                <div className="text-xs text-muted-foreground">SKU: {item.sku}</div>
+              </TableCell>
+              <TableCell>
+                {readOnly ? (
+                  item.qty
+                ) : (
+                  <Input
                     type="number"
                     min="0"
                     value={item.qty}
                     onChange={(e) => handleQtyChange(idx, Number(e.target.value))}
-                    style={{ width: '60px', padding: '4px', border: '1px solid #ddd', borderRadius: '4px' }}
+                    className="h-8 w-24"
                   />
                 )}
-              </td>
+              </TableCell>
               {!readOnly && (
-                <td style={{ padding: '8px' }}>
-                  <button
+                <TableCell className="text-right">
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleRemove(idx)}
-                    style={{ border: 'none', background: 'none', color: '#d72c2c', cursor: 'pointer', fontSize: '1.2em' }}
+                    type="button"
                   >
-                    ×
-                  </button>
-                </td>
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </Button>
+                </TableCell>
               )}
-            </tr>
+            </TableRow>
           ))}
           {items.length === 0 && (
-            <tr>
-              <td colSpan={readOnly ? 2 : 3} style={{ padding: '20px', textAlign: 'center', color: '#666' }}>
+            <TableRow>
+              <TableCell
+                colSpan={readOnly ? 2 : 3}
+                className="py-8 text-center text-sm text-muted-foreground"
+              >
                 No items in order.
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           )}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
 
       {!readOnly && (
-        <button
+        <Button
           onClick={() => setShowAddModal(true)}
-          style={{
-            padding: '8px 16px',
-            backgroundColor: 'white',
-            border: '1px solid #008060',
-            color: '#008060',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontWeight: '600'
-          }}
+          variant="outline"
+          className="gap-2 border-[#008060] text-[#008060] hover:bg-[#008060] hover:text-white"
         >
-          + Add Product
-        </button>
+          <Plus className="h-4 w-4" />
+          Add Product
+        </Button>
       )}
 
       <AddProductModal
@@ -124,4 +141,3 @@ export const EditableItemsTable: React.FC<EditableItemsTableProps> = ({ items, o
     </div>
   );
 };
-

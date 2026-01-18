@@ -11,7 +11,9 @@ import { fetchSkuAvailability, fetchSkuImages, type SkuAvailability, type SkuIma
 import { getRowId } from "../utils/rowId";
 import { resolveStoreForDealer } from "../utils/storeRouting";
 import { getSelectionQty } from "../utils/selectionQty";
-import "../styles/DashboardCards.scss";
+import { cn } from "../lib/utils";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
 
 type OrderInfo = {
     status?: string | null;
@@ -204,10 +206,6 @@ function DashboardCards() {
             });
     }, [filteredSkus, storeCode]);
 
-    // const handleFilterChange = (_newFilters: FilterConfig) => {
-        // Filters are now managed by Redux, this is kept for compatibility
-    // };
-
     const handleResetSort = () => {
         setSortConfig({ field: '', direction: null });
     };
@@ -233,7 +231,7 @@ function DashboardCards() {
     const hasActiveSort = sortConfig.field && sortConfig.direction;
 
     if (!headers || headers.length === 0) {
-        return <div>Loading...</div>;
+        return <div className="py-10 text-center text-sm text-muted-foreground">Loading...</div>;
     }
 
     const toggleSelection = (row: DashboardDataRow) => {
@@ -268,88 +266,96 @@ function DashboardCards() {
     };
 
     return (
-        <div className="dashboard-container">
-            <div className="dashboard-main">
-                <DashboardFilter
-                    filterOptions={filterOptions}
-                    originalData={originalData}
-                    filteredData={filteredData}
-                    onResetAll={handleResetAll}
-                    hasActiveFilters={!!(hasActiveFilters() || hasActiveSort)}
-                    isRefreshing={(loadingData || loadingHeaders) && originalData.length > 0 && headers.length > 0}
-                    smartSelectDays={smartSelectDays}
-                    onSmartSelectDaysChange={setSmartSelectDays}
-                />
-                <div className="cards-actions">
-                    <button
-                        type="button"
-                        className="cards-action-btn"
-                        onClick={handleSelectAll}
-                        disabled={filteredSkus.length === 0}
-                    >
-                        Select All
-                    </button>
-                    <button
-                        type="button"
-                        className="cards-action-btn ghost"
-                        onClick={handleDeselectAll}
-                        disabled={filteredSkus.length === 0}
-                    >
-                        Deselect All
-                    </button>
-                </div>
-                <div className="dashboard-cards-grid">
-                    {filteredData.map((row: DashboardDataRow) => {
-                        const rowId = getRowId(row);
-                        const sku = row.variant_sku_real;
-                        const selected = sku ? isInCart(sku) : false;
-                        const availability = sku ? availabilityBySku[sku] : undefined;
-                        const inventory = availability?.inventory_quantity ?? 0;
-                        const isAvailable = availability ? (availability.available_for_sale || inventory > 0) : null;
-                        const imageUrl = sku ? imagesBySku[sku] : null;
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-4 pb-10 pt-6">
+            <DashboardFilter
+                filterOptions={filterOptions}
+                originalData={originalData}
+                filteredData={filteredData}
+                onResetAll={handleResetAll}
+                hasActiveFilters={!!(hasActiveFilters() || hasActiveSort)}
+                isRefreshing={(loadingData || loadingHeaders) && originalData.length > 0 && headers.length > 0}
+                smartSelectDays={smartSelectDays}
+                onSmartSelectDaysChange={setSmartSelectDays}
+            />
+            <div className="flex flex-wrap items-center gap-2">
+                <Button
+                    type="button"
+                    className="h-9 bg-[#008060] px-4 text-xs font-semibold text-white hover:bg-[#006f55]"
+                    onClick={handleSelectAll}
+                    disabled={filteredSkus.length === 0}
+                >
+                    Select All
+                </Button>
+                <Button
+                    type="button"
+                    variant="outline"
+                    className="h-9 border-[#cfe6df] px-4 text-xs font-semibold text-[#008060] hover:bg-[#e8f5f2]"
+                    onClick={handleDeselectAll}
+                    disabled={filteredSkus.length === 0}
+                >
+                    Deselect All
+                </Button>
+            </div>
+            <div className="grid gap-3">
+                {filteredData.map((row: DashboardDataRow) => {
+                    const rowId = getRowId(row);
+                    const sku = row.variant_sku_real;
+                    const selected = sku ? isInCart(sku) : false;
+                    const availability = sku ? availabilityBySku[sku] : undefined;
+                    const inventory = availability?.inventory_quantity ?? 0;
+                    const isAvailable = availability ? (availability.available_for_sale || inventory > 0) : null;
+                    const imageUrl = sku ? imagesBySku[sku] : null;
 
-                        const orders: OrderInfo[] = [
-                            {
-                                status: row["1_last_status"] as string | null | undefined,
-                                days: row["1_last_days_from_last_sale_created_at"] as string | number | null | undefined,
-                                date: row["1_last_sale_created_at"] as string | null | undefined,
-                                orderNo: row["1_last_sale_order_no"] as string | null | undefined
-                            },
-                            {
-                                status: row["2_last_status"] as string | null | undefined,
-                                days: row["2_last_days_from_last_sale_created_at"] as string | number | null | undefined,
-                                date: row["2_last_sale_created_at"] as string | null | undefined,
-                                orderNo: row["2_last_sale_order_no"] as string | null | undefined
-                            }
-                        ].filter(order => order.date);
-                        const productUrl = typeof row.url === "string" ? row.url.trim() : "";
-                        const sellNowValue = smartSelectDays !== 30
-                            ? getSelectionQty(row, smartSelectDays)
-                            : row.how_much_to_sell_now;
+                    const orders: OrderInfo[] = [
+                        {
+                            status: row["1_last_status"] as string | null | undefined,
+                            days: row["1_last_days_from_last_sale_created_at"] as string | number | null | undefined,
+                            date: row["1_last_sale_created_at"] as string | null | undefined,
+                            orderNo: row["1_last_sale_order_no"] as string | null | undefined
+                        },
+                        {
+                            status: row["2_last_status"] as string | null | undefined,
+                            days: row["2_last_days_from_last_sale_created_at"] as string | number | null | undefined,
+                            date: row["2_last_sale_created_at"] as string | null | undefined,
+                            orderNo: row["2_last_sale_order_no"] as string | null | undefined
+                        }
+                    ].filter(order => order.date);
+                    const productUrl = typeof row.url === "string" ? row.url.trim() : "";
+                    const sellNowValue = smartSelectDays !== 30
+                        ? getSelectionQty(row, smartSelectDays)
+                        : row.how_much_to_sell_now;
 
-                        return (
-                            <div
-                                key={rowId}
-                                className={`dashboard-card ${selected ? "selected" : ""}`}
-                                onClick={() => toggleSelection(row)}
-                            >
-                                <div className="card-media" onClick={(e) => e.stopPropagation()}>
+                    return (
+                        <div
+                            key={rowId}
+                            className={cn(
+                                "rounded-lg border bg-card p-4 shadow-sm transition",
+                                selected ? "border-[#008060] ring-1 ring-[#008060]/20" : "border-border hover:border-primary/40"
+                            )}
+                            onClick={() => toggleSelection(row)}
+                            role="button"
+                            tabIndex={0}
+                        >
+                            <div className="flex flex-col gap-4 md:flex-row">
+                                <div
+                                    className="flex h-[72px] w-[72px] flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
                                     {imagesLoading && sku && imageUrl === null ? (
-                                        <span className="image-spinner" />
+                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-[#008060]" />
                                     ) : imageUrl ? (
-                                        <img src={imageUrl} alt={row.product_name || "Product"} />
+                                        <img src={imageUrl} alt={row.product_name || "Product"} className="h-full w-full object-cover" />
                                     ) : (
-                                        <div className="image-placeholder">No Image</div>
+                                        <div className="text-[10px] uppercase text-muted-foreground">No Image</div>
                                     )}
                                 </div>
-                                <div className="card-body">
-                                <div className="card-header">
-                                    <div className="card-title">
-                                        <span>
+                                <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                                    <div className="space-y-2">
+                                        <div className="space-y-1">
                                             {productUrl ? (
                                                 <a
                                                     href={productUrl}
-                                                    className="product-name"
+                                                    className="text-sm font-semibold text-foreground hover:underline"
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     onClick={(e) => e.stopPropagation()}
@@ -357,77 +363,76 @@ function DashboardCards() {
                                                     {row.product_name || "Unnamed Product"}
                                                 </a>
                                             ) : (
-                                                <span className="product-name">{row.product_name || "Unnamed Product"}</span>
+                                                <div className="text-sm font-semibold text-foreground">
+                                                    {row.product_name || "Unnamed Product"}
+                                                </div>
                                             )}
-                                            <span className="product-company">{row.customer_company || ""}</span>
-                                        </span>
+                                            <div className="text-xs text-muted-foreground">
+                                                {row.customer_company || ""}
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {availabilityLoading && sku && !availability && (
+                                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-[#008060]" />
+                                            )}
+                                            {!availabilityLoading && sku && isAvailable !== null && (
+                                                <Badge
+                                                    className={cn(
+                                                        "rounded-full px-2 text-[10px] uppercase tracking-wide",
+                                                        isAvailable ? "bg-[#d1e7dd] text-[#0f5132]" : "bg-[#f8d7da] text-[#842029]"
+                                                    )}
+                                                >
+                                                    {isAvailable ? "In Stock" : "Out of Stock"}
+                                                </Badge>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div className="card-badges">
-                                        {availabilityLoading && sku && !availability && <span className="stock-spinner" />}
-                                        {!availabilityLoading && sku && isAvailable !== null && (
-                                            <span className={`stock-pill ${isAvailable ? "in" : "out"}`}>
-                                                {isAvailable ? "In Stock" : "Out of Stock"}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
 
-                                <div className="card-section">
-                                    <div className="section-title">Product Info</div>
-                                    <div className="card-fields">
-                                        <Field label="Category" value={row.product_category_name} />
-                                        <Field label="Variant SKU" value={row.variant_sku_real} />
-                                        {/* <Field label="In Stock" value={isAvailable === null ? null : isAvailable ? "Yes" : "No"} /> */}
-                                        <Field label="Color" value={row.variant_color} />
-                                        <Field label="Size" value={row.variant_size} />
+                                    <div className="space-y-2">
+                                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                            Product Info
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Field label="Category" value={row.product_category_name} />
+                                            <Field label="Variant SKU" value={row.variant_sku_real} />
+                                            <Field label="Color" value={row.variant_color} />
+                                            <Field label="Size" value={row.variant_size} />
+                                        </div>
                                     </div>
-                                </div>
 
-                                {/* <div className="card-section">
-                                    <div className="section-title">Stock & Sales</div>
-                                    <div className="card-fields">
-                                        <Field label="Current Stock" value={row.last_stock} />
-                                        <Field label="Sell Now" value={sellNowValue} />
-                                        <Field label="When to Sell" value={row.when_to_sell} />
-                                        <Field label="Sell on Schedule" value={row.how_much_to_sell_on_schedule} />
-                                        <Field label="Sell Rate" value={row.sell_rate} />
-                                        <Field label="Sell Type" value={row.product_sell_type} />
+                                    <div className="space-y-2">
+                                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                            Sales
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            <Field label="Sell Now" value={sellNowValue} />
+                                        </div>
                                     </div>
-                                </div> */}
-                                <div className="card-section">
-                                    <div className="section-title">Sales</div>
-                                    <div className="card-fields">
-                                        {/* <Field label="Current Stock" value={row.last_stock} /> */}
-                                        <Field label="Sell Now" value={sellNowValue} />
-                                        {/* <Field label="When to Sell" value={row.when_to_sell} /> */}
-                                        {/* <Field label="Sell on Schedule" value={row.how_much_to_sell_on_schedule} /> */}
-                                        {/* <Field label="Sell Rate" value={row.sell_rate} /> */}
-                                        {/* <Field label="Sell Type" value={row.product_sell_type} /> */}
-                                    </div>
-                                </div>
 
-                                <div className="card-section orders">
-                                    <div className="section-title">Orders</div>
-                                    <div className="order-icons">
-                                        {orders.length === 0 && (
-                                            <span className="empty-orders">No recent orders</span>
-                                        )}
-                                        {orders.map((order, index) => (
-                                            <OrderBadge
-                                                key={`${rowId}-order-${index}`}
-                                                status={order.status}
-                                                days={order.days}
-                                                date={order.date}
-                                                orderNo={order.orderNo}
-                                            />
-                                        ))}
+                                    <div className="space-y-2">
+                                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                            Orders
+                                        </div>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            {orders.length === 0 && (
+                                                <span className="text-xs text-muted-foreground">No recent orders</span>
+                                            )}
+                                            {orders.map((order, index) => (
+                                                <OrderBadge
+                                                    key={`${rowId}-order-${index}`}
+                                                    status={order.status}
+                                                    days={order.days}
+                                                    date={order.date}
+                                                    orderNo={order.orderNo}
+                                                />
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
                                 </div>
                             </div>
-                        );
-                    })}
-                </div>
+                        </div>
+                    );
+                })}
             </div>
             <SelectedSkusSidebar filteredData={filteredData} />
         </div>
@@ -436,11 +441,12 @@ function DashboardCards() {
 export default DashboardCards;
 
 function Field({ label, value }: { label: string; value: DashboardDataRow[keyof DashboardDataRow] }) {
-    const displayValue = value === null || value === undefined || String(value).trim() === "" ? "—" : String(value).trim();
+    const displayValue =
+        value === null || value === undefined || String(value).trim() === "" ? "--" : String(value).trim();
     return (
-        <div className="card-field">
-            <div className="field-label">{label}</div>
-            <div className="field-value">{displayValue}</div>
+        <div className="flex min-w-0 items-baseline gap-2">
+            <span className="text-[10px] text-muted-foreground">{label}</span>
+            <span className="truncate text-xs font-medium text-foreground">{displayValue}</span>
         </div>
     );
 }
@@ -453,9 +459,15 @@ function OrderBadge({ status, days, date, orderNo }: OrderInfo) {
     const tooltip = date ? `Order date: ${date}` : undefined;
 
     return (
-        <div className={`order-badge ${isClosed ? "closed" : "open"}`} title={tooltip}>
-            <span className="order-id">{orderValue}</span>
-            <span className="order-days">{daysValue || "—"}</span>
-        </div>
+        <Badge
+            className={cn(
+                "rounded-full px-3 text-[11px] font-semibold",
+                isClosed ? "bg-[#e7f5ec] text-[#13643f]" : "bg-[#fff4e5] text-[#7a4b00]"
+            )}
+            title={tooltip}
+        >
+            <span className="mr-1">{orderValue}</span>
+            <span className="text-[10px]">{daysValue || "--"}</span>
+        </Badge>
     );
 }

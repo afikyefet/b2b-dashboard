@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import Slider from 'rc-slider';
-import 'rc-slider/assets/index.css';
 import type { RangeFilter } from '../types/dashboard.types';
-import '../styles/RangeSlider.scss';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Slider } from '../components/ui/slider';
 
 interface RangeSliderProps {
   label: string;
@@ -23,7 +24,7 @@ function RangeSlider({
   value,
   onChange,
   step = 1,
-  formatValue = (v) => v.toString()
+  formatValue = (v) => v.toString(),
 }: RangeSliderProps) {
   const [localMin, setLocalMin] = useState<string>(value.min?.toString() ?? '');
   const [localMax, setLocalMax] = useState<string>(value.max?.toString() ?? '');
@@ -31,13 +32,14 @@ function RangeSlider({
   const currentMin = value.min ?? min;
   const currentMax = value.max ?? max;
 
-  const handleSliderChange = (values: number | number[]) => {
-    if (Array.isArray(values)) {
-      const [newMin, newMax] = values;
-      onChange({ min: newMin, max: newMax });
-      setLocalMin(newMin.toString());
-      setLocalMax(newMax.toString());
-    }
+  const handleSliderChange = (values: number[]) => {
+    if (values.length < 2) return;
+    const [newMin, newMax] = values;
+    const nextMin = Math.min(newMin, newMax);
+    const nextMax = Math.max(newMin, newMax);
+    onChange({ min: nextMin, max: nextMax });
+    setLocalMin(nextMin.toString());
+    setLocalMax(nextMax.toString());
   };
 
   const handleMinInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -67,24 +69,28 @@ function RangeSlider({
   const isActive = value.min !== null || value.max !== null;
 
   return (
-    <div className="range-slider">
-      <div className="range-slider-header">
-        <label>{label}</label>
+    <div className="space-y-2 border-b border-border pb-3 last:border-none last:pb-0">
+      <div className="flex items-center justify-between">
+        <Label className="text-xs font-semibold text-foreground">{label}</Label>
         {isActive && (
-          <button
-            className="btn-reset-range"
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleReset}
             type="button"
+            className="h-7 px-2 text-xs text-primary"
           >
             Reset
-          </button>
+          </Button>
         )}
       </div>
 
-      <div className="range-inputs">
-        <div className="range-input-group">
-          <label htmlFor={`${field}-min`}>Min</label>
-          <input
+      <div className="flex gap-2">
+        <div className="flex flex-1 flex-col gap-1">
+          <Label htmlFor={`${field}-min`} className="text-[11px] text-muted-foreground">
+            Min
+          </Label>
+          <Input
             id={`${field}-min`}
             type="number"
             value={localMin}
@@ -92,12 +98,14 @@ function RangeSlider({
             placeholder={min.toString()}
             min={min}
             max={max}
+            className="h-8 text-xs"
           />
         </div>
-
-        <div className="range-input-group">
-          <label htmlFor={`${field}-max`}>Max</label>
-          <input
+        <div className="flex flex-1 flex-col gap-1">
+          <Label htmlFor={`${field}-max`} className="text-[11px] text-muted-foreground">
+            Max
+          </Label>
+          <Input
             id={`${field}-max`}
             type="number"
             value={localMax}
@@ -105,23 +113,22 @@ function RangeSlider({
             placeholder={max.toString()}
             min={min}
             max={max}
+            className="h-8 text-xs"
           />
         </div>
       </div>
 
-      <div className="range-slider-track">
+      <div className="px-2">
         <Slider
-          range
           min={min}
           max={max}
-          value={[currentMin, currentMax]}
-          onChange={handleSliderChange}
           step={step}
-          allowCross={false}
+          value={[currentMin, currentMax]}
+          onValueChange={handleSliderChange}
         />
       </div>
 
-      <div className="range-labels">
+      <div className="flex justify-between px-2 text-[11px] text-muted-foreground">
         <span>{formatValue(min)}</span>
         <span>{formatValue(max)}</span>
       </div>

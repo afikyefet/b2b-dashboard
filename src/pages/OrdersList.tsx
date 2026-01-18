@@ -1,6 +1,25 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { listOrders, deleteOrder, type Order } from '../api/orders';
 import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
+import { Button } from '../components/ui/button';
+import { Card, CardContent } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
 
 export default function OrdersList() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -99,112 +118,118 @@ export default function OrdersList() {
     }
   };
 
+  const allStatusesValue = '__all__';
+
   return (
-    <div className="orders-list-page" style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-        <h1 style={{ margin: 0 }}>Orders</h1>
-        <button 
-          onClick={() => loadOrders()} 
-          style={{ padding: '8px 16px', background: 'white', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}
-        >
+    <div className="mx-auto w-full max-w-[1200px] space-y-6 px-4 pb-12 pt-6">
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-2xl font-semibold text-foreground">Orders</h1>
+        <Button variant="outline" onClick={() => loadOrders()} type="button">
           Refresh
-        </button>
+        </Button>
       </header>
 
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', alignItems: 'center' }}>
-        <select 
-          value={statusFilter} 
-          onChange={(e) => setStatusFilter(e.target.value)}
-          style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd' }}
-        >
-          <option value="">All Statuses</option>
-          <option value="DRAFT">Draft</option>
-          <option value="SENT">Sent</option>
-          <option value="OPENED">Opened</option>
-          <option value="CHECKOUT_CREATED">Checkout Created</option>
-          <option value="COMPLETED">Completed</option>
-          <option value="CANCELLED">Cancelled</option>
-        </select>
+      <Card>
+        <CardContent className="flex flex-wrap items-center gap-3 p-4">
+          <div className="w-48">
+            <Select
+              value={statusFilter || allStatusesValue}
+              onValueChange={(value) =>
+                setStatusFilter(value === allStatusesValue ? '' : value)
+              }
+            >
+              <SelectTrigger className="h-9 text-xs">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value={allStatusesValue}>All Statuses</SelectItem>
+                <SelectItem value="DRAFT">Draft</SelectItem>
+                <SelectItem value="SENT">Sent</SelectItem>
+                <SelectItem value="OPENED">Opened</SelectItem>
+                <SelectItem value="CHECKOUT_CREATED">Checkout Created</SelectItem>
+                <SelectItem value="COMPLETED">Completed</SelectItem>
+                <SelectItem value="CANCELLED">Cancelled</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-        <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px' }}>
-          <input 
-            type="text" 
-            placeholder="Search dealer, email..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ddd', minWidth: '250px' }}
-          />
-          <button type="submit" style={{ padding: '8px 16px', background: '#008060', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Search</button>
-        </form>
-      </div>
+          <form onSubmit={handleSearch} className="flex flex-1 gap-2">
+            <Input
+              type="text"
+              placeholder="Search dealer, email..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9"
+            />
+            <Button type="submit" className="h-9 bg-[#008060] text-white hover:bg-[#006f55]">
+              Search
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-      <div style={{ overflowX: 'auto', background: 'white', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead>
-            <tr style={{ background: '#f9fafb', borderBottom: '1px solid #e5e7eb', textAlign: 'left' }}>
-              <th style={{ padding: '12px 16px', fontSize: '0.85em', color: '#6b7280' }}>Order ID</th>
-              <th style={{ padding: '12px 16px', fontSize: '0.85em', color: '#6b7280' }}>Status</th>
-              <th style={{ padding: '12px 16px', fontSize: '0.85em', color: '#6b7280' }}>Dealer</th>
-              <th style={{ padding: '12px 16px', fontSize: '0.85em', color: '#6b7280' }}>Updated</th>
-              <th style={{ padding: '12px 16px', fontSize: '0.85em', color: '#6b7280' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading && orders.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center' }}>Loading...</td></tr>
-            ) : visibleOrders.length === 0 ? (
-              <tr><td colSpan={5} style={{ padding: '40px', textAlign: 'center', color: '#6b7280' }}>No orders found.</td></tr>
-            ) : (
-              visibleOrders.map(order => (
-                <tr key={order.order_id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                  <td style={{ padding: '12px 16px', fontFamily: 'monospace' }}>{order.order_id.substring(0, 8)}...</td>
-                  <td style={{ padding: '12px 16px' }}><OrderStatusBadge status={order.status} /></td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <div style={{ fontWeight: '500' }}>{order.dealer_name}</div>
-                    <div style={{ fontSize: '0.85em', color: '#6b7280' }}>{order.dealer_company}</div>
-                  </td>
-                  <td style={{ padding: '12px 16px', fontSize: '0.9em' }}>{new Date(order.updated_at).toLocaleDateString()}</td>
-                  <td style={{ padding: '12px 16px' }}>
-                    <a 
-                      href={`/orders/${order.order_id}`}
-                      style={{ 
-                        display: 'inline-block',
-                        padding: '6px 12px',
-                        background: 'white',
-                        border: '1px solid #d1d5db',
-                        borderRadius: '4px',
-                        textDecoration: 'none',
-                        color: '#374151',
-                        fontSize: '0.9em'
-                      }}
-                    >
-                      Open
-                    </a>
-                    <button
-                      onClick={() => handleDelete(order.order_id, order.status)}
-                      disabled={!canDelete(order.status) || deletingOrderId === order.order_id}
-                      style={{
-                        marginLeft: '8px',
-                        padding: '6px 12px',
-                        background: 'white',
-                        border: '1px solid #fca5a5',
-                        borderRadius: '4px',
-                        color: '#b91c1c',
-                        fontSize: '0.9em',
-                        cursor: (!canDelete(order.status) || deletingOrderId === order.order_id) ? 'not-allowed' : 'pointer',
-                        opacity: (!canDelete(order.status) || deletingOrderId === order.order_id) ? 0.5 : 1
-                      }}
-                    >
-                      {deletingOrderId === order.order_id ? 'Deleting...' : 'Delete'}
-                    </button>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+      <Card className="overflow-hidden">
+        <CardContent className="p-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order ID</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Dealer</TableHead>
+                <TableHead>Updated</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading && orders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                    Loading...
+                  </TableCell>
+                </TableRow>
+              ) : visibleOrders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+                    No orders found.
+                  </TableCell>
+                </TableRow>
+              ) : (
+                visibleOrders.map(order => (
+                  <TableRow key={order.order_id}>
+                    <TableCell className="font-mono text-xs">
+                      {order.order_id.substring(0, 8)}...
+                    </TableCell>
+                    <TableCell>
+                      <OrderStatusBadge status={order.status} />
+                    </TableCell>
+                    <TableCell>
+                      <div className="font-medium text-foreground">{order.dealer_name}</div>
+                      <div className="text-xs text-muted-foreground">{order.dealer_company}</div>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {new Date(order.updated_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="space-x-2">
+                      <Button asChild variant="outline" size="sm">
+                        <Link to={`/orders/${order.order_id}`}>Open</Link>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(order.order_id, order.status)}
+                        disabled={!canDelete(order.status) || deletingOrderId === order.order_id}
+                        className="border-destructive/40 text-destructive hover:bg-destructive/10"
+                      >
+                        {deletingOrderId === order.order_id ? 'Deleting...' : 'Delete'}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
     </div>
   );
 }
-

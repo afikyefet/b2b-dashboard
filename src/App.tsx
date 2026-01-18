@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
-import './styles/App.scss'
 import Dashboard from './cmps/Dashboard'
 import CartPage from './pages/CartPage';
 import OrdersList from './pages/OrdersList';
@@ -23,7 +22,11 @@ function RequireAuth() {
   const location = useLocation();
 
   if (status === 'checking') {
-    return <div className="auth-loading">Loading...</div>;
+    return (
+      <div className="flex min-h-screen items-center justify-center text-muted-foreground">
+        Loading...
+      </div>
+    );
   }
 
   if (authDisabled || token) {
@@ -35,7 +38,7 @@ function RequireAuth() {
 
 function AppLayout() {
   return (
-    <div className="app">
+    <div className="flex min-h-screen flex-col">
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/public/order/:token" element={<PublicOrderPage />} />

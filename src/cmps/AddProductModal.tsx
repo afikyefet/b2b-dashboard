@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { fetchProducts, fetchProductVariants, type ProductListItem, type HydratedSkuItem } from '../api/catalogApi';
 import { getPublicProducts, getPublicProductVariants } from '../api/publicOrders';
+import { cn } from '../lib/utils';
+import { Badge } from '../components/ui/badge';
+import { Button } from '../components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '../components/ui/dialog';
+import { Input } from '../components/ui/input';
+import { ScrollArea } from '../components/ui/scroll-area';
 
 type AddProductModalProps = {
   isOpen: boolean;
@@ -484,67 +496,40 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   if (!isOpen) return null;
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 1000,
-        padding: '20px'
+    <Dialog
+      open={isOpen}
+      onOpenChange={(open) => {
+        if (!open) onClose();
       }}
-      onClick={onClose}
     >
-      <div
-        style={{
-          background: 'white',
-          borderRadius: '12px',
-          width: '90%',
-          maxWidth: '900px',
-          maxHeight: '80vh',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-          boxShadow: '0 10px 30px rgba(0,0,0,0.2)'
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div style={{ padding: '20px', borderBottom: '1px solid #eee' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h2 style={{ margin: 0, fontSize: '1.3em', color: '#333' }}>Browse Products</h2>
-            <button
-              onClick={onClose}
-              style={{
-                background: 'none',
-                border: 'none',
-                fontSize: '1.5em',
-                cursor: 'pointer',
-                color: '#666'
-              }}
-            >
-              A-
-            </button>
+      <DialogContent className="max-w-4xl p-0">
+        <div className="border-b border-border p-6">
+          <DialogHeader>
+            <DialogTitle>Browse Products</DialogTitle>
+            <DialogDescription>Search and select variants to add to the order.</DialogDescription>
+          </DialogHeader>
+          <div className="mt-4">
+            <Input
+              type="text"
+              value={productSearch}
+              onChange={(e) => setProductSearch(e.target.value)}
+              placeholder="Search products..."
+            />
           </div>
-
-          <input
-            type="text"
-            value={productSearch}
-            onChange={(e) => setProductSearch(e.target.value)}
-            placeholder="Search products..."
-            style={{ width: '100%', padding: '10px', border: '1px solid #ddd', borderRadius: '4px', boxSizing: 'border-box' }}
-          />
         </div>
 
-        <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
-          {loadingProducts && products.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px' }}>Loading products...</div>
-          ) : products.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>No products found</div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {filterUnavailableProducts(products).map((product) => {
+        <ScrollArea className="max-h-[65vh]">
+          <div className="space-y-4 p-6">
+            {loadingProducts && products.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                Loading products...
+              </div>
+            ) : products.length === 0 ? (
+              <div className="py-10 text-center text-sm text-muted-foreground">
+                No products found
+              </div>
+            ) : (
+              filterUnavailableProducts(products).map((product) => {
                 const productData = productsWithVariants.get(product.product_id);
                 const isLoading = loadingVariants.has(product.product_id);
                 const selectedVariant = productData ? getSelectedVariant(product.product_id) : null;
@@ -556,30 +541,9 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                 return (
                   <div
                     key={product.product_id}
-                    style={{
-                      border: '1px solid #ddd',
-                      borderRadius: '8px',
-                      background: 'white',
-                      display: 'flex',
-                      flexDirection: 'row',
-                      overflow: 'hidden',
-                      transition: 'box-shadow 0.2s',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow = 'none';
-                    }}
+                    className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 shadow-sm sm:flex-row"
                   >
-                    <div style={{
-                      width: '120px',
-                      height: '120px',
-                      flexShrink: 0,
-                      position: 'relative',
-                      backgroundColor: '#f5f5f5',
-                      overflow: 'hidden'
-                    }}>
+                    <div className="h-28 w-28 flex-shrink-0 overflow-hidden rounded-md bg-muted">
                       {(() => {
                         const imageUrl = getProductImageUrl(product.product_id);
                         if (imageUrl) {
@@ -587,57 +551,40 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             <img
                               src={imageUrl}
                               alt={product.title}
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover'
-                              }}
+                              className="h-full w-full object-cover"
                             />
                           );
                         }
                         return (
-                          <div style={{
-                            width: '100%',
-                            height: '100%',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            backgroundColor: '#e5e5e5',
-                            color: '#999',
-                            fontSize: '0.75em'
-                          }}>
+                          <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-wide text-muted-foreground">
                             No Image
                           </div>
                         );
                       })()}
                     </div>
 
-                    <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div className="flex flex-1 flex-col gap-3">
                       <div>
-                        <h3 style={{
-                          margin: 0,
-                          fontSize: '1em',
-                          fontWeight: '600',
-                          lineHeight: '1.3',
-                          color: '#333'
-                        }}>
-                          {product.title}
-                        </h3>
+                        <h3 className="text-sm font-semibold text-foreground">{product.title}</h3>
                         {product.tags && product.tags.length > 0 && (
-                          <div style={{ fontSize: '0.75em', color: '#666', marginTop: '2px' }}>
-                            {product.tags.slice(0, 2).join(', ')}
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            {product.tags.slice(0, 2).map((tag) => (
+                              <Badge key={tag} variant="secondary" className="text-xs">
+                                {tag}
+                              </Badge>
+                            ))}
                           </div>
                         )}
                       </div>
 
                       {isLoading && (
-                        <div style={{ color: '#666', fontSize: '0.85em' }}>
+                        <div className="text-xs text-muted-foreground">
                           Loading options...
                         </div>
                       )}
 
                       {productData && (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        <div className="space-y-3">
                           {productData.options.map((option) => {
                             const availableValues = getAvailableOptionValues(product.product_id, option.name);
                             const displayValues = availableValues.length > 0 ? availableValues : option.values;
@@ -645,55 +592,35 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
 
                             return (
                               <div key={option.name}>
-                                <label style={{
-                                  display: 'block',
-                                  marginBottom: '6px',
-                                  fontSize: '0.8em',
-                                  fontWeight: '600',
-                                  color: '#555'
-                                }}>
-                                  {option.name}: {selectedValue && <span style={{ color: '#008060' }}>{selectedValue}</span>}
-                                </label>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                                <div className="mb-2 flex flex-wrap items-center gap-2 text-xs font-semibold text-muted-foreground">
+                                  <span>{option.name}</span>
+                                  {selectedValue && (
+                                    <span className="text-primary">{selectedValue}</span>
+                                  )}
+                                </div>
+                                <div className="flex flex-wrap gap-2">
                                   {displayValues.map((value) => {
                                     const isSelected = selectedValue === value;
                                     return (
-                                      <button
+                                      <Button
                                         key={value}
+                                        type="button"
+                                        variant={isSelected ? "default" : "outline"}
+                                        className={cn(
+                                          "h-8 px-3 text-xs",
+                                          isSelected
+                                            ? "bg-[#008060] text-white hover:bg-[#006f55]"
+                                            : "border-border"
+                                        )}
                                         onClick={() => handleOptionChange(product.product_id, option.name, value)}
-                                        style={{
-                                          padding: '6px 12px',
-                                          border: isSelected ? '2px solid #008060' : '1px solid #ddd',
-                                          borderRadius: '4px',
-                                          background: isSelected ? '#e8f5f2' : 'white',
-                                          color: isSelected ? '#008060' : '#333',
-                                          fontSize: '0.8em',
-                                          fontWeight: isSelected ? '600' : '400',
-                                          cursor: 'pointer',
-                                          transition: 'all 0.15s',
-                                          minWidth: '40px',
-                                          textAlign: 'center'
-                                        }}
-                                        onMouseEnter={(e) => {
-                                          if (!isSelected) {
-                                            e.currentTarget.style.borderColor = '#999';
-                                            e.currentTarget.style.background = '#f9f9f9';
-                                          }
-                                        }}
-                                        onMouseLeave={(e) => {
-                                          if (!isSelected) {
-                                            e.currentTarget.style.borderColor = '#ddd';
-                                            e.currentTarget.style.background = 'white';
-                                          }
-                                        }}
                                       >
                                         {value}
-                                      </button>
+                                      </Button>
                                     );
                                   })}
                                 </div>
                                 {hasOptions && allOptionsSelected && !selectedVariant && (
-                                  <div style={{ color: '#d72c2c', fontSize: '0.8em', marginTop: '6px' }}>
+                                  <div className="mt-2 text-xs text-destructive">
                                     Selected combination is unavailable.
                                   </div>
                                 )}
@@ -705,13 +632,8 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                     </div>
 
                     {productData && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        paddingRight: '12px',
-                        paddingLeft: '12px'
-                      }}>
-                        <button
+                      <div className="flex items-center">
+                        <Button
                           onClick={() => {
                             if (!productData) return;
                             if (hasOptions) {
@@ -749,30 +671,25 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
                             onClose();
                           }}
                           disabled={!canAdd}
-                          style={{
-                            padding: '10px 20px',
-                            background: !canAdd ? '#ccc' : '#008060',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '6px',
-                            cursor: !canAdd ? 'not-allowed' : 'pointer',
-                            fontWeight: '600',
-                            fontSize: '0.9em',
-                            whiteSpace: 'nowrap',
-                            minWidth: '100px'
-                          }}
+                          className={cn(
+                            "h-10 px-6",
+                            !canAdd
+                              ? "bg-muted text-muted-foreground"
+                              : "bg-[#008060] text-white hover:bg-[#006f55]"
+                          )}
+                          type="button"
                         >
                           Add
-                        </button>
+                        </Button>
                       </div>
                     )}
                   </div>
                 );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+              })
+            )}
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
   );
 };
