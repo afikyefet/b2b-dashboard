@@ -341,5 +341,66 @@
   .filter-inputs {
     grid-template-columns: 1fr;
   }
+
+  .dashboard-filter {
+    padding: $spacing-sm $spacing-sm;
+  }
+
+  .filter-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: $spacing-sm;
+  }
+
+  .filter-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: $spacing-sm;
+  }
+
+  .filter-search {
+    flex: 1 1 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: $spacing-xs;
+
+    input {
+      max-width: 100%;
+      width: 100%;
+    }
+  }
+
+  .filter-action-btn {
+    min-height: 44px;
+    font-size: $font-size-sm;
+    width: 100%;
+  }
+
+  .filter-toggle {
+    min-height: 44px;
+    font-size: $font-size-sm;
+    width: 100%;
+  }
+
+  .smart-select-days {
+    width: 100%;
+    justify-content: space-between;
+
+    input {
+      width: 80px;
+      min-height: 44px;
+    }
+  }
+
+  .range-filters-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .filter-group {
+    .multi-select-button {
+      min-height: 44px;
+      font-size: $font-size-sm;
+    }
+  }
 }
 

@@ -269,7 +269,7 @@ function DashboardCards() {
     };
 
     return (
-        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-4 pb-10 pt-6">
+        <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-4 pb-10 pt-6 max-md:px-2 max-md:gap-3 max-md:pb-6 max-md:pt-4">
             <DashboardFilter
                 filterOptions={filterOptions}
                 originalData={originalData}
@@ -280,10 +280,10 @@ function DashboardCards() {
                 smartSelectDays={smartSelectDays}
                 onSmartSelectDaysChange={setSmartSelectDays}
             />
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 max-md:flex-col max-md:gap-2">
                 <Button
                     type="button"
-                    className="h-9 bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90"
+                    className="h-9 bg-primary px-4 text-xs font-semibold text-primary-foreground hover:bg-primary/90 max-md:w-full max-md:h-11 max-md:min-h-[44px] max-md:text-sm"
                     onClick={handleSelectAll}
                     disabled={filteredSkus.length === 0}
                 >
@@ -292,7 +292,7 @@ function DashboardCards() {
                 <Button
                     type="button"
                     variant="outline"
-                    className="h-9 border-primary/20 px-4 text-xs font-semibold text-primary hover:bg-primary/10"
+                    className="h-9 border-primary/20 px-4 text-xs font-semibold text-primary hover:bg-primary/10 max-md:w-full max-md:h-11 max-md:min-h-[44px] max-md:text-sm"
                     onClick={handleDeselectAll}
                     disabled={filteredSkus.length === 0}
                 >
@@ -332,33 +332,33 @@ function DashboardCards() {
                         <div
                             key={rowId}
                             className={cn(
-                                "rounded-lg border bg-card p-4 shadow-sm transition",
+                                "rounded-lg border bg-card p-4 shadow-sm transition max-md:p-3",
                                 selected ? "border-primary ring-1 ring-primary/20" : "border-border hover:border-primary/40"
                             )}
                             onClick={() => toggleSelection(row)}
                             role="button"
                             tabIndex={0}
                         >
-                            <div className="flex flex-col gap-4 md:flex-row">
+                            <div className="flex flex-col gap-4 md:flex-row max-md:gap-3">
                                 <div
-                                    className="flex h-[72px] w-[72px] flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted"
+                                    className="flex h-[72px] w-[72px] flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-border bg-muted max-md:h-16 max-md:w-16"
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     {imagesLoading && sku && imageUrl === null ? (
-                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-primary" />
+                                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-muted-foreground border-t-primary max-md:h-3 max-md:w-3" />
                                     ) : imageUrl ? (
                                         <img src={imageUrl} alt={row.product_name || "Product"} className="h-full w-full object-cover" />
                                     ) : (
-                                        <div className="text-[10px] uppercase text-muted-foreground">No Image</div>
+                                        <div className="text-[10px] uppercase text-muted-foreground max-md:text-[9px]">No Image</div>
                                     )}
                                 </div>
-                                <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-                                    <div className="space-y-2">
+                                <div className="grid flex-1 gap-4 md:grid-cols-2 xl:grid-cols-4 max-md:grid-cols-1 max-md:gap-3">
+                                    <div className="space-y-2 max-md:space-y-1.5">
                                         <div className="space-y-1">
                                             {productUrl ? (
                                                 <a
                                                     href={productUrl}
-                                                    className="text-sm font-semibold text-foreground hover:underline"
+                                                    className="text-sm font-semibold text-foreground hover:underline max-md:text-base"
                                                     target="_blank"
                                                     rel="noreferrer"
                                                     onClick={(e) => e.stopPropagation()}
@@ -366,22 +366,22 @@ function DashboardCards() {
                                                     {row.product_name || "Unnamed Product"}
                                                 </a>
                                             ) : (
-                                                <div className="text-sm font-semibold text-foreground">
+                                                <div className="text-sm font-semibold text-foreground max-md:text-base">
                                                     {row.product_name || "Unnamed Product"}
                                                 </div>
                                             )}
-                                            <div className="text-xs text-muted-foreground">
+                                            <div className="text-xs text-muted-foreground max-md:text-sm">
                                                 {row.customer_company || ""}
                                             </div>
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2 max-md:gap-1.5">
                                             {availabilityLoading && sku && !availability && (
-                                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-primary" />
+                                                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-muted-foreground border-t-primary max-md:h-4 max-md:w-4" />
                                             )}
                                             {!availabilityLoading && sku && isAvailable !== null && (
                                                 <Badge
                                                     className={cn(
-                                                        "rounded-full px-2 text-[10px] uppercase tracking-wide",
+                                                        "rounded-full px-2 text-[10px] uppercase tracking-wide max-md:text-xs max-md:px-2.5 max-md:py-0.5",
                                                         isAvailable
                                                             ? "bg-success/10 text-success"
                                                             : "bg-destructive/10 text-destructive"
@@ -393,11 +393,11 @@ function DashboardCards() {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <div className="space-y-2 max-md:space-y-1.5">
+                                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground max-md:text-xs">
                                             Product Info
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-2 gap-2 max-md:grid-cols-1 max-md:gap-1.5">
                                             <Field label="Category" value={row.product_category_name} />
                                             <Field label="Variant SKU" value={row.variant_sku_real} />
                                             <Field label="Color" value={row.variant_color} />
@@ -405,22 +405,22 @@ function DashboardCards() {
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <div className="space-y-2 max-md:space-y-1.5">
+                                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground max-md:text-xs">
                                             Sales
                                         </div>
-                                        <div className="grid grid-cols-2 gap-2">
+                                        <div className="grid grid-cols-2 gap-2 max-md:grid-cols-1 max-md:gap-1.5">
                                             <Field label="Sell Now" value={sellNowValue} />
                                         </div>
                                     </div>
 
-                                    <div className="space-y-2">
-                                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+                                    <div className="space-y-2 max-md:space-y-1.5">
+                                        <div className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground max-md:text-xs">
                                             Orders
                                         </div>
-                                        <div className="flex flex-wrap items-center gap-2">
+                                        <div className="flex flex-wrap items-center gap-2 max-md:gap-1.5">
                                             {orders.length === 0 && (
-                                                <span className="text-xs text-muted-foreground">No recent orders</span>
+                                                <span className="text-xs text-muted-foreground max-md:text-sm">No recent orders</span>
                                             )}
                                             {orders.map((order, index) => (
                                                 <OrderBadge
@@ -449,9 +449,9 @@ function Field({ label, value }: { label: string; value: DashboardDataRow[keyof 
     const displayValue =
         value === null || value === undefined || String(value).trim() === "" ? "--" : String(value).trim();
     return (
-        <div className="flex min-w-0 items-baseline gap-2">
-            <span className="text-[10px] text-muted-foreground">{label}</span>
-            <span className="truncate text-xs font-medium text-foreground">{displayValue}</span>
+        <div className="flex min-w-0 items-baseline gap-2 max-md:flex-col max-md:items-start max-md:gap-1">
+            <span className="text-[10px] text-muted-foreground max-md:text-xs max-md:font-semibold">{label}</span>
+            <span className="truncate text-xs font-medium text-foreground max-md:text-sm max-md:font-normal">{displayValue}</span>
         </div>
     );
 }
@@ -466,13 +466,13 @@ function OrderBadge({ status, days, date, orderNo }: OrderInfo) {
     return (
         <Badge
             className={cn(
-                "rounded-full px-3 text-[11px] font-semibold",
+                "rounded-full px-3 text-[11px] font-semibold max-md:px-2.5 max-md:text-xs max-md:py-1",
                 isClosed ? "bg-success/10 text-success" : "bg-warning/15 text-warning"
             )}
             title={tooltip}
         >
-            <span className="mr-1">{orderValue}</span>
-            <span className="text-[10px]">{daysValue || "--"}</span>
+            <span className="mr-1 max-md:mr-0.5">{orderValue}</span>
+            <span className="text-[10px] max-md:text-xs">{daysValue || "--"}</span>
         </Badge>
     );
 }

@@ -54,28 +54,28 @@ function MultiSelect({ label, placeholder, options, selected, onToggle }: MultiS
     const count = selected.length;
     return (
         <div className="space-y-2">
-            <div className="text-xs font-semibold text-muted-foreground">
+            <div className="text-xs font-semibold text-muted-foreground max-md:text-sm">
                 {label} {count > 0 && <span className="text-primary">({count})</span>}
             </div>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                     <Button
                         variant="outline"
-                        className="h-9 w-full justify-between text-xs text-foreground"
+                        className="h-9 w-full justify-between text-xs text-foreground max-md:h-11 max-md:min-h-[44px] max-md:text-sm"
                         type="button"
                     >
                         {count > 0 ? `${count} selected` : placeholder}
-                        <ChevronRight className="h-4 w-4 rotate-90 text-muted-foreground" />
+                        <ChevronRight className="h-4 w-4 rotate-90 text-muted-foreground max-md:h-5 max-md:w-5" />
                     </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="max-h-56 w-64 overflow-y-auto p-1">
+                <DropdownMenuContent className="max-h-56 w-64 overflow-y-auto p-1 max-md:w-[calc(100vw-2rem)] max-md:max-h-72">
                     {options.map((option) => (
                         <DropdownMenuCheckboxItem
                             key={option}
                             checked={selected.includes(option)}
                             onCheckedChange={() => onToggle(option)}
                             onSelect={(event) => event.preventDefault()}
-                            className="text-xs"
+                            className="text-xs max-md:text-sm max-md:min-h-[44px]"
                         >
                             {option}
                         </DropdownMenuCheckboxItem>
@@ -168,31 +168,31 @@ function DashboardFilter({
     }, [filteredData.length, filtersExpanded]);
 
     return (
-        <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-            <div className="flex items-center justify-between">
+        <div className="rounded-lg border border-border bg-card p-4 shadow-sm max-md:p-3">
+            <div className="flex items-center justify-between max-md:flex-col max-md:items-start max-md:gap-2">
                 <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-semibold text-foreground">Filters</h3>
+                    <h3 className="text-sm font-semibold text-foreground max-md:text-base">Filters</h3>
                     {isRefreshing && (
-                        <span className="text-xs text-muted-foreground">Refreshing...</span>
+                        <span className="text-xs text-muted-foreground max-md:text-sm">Refreshing...</span>
                     )}
                 </div>
                 <Button
                     variant="outline"
                     size="sm"
-                    className="h-8 gap-1 text-xs"
+                    className="h-8 gap-1 text-xs max-md:h-11 max-md:min-h-[44px] max-md:w-full max-md:text-sm max-md:font-semibold"
                     onClick={() => setFiltersExpanded((prev) => !prev)}
                     type="button"
                 >
                     {filtersExpanded ? 'Hide Filters' : 'Show Filters'}
                     <ChevronRight
-                        className={`h-4 w-4 transition-transform ${filtersExpanded ? 'rotate-90' : ''}`}
+                        className={`h-4 w-4 transition-transform max-md:h-5 max-md:w-5 ${filtersExpanded ? 'rotate-90' : ''}`}
                     />
                 </Button>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center gap-3 border-b border-border pb-4">
-                <div className="flex flex-1 items-center gap-2">
-                    <Label htmlFor="generalSearch" className="text-xs font-semibold text-muted-foreground">
+            <div className="mt-4 flex flex-wrap items-center gap-3 border-b border-border pb-4 max-md:flex-col max-md:items-stretch max-md:gap-3 max-md:pb-3">
+                <div className="flex flex-1 items-center gap-2 max-md:w-full max-md:flex-col max-md:items-stretch">
+                    <Label htmlFor="generalSearch" className="text-xs font-semibold text-muted-foreground max-md:text-sm">
                         Search
                     </Label>
                     <Input
@@ -201,12 +201,12 @@ function DashboardFilter({
                         value={filters.generalSearch || ''}
                         onChange={(e) => handleGeneralSearchChange(e.target.value)}
                         placeholder="Search across all fields..."
-                        className="h-9 max-w-xs text-xs"
+                        className="h-9 max-w-xs text-xs max-md:w-full max-md:max-w-none max-md:h-11 max-md:text-sm"
                     />
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                    <div className="flex items-center gap-2">
-                        <Label htmlFor="smartSelectDays" className="text-xs font-semibold text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-2 max-md:w-full max-md:flex-col max-md:gap-2">
+                    <div className="flex items-center gap-2 max-md:w-full max-md:justify-between">
+                        <Label htmlFor="smartSelectDays" className="text-xs font-semibold text-muted-foreground max-md:text-sm">
                             Days of stock
                         </Label>
                         <Input
@@ -222,20 +222,23 @@ function DashboardFilter({
                                 }
                                 onSmartSelectDaysChange(Math.max(1, next));
                             }}
-                            className="h-9 w-20 text-xs"
+                            className="h-9 w-20 text-xs max-md:h-11 max-md:w-24 max-md:text-sm"
                         />
                     </div>
-                    <SmartSelection
-                        filteredData={filteredData}
-                        days={smartSelectDays}
-                        onSmartSelectDaysChange={onSmartSelectDaysChange}
-                    />
+                    <div className="max-md:w-full">
+                        <SmartSelection
+                            filteredData={filteredData}
+                            days={smartSelectDays}
+                            onSmartSelectDaysChange={onSmartSelectDaysChange}
+                        />
+                    </div>
                     <Button
                         variant="secondary"
                         size="sm"
                         onClick={handleClearCart}
                         type="button"
                         disabled={cart.length === 0}
+                        className="max-md:w-full max-md:h-11 max-md:min-h-[44px] max-md:text-sm"
                     >
                         Clear Cart
                     </Button>
@@ -244,6 +247,7 @@ function DashboardFilter({
                         onClick={onResetAll}
                         type="button"
                         disabled={!hasActiveFilters}
+                        className="max-md:w-full max-md:h-11 max-md:min-h-[44px] max-md:text-sm"
                     >
                         Reset Filters
                     </Button>
@@ -251,10 +255,10 @@ function DashboardFilter({
             </div>
 
             {filtersExpanded && (
-                <div className="mt-4 space-y-4">
-                    <div className="space-y-3 border-b border-border pb-4">
-                        <h4 className="text-sm font-semibold text-foreground">Range Filters</h4>
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div className="mt-4 space-y-4 max-md:space-y-3">
+                    <div className="space-y-3 border-b border-border pb-4 max-md:pb-3">
+                        <h4 className="text-sm font-semibold text-foreground max-md:text-base">Range Filters</h4>
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 max-md:grid-cols-1 max-md:gap-3">
                             <RangeSlider
                                 label="When to Sell (Days)"
                                 field="when_to_sell"
@@ -296,8 +300,8 @@ function DashboardFilter({
                     </div>
 
                     <div className="space-y-3">
-                        <h4 className="text-sm font-semibold text-foreground">Product Filters</h4>
-                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        <h4 className="text-sm font-semibold text-foreground max-md:text-base">Product Filters</h4>
+                        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3 max-md:grid-cols-1 max-md:gap-3">
                             <MultiSelect
                                 label="Product Sell Type"
                                 placeholder="Select types..."
