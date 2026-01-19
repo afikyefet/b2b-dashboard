@@ -12,6 +12,7 @@ export const DEALER_THEME_MAP: Record<string, DealerTheme> = {
     "primary arms": { primary: "#cf0e2c", primaryHover: "#960D21" },
     "hydrocore concepts llc": { primary: "#8b1201", primaryHover: "#640E02" },
     "aalto group": { primary: "#fd5304", primaryHover: "#C24003" },
+    "best protection": { primary: "#83805b", primaryHover: "#55533C" },
     "safety agency, s.r.o.": { primary: "#30363f", primaryHover: "#1F2329" },
     "sas tactical equipements": { primary: "#fe842e", primaryHover: "#C46624" },
     "steinadler": { primary: "#353535", primaryHover: "#292929" },

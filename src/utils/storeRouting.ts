@@ -3,6 +3,7 @@ export type StoreCode = "US" | "EU";
 const dealerStoreMap: Record<string, StoreCode> = {
   "sas tactical equipements": "EU",
   "aalto group": "EU",
+  "best protection": "EU",
   "steinadler": "EU",
   "safety agency, s.r.o.": "EU",
   "primary arms": "US",
