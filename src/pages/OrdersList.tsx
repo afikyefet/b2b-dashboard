@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { listOrders, deleteOrder, type Order } from '../api/orders';
+import { getOrdersCache, setOrdersCache } from '../api/cacheApi';
 import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
@@ -28,39 +29,28 @@ export default function OrdersList() {
   const [search, setSearch] = useState('');
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
-  const ordersCacheKey = 'orders_cache_v2';
-  const readCachedOrders = () => {
-    try {
-      const raw = localStorage.getItem(ordersCacheKey);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as { orders: Order[] };
-      if (!parsed || !Array.isArray(parsed.orders)) return null;
-      return parsed;
-    } catch {
-      return null;
-    }
-  };
-
-  const writeCachedOrders = (items: Order[]) => {
-    try {
-      localStorage.setItem(ordersCacheKey, JSON.stringify({ orders: items }));
-    } catch {
-      // Ignore cache write failures (e.g. quota).
-    }
-  };
-
   const loadOrders = async (options?: { useCache?: boolean }) => {
+    // Try Redis cache first
     if (options?.useCache) {
-      const cached = readCachedOrders();
-      if (cached && cached.orders && cached.orders.length > 0) {
-        setOrders(cached.orders);
+      try {
+        const cached = await getOrdersCache<Order>();
+        if (cached && cached.length > 0) {
+          setOrders(cached);
+        }
+      } catch (err) {
+        console.error('Error loading orders cache from Redis:', err);
       }
     }
+
     setLoading(true);
     try {
       const res = await listOrders();
       setOrders(res);
-      writeCachedOrders(res);
+
+      // Write to Redis cache
+      setOrdersCache(res).catch((err) => {
+        console.error('Error saving orders cache to Redis:', err);
+      });
     } catch (err) {
       console.error(err);
       alert('Error loading orders');

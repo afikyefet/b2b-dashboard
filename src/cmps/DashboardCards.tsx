@@ -8,12 +8,16 @@ import type { AppDispatch } from "../store";
 import { selectFilters, setDealerName, resetFilters } from "../store/slices/filterSlice";
 import { getDashboardData, getDashboardHeaders, applyFiltersAndSort, getFilterOptions } from "../services/dashboard.service";
 import { fetchSkuAvailability, fetchSkuImages, type SkuAvailability, type SkuImage } from "../api/catalogApi";
+import { getDashboardCache, setDashboardCache } from "../api/cacheApi";
 import { getRowId } from "../utils/rowId";
 import { resolveStoreForDealer } from "../utils/storeRouting";
 import { getSelectionQty } from "../utils/selectionQty";
 import { cn } from "../lib/utils";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
+
+// Cache key for full dashboard data (all dealers)
+const DASHBOARD_CACHE_DEALER_KEY = "_all";
 
 type OrderInfo = {
     status?: string | null;
@@ -36,7 +40,6 @@ function DashboardCards() {
     const [imagesLoading, setImagesLoading] = useState(false);
     const [imagesBySku, setImagesBySku] = useState<Record<string, string | null>>({});
     const [smartSelectDays, setSmartSelectDays] = useState(30);
-    const dashboardCacheKey = 'dashboard_table_cache_v1';
     const availabilityRequestId = useRef(0);
     const imagesRequestId = useRef(0);
 
@@ -62,36 +65,25 @@ function DashboardCards() {
     };
 
     useEffect(() => {
-        const readCache = () => {
-            try {
-                const raw = localStorage.getItem(dashboardCacheKey);
-                if (!raw) return null;
-                const parsed = JSON.parse(raw) as { data: DashboardDataResponse; headers: DashboardHeader[] };
-                if (!parsed || !Array.isArray(parsed.data) || !Array.isArray(parsed.headers)) return null;
-                return parsed;
-            } catch {
-                return null;
-            }
-        };
-
-        const writeCache = (data: DashboardDataResponse, nextHeaders: DashboardHeader[]) => {
-            try {
-                localStorage.setItem(dashboardCacheKey, JSON.stringify({ data, headers: nextHeaders }));
-            } catch {
-                // Ignore cache write failures (e.g. quota).
-            }
-        };
-
-        const cached = readCache();
-        if (cached) {
-            const cachedHeaders = injectInStockHeader(cached.headers);
-            setOriginalData(cached.data);
-            setHeaders(cachedHeaders);
-        }
-
         let cancelled = false;
 
-        const refresh = async () => {
+        const loadData = async () => {
+            // Try to load from Redis cache first
+            try {
+                const cached = await getDashboardCache(DASHBOARD_CACHE_DEALER_KEY);
+                if (cached && !cancelled) {
+                    const cachedData = cached.data as DashboardDataResponse;
+                    const cachedHeaders = cached.headers as DashboardHeader[];
+                    if (Array.isArray(cachedData) && Array.isArray(cachedHeaders)) {
+                        setOriginalData(cachedData);
+                        setHeaders(injectInStockHeader(cachedHeaders));
+                    }
+                }
+            } catch (err) {
+                console.error('Error loading dashboard cache from Redis:', err);
+            }
+
+            // Fetch fresh data from API
             setLoadingData(true);
             setLoadingHeaders(true);
             try {
@@ -103,7 +95,11 @@ function DashboardCards() {
                 const enrichedHeaders = injectInStockHeader(nextHeaders);
                 setOriginalData(data);
                 setHeaders(enrichedHeaders);
-                writeCache(data, enrichedHeaders);
+
+                // Write to Redis cache
+                setDashboardCache(DASHBOARD_CACHE_DEALER_KEY, { data, headers: enrichedHeaders }).catch((err) => {
+                    console.error('Error saving dashboard cache to Redis:', err);
+                });
             } catch (err) {
                 console.error(err);
             } finally {
@@ -113,7 +109,7 @@ function DashboardCards() {
             }
         };
 
-        refresh();
+        loadData();
 
         return () => {
             cancelled = true;

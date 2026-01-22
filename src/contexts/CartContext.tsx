@@ -1,7 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useSelector } from "react-redux";
 import { hydrateBySkus } from "../api/catalogApi";
 import type { HydratedSkuItem } from "../api/catalogApi";
+import { getCartCache, updateCartCache } from "../api/cacheApi";
 import { selectDealerName } from "../store/slices/filterSlice";
 import { resolveStoreForDealer } from "../utils/storeRouting";
 
@@ -23,40 +24,19 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
-const CART_STORAGE_KEY = 'b2b-cart';
-
-// Load cart from localStorage
-function loadCartFromStorage(): CartByDealer {
-  try {
-    const stored = localStorage.getItem(CART_STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored) as CartByDealer;
-      // Validate structure
-      if (typeof parsed === 'object' && parsed !== null) {
-        return parsed;
-      }
-    }
-  } catch (error) {
-    console.error('Error loading cart from localStorage:', error);
-  }
-  return {};
-}
-
-// Save cart to localStorage
-function saveCartToStorage(cartByDealer: CartByDealer) {
-  try {
-    localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cartByDealer));
-  } catch (error) {
-    console.error('Error saving cart to localStorage:', error);
-  }
-}
+// Debounce delay for saving cart to Redis (ms)
+const SAVE_DEBOUNCE_MS = 500;
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const dealerName = useSelector(selectDealerName);
-  // Store cart items per dealer - initialize from localStorage
-  const [cartByDealer, setCartByDealer] = useState<CartByDealer>(() => loadCartFromStorage());
+  // Store cart items per dealer - initialize empty, load from Redis
+  const [cartByDealer, setCartByDealer] = useState<CartByDealer>({});
   const [hydrated, setHydrated] = useState<Record<string, HydratedSkuItem>>({});
   const [loading, setLoading] = useState(false);
+  const [cartLoaded, setCartLoaded] = useState(false);
+
+  // Track pending saves per dealer for debouncing
+  const pendingSaveRef = useRef<Record<string, NodeJS.Timeout>>({});
 
   // Get cart items for current dealer
   const cart = useMemo(() => {
@@ -68,10 +48,51 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const skus = useMemo(() => cart.map((c) => c.sku), [cart]);
 
-  // Save cart to localStorage whenever it changes
+  // Load cart from Redis on mount
   useEffect(() => {
-    saveCartToStorage(cartByDealer);
-  }, [cartByDealer]);
+    let cancelled = false;
+
+    async function loadCart() {
+      try {
+        const cached = await getCartCache();
+        if (cancelled) return;
+        if (cached && typeof cached === 'object') {
+          setCartByDealer(cached);
+        }
+      } catch (error) {
+        console.error('Error loading cart from Redis:', error);
+      } finally {
+        if (!cancelled) setCartLoaded(true);
+      }
+    }
+
+    loadCart();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Debounced save function for a specific dealer
+  const saveCartForDealer = useCallback((dealer: string, items: CartItem[]) => {
+    // Clear any pending save for this dealer
+    if (pendingSaveRef.current[dealer]) {
+      clearTimeout(pendingSaveRef.current[dealer]);
+    }
+
+    // Schedule a new debounced save
+    pendingSaveRef.current[dealer] = setTimeout(() => {
+      updateCartCache(dealer, items).catch((error) => {
+        console.error('Error saving cart to Redis:', error);
+      });
+      delete pendingSaveRef.current[dealer];
+    }, SAVE_DEBOUNCE_MS);
+  }, []);
+
+  // Save cart to Redis when it changes (debounced, per dealer)
+  useEffect(() => {
+    if (!cartLoaded || !dealerName) return;
+
+    const items = cartByDealer[dealerName] || [];
+    saveCartForDealer(dealerName, items);
+  }, [cartByDealer, dealerName, cartLoaded, saveCartForDealer]);
 
   useEffect(() => {
     let cancelled = false;

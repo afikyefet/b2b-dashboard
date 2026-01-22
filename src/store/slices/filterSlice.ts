@@ -1,7 +1,8 @@
-import { createSlice, createSelector } from '@reduxjs/toolkit';
-import type { PayloadAction } from '@reduxjs/toolkit';
+import { createSlice, createSelector, createAsyncThunk } from '@reduxjs/toolkit';
+import type { PayloadAction, Middleware } from '@reduxjs/toolkit';
 import type { RootState } from '../index';
 import type { RangeFilter } from '../../types/dashboard.types';
+import { getFiltersCache, updateFiltersCache } from '../../api/cacheApi';
 
 interface FilterState {
   dealerName: string | null;
@@ -16,30 +17,40 @@ interface FilterState {
   howMuchToSellNowRange: RangeFilter;
   sellRateRange: RangeFilter;
   lastStockRange: RangeFilter;
+  _filtersLoaded: boolean;
 }
 
-// Load initial state from localStorage
-const loadStateFromStorage = (): Partial<FilterState> => {
-  try {
-    const serializedState = localStorage.getItem('dashboardFilters');
-    if (serializedState === null) {
-      return {};
+// Async thunk to load filters from Redis
+export const loadFiltersFromRedis = createAsyncThunk(
+  'filter/loadFromRedis',
+  async () => {
+    try {
+      const cached = await getFiltersCache();
+      return { dealerName: cached.dealerName };
+    } catch (error) {
+      console.error('Error loading filters from Redis:', error);
+      return { dealerName: null };
     }
-    const parsedState = JSON.parse(serializedState);
-    // Only load dealerName from localStorage
-    return {
-      dealerName: parsedState.dealerName || null,
-    };
-  } catch (error) {
-    console.error('Error loading filter state from localStorage:', error);
-    return {};
   }
+);
+
+// Middleware to sync filter changes to Redis
+export const filterPersistMiddleware: Middleware = (store) => (next) => (action) => {
+  const result = next(action);
+
+  // Only sync dealerName changes to Redis
+  if (action.type === 'filter/setDealerName') {
+    const state = store.getState() as RootState;
+    updateFiltersCache({ dealerName: state.filter.dealerName }).catch((error) => {
+      console.error('Error saving filters to Redis:', error);
+    });
+  }
+
+  return result;
 };
 
-const savedState = loadStateFromStorage();
-
 const initialState: FilterState = {
-  dealerName: savedState.dealerName ?? null,
+  dealerName: null,
   productCategory: [],
   productName: [],
   variantSku: [],
@@ -51,6 +62,7 @@ const initialState: FilterState = {
   howMuchToSellNowRange: { min: null, max: null },
   sellRateRange: { min: null, max: null },
   lastStockRange: { min: null, max: null },
+  _filtersLoaded: false,
 };
 
 const filterSlice = createSlice({
@@ -59,15 +71,7 @@ const filterSlice = createSlice({
   reducers: {
     setDealerName: (state, action: PayloadAction<string | null>) => {
       state.dealerName = action.payload;
-      // Save to localStorage
-      try {
-        const stateToSave = {
-          dealerName: action.payload,
-        };
-        localStorage.setItem('dashboardFilters', JSON.stringify(stateToSave));
-      } catch (error) {
-        console.error('Error saving filter state to localStorage:', error);
-      }
+      // Redis sync is handled by filterPersistMiddleware
     },
     setGeneralSearch: (state, action: PayloadAction<string>) => {
       state.generalSearch = action.payload;
@@ -158,6 +162,15 @@ const filterSlice = createSlice({
     initializeFilters: (state, action: PayloadAction<Partial<FilterState>>) => {
       return { ...state, ...action.payload };
     },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(loadFiltersFromRedis.fulfilled, (state, action) => {
+      state.dealerName = action.payload.dealerName;
+      state._filtersLoaded = true;
+    });
+    builder.addCase(loadFiltersFromRedis.rejected, (state) => {
+      state._filtersLoaded = true;
+    });
   },
 });
 

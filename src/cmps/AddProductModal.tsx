@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { fetchProducts, fetchProductVariants, type ProductListItem, type HydratedSkuItem } from '../api/catalogApi';
 import { getPublicProducts, getPublicProductVariants } from '../api/publicOrders';
+import { getProductsCache, setProductsCache, getVariantsCache, setVariantsCache } from '../api/cacheApi';
 import { cn } from '../lib/utils';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
@@ -41,8 +42,6 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
   const [productsWithVariants, setProductsWithVariants] = useState<Map<string, ProductWithVariants>>(new Map());
   const [loadingVariants, setLoadingVariants] = useState<Set<string>>(new Set());
   const storeTag = (store || 'US').toLowerCase();
-  const productsCacheKey = `browse_products_cache_v1_${storeTag}`;
-  const variantsCacheKey = `browse_product_variants_cache_v1_${storeTag}`;
 
   const parseProductOptions = (optionsJson: string | null | undefined): ProductOption[] => {
     if (!optionsJson) return [];
@@ -60,62 +59,19 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     return [];
   };
 
-  const buildProductsCacheKey = (query: string) => `store=${storeTag}|q=${query || ''}`;
-
-  const readProductsCache = () => {
-    try {
-      const raw = localStorage.getItem(productsCacheKey);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as { key: string; items: ProductListItem[] };
-      if (!parsed || typeof parsed.key !== 'string' || !Array.isArray(parsed.items)) return null;
-      return parsed;
-    } catch {
-      return null;
-    }
-  };
-
-  const writeProductsCache = (key: string, items: ProductListItem[]) => {
-    try {
-      localStorage.setItem(productsCacheKey, JSON.stringify({ key, items }));
-    } catch {
-      // Ignore cache write failures (e.g. quota).
-    }
-  };
-
-  const readVariantsCache = () => {
-    try {
-      const raw = localStorage.getItem(variantsCacheKey);
-      if (!raw) return null;
-      const parsed = JSON.parse(raw) as Record<string, {
-        product: ProductListItem;
-        variants: HydratedSkuItem[];
-        options: ProductOption[];
-      }>;
-      if (!parsed || typeof parsed !== 'object') return null;
-      return parsed;
-    } catch {
-      return null;
-    }
-  };
-
-  const writeVariantCache = (productId: string, data: { product: ProductListItem; variants: HydratedSkuItem[]; options: ProductOption[] }) => {
-    try {
-      const existing = readVariantsCache() || {};
-      const next = { ...existing, [productId]: data };
-      localStorage.setItem(variantsCacheKey, JSON.stringify(next));
-    } catch {
-      // Ignore cache write failures.
-    }
-  };
-
   const loadProducts = async (options?: { useCache?: boolean }) => {
-    const cacheKey = buildProductsCacheKey(productSearch);
-    if (options?.useCache) {
-      const cached = readProductsCache();
-      if (cached?.key === cacheKey && cached.items.length > 0) {
-        setProducts(cached.items);
+    // Try Redis cache first (only for authenticated users, not public tokens)
+    if (options?.useCache && !publicToken) {
+      try {
+        const cached = await getProductsCache<ProductListItem>(storeTag, productSearch || '');
+        if (cached && cached.length > 0) {
+          setProducts(cached);
+        }
+      } catch (err) {
+        console.error('Error loading products cache from Redis:', err);
       }
     }
+
     setLoadingProducts(true);
     try {
       const result = publicToken
@@ -126,7 +82,13 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
             store,
           });
       setProducts(result.items);
-      writeProductsCache(cacheKey, result.items);
+
+      // Write to Redis cache (only for authenticated users)
+      if (!publicToken) {
+        setProductsCache(storeTag, productSearch || '', result.items).catch((err) => {
+          console.error('Error saving products cache to Redis:', err);
+        });
+      }
     } catch (err) {
       console.error(err);
       alert('Error loading products');
@@ -140,20 +102,24 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
     if (hasInState && !options?.revalidate) return;
     if (loadingVariants.has(productId)) return;
 
-    if (options?.useCache && !hasInState) {
-      const cachedVariants = readVariantsCache();
-      const cached = cachedVariants ? cachedVariants[productId] : undefined;
-      if (cached && cached.variants.length > 0) {
-        setProductsWithVariants(prev => {
-          const newMap = new Map(prev);
-          newMap.set(productId, {
-            product: cached.product,
-            variants: cached.variants,
-            options: cached.options,
-            selectedOptions: {}
+    // Try Redis cache first (only for authenticated users)
+    if (options?.useCache && !hasInState && !publicToken) {
+      try {
+        const cached = await getVariantsCache<ProductListItem, HydratedSkuItem, ProductOption>(storeTag, productId);
+        if (cached && cached.variants.length > 0) {
+          setProductsWithVariants(prev => {
+            const newMap = new Map(prev);
+            newMap.set(productId, {
+              product: cached.product,
+              variants: cached.variants,
+              options: cached.options,
+              selectedOptions: {}
+            });
+            return newMap;
           });
-          return newMap;
-        });
+        }
+      } catch (err) {
+        console.error('Error loading variants cache from Redis:', err);
       }
     }
 
@@ -234,11 +200,15 @@ export const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClos
           });
           return newMap;
         });
-        if (productRecord) {
-          writeVariantCache(productId, {
+
+        // Write to Redis cache (only for authenticated users)
+        if (productRecord && !publicToken) {
+          setVariantsCache(storeTag, productId, {
             product: productRecord,
             variants: result.items,
             options: enrichedOptions
+          }).catch((err) => {
+            console.error('Error saving variants cache to Redis:', err);
           });
         }
       }

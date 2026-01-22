@@ -5,6 +5,7 @@ import { Trash2 } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import { hydrateBySkus, fetchProducts, fetchProductVariants } from '../api/catalogApi';
 import type { ProductListItem, HydratedSkuItem } from '../api/catalogApi';
+import { getProductsCache, setProductsCache, getVariantsCache, setVariantsCache } from '../api/cacheApi';
 import { CreateOrderModal } from '../cmps/CreateOrderModal';
 import { selectDealerName } from '../store/slices/filterSlice';
 import { resolveStoreForDealer } from '../utils/storeRouting';
@@ -61,9 +62,8 @@ export default function CartPage() {
     const [productsWithVariants, setProductsWithVariants] = useState<Map<string, ProductWithVariants>>(new Map());
     const [loadingVariants, setLoadingVariants] = useState<Set<string>>(new Set());
     const storeTag = storeCode.toLowerCase();
-    const productsCacheKey = `cart_browse_products_cache_v1_${storeTag}`;
-    const variantsCacheKey = `cart_browse_product_variants_cache_v1_${storeTag}`;
-    const noOrderNoteBySku = useMemo(() => getNoOrderNoteBySku(dealerName), [dealerName]);
+    // Note: Dashboard data is now cached in Redis, no-order notes require dashboard data to be passed
+    const noOrderNoteBySku = useMemo(() => getNoOrderNoteBySku(dealerName, undefined), [dealerName]);
 
     const handleAddSku = async () => {
         if (!skuInput.trim()) return;
@@ -103,62 +103,19 @@ export default function CartPage() {
     };
 
     // Load products
-    const buildProductsCacheKey = (query: string) => `store=${storeTag}|q=${query || ''}`;
-
-    const readProductsCache = () => {
-        try {
-            const raw = localStorage.getItem(productsCacheKey);
-            if (!raw) return null;
-            const parsed = JSON.parse(raw) as { key: string; items: ProductListItem[] };
-            if (!parsed || typeof parsed.key !== 'string' || !Array.isArray(parsed.items)) return null;
-            return parsed;
-        } catch {
-            return null;
-        }
-    };
-
-    const writeProductsCache = (key: string, items: ProductListItem[]) => {
-        try {
-            localStorage.setItem(productsCacheKey, JSON.stringify({ key, items }));
-        } catch {
-            // Ignore cache write failures (e.g. quota).
-        }
-    };
-
-    const readVariantsCache = () => {
-        try {
-            const raw = localStorage.getItem(variantsCacheKey);
-            if (!raw) return null;
-            const parsed = JSON.parse(raw) as Record<string, {
-                product: ProductListItem;
-                variants: HydratedSkuItem[];
-                options: ProductOption[];
-            }>;
-            if (!parsed || typeof parsed !== 'object') return null;
-            return parsed;
-        } catch {
-            return null;
-        }
-    };
-
-    const writeVariantCache = (productId: string, data: { product: ProductListItem; variants: HydratedSkuItem[]; options: ProductOption[] }) => {
-        try {
-            const existing = readVariantsCache() || {};
-            const next = { ...existing, [productId]: data };
-            localStorage.setItem(variantsCacheKey, JSON.stringify(next));
-        } catch {
-            // Ignore cache write failures.
-        }
-    };
-
     const loadProducts = async (options?: { useCache?: boolean }) => {
-        const cacheKey = buildProductsCacheKey(productSearch);
+        // Try Redis cache first
         if (options?.useCache) {
-            const cached = readProductsCache();
-            if (cached?.key === cacheKey && cached.items.length > 0) {
-                setProducts(cached.items);
+            try {
+                const cached = await getProductsCache<ProductListItem>(storeTag, productSearch || '');
+                if (cached && cached.length > 0) {
+                    setProducts(cached);
+                }
+            } catch (err) {
+                console.error('Error loading products cache from Redis:', err);
             }
         }
+
         setLoadingProducts(true);
         try {
             const result = await fetchProducts({
@@ -167,7 +124,11 @@ export default function CartPage() {
                 store: storeCode,
             });
             setProducts(result.items);
-            writeProductsCache(cacheKey, result.items);
+
+            // Write to Redis cache
+            setProductsCache(storeTag, productSearch || '', result.items).catch((err) => {
+                console.error('Error saving products cache to Redis:', err);
+            });
         } catch (err) {
             console.error(err);
             alert('Error loading products');
@@ -216,20 +177,24 @@ export default function CartPage() {
         if (hasInState && !options?.revalidate) return;
         if (loadingVariants.has(productId)) return;
 
+        // Try Redis cache first
         if (options?.useCache && !hasInState) {
-            const cachedVariants = readVariantsCache();
-            const cached = cachedVariants ? cachedVariants[productId] : undefined;
-            if (cached && cached.variants.length > 0) {
-                setProductsWithVariants(prev => {
-                    const newMap = new Map(prev);
-                    newMap.set(productId, {
-                        product: cached.product,
-                        variants: cached.variants,
-                        options: cached.options,
-                        selectedOptions: {}
+            try {
+                const cached = await getVariantsCache<ProductListItem, HydratedSkuItem, ProductOption>(storeTag, productId);
+                if (cached && cached.variants.length > 0) {
+                    setProductsWithVariants(prev => {
+                        const newMap = new Map(prev);
+                        newMap.set(productId, {
+                            product: cached.product,
+                            variants: cached.variants,
+                            options: cached.options,
+                            selectedOptions: {}
+                        });
+                        return newMap;
                     });
-                    return newMap;
-                });
+                }
+            } catch (err) {
+                console.error('Error loading variants cache from Redis:', err);
             }
         }
         
@@ -313,11 +278,15 @@ export default function CartPage() {
                     });
                     return newMap;
                 });
+
+                // Write to Redis cache
                 if (productRecord) {
-                    writeVariantCache(productId, {
+                    setVariantsCache(storeTag, productId, {
                         product: productRecord,
                         variants: result.items,
                         options: enrichedOptions
+                    }).catch((err) => {
+                        console.error('Error saving variants cache to Redis:', err);
                     });
                 }
             }

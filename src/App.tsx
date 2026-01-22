@@ -1,4 +1,6 @@
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, Outlet, useLocation } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import Dashboard from './cmps/Dashboard'
 import CartPage from './pages/CartPage';
 import OrdersList from './pages/OrdersList';
@@ -8,6 +10,8 @@ import AppHeader from './cmps/AppHeader';
 import SelectedSkusSidebar from './cmps/SelectedSkusSidebar';
 import LoginPage from './pages/LoginPage';
 import { useAuth } from './contexts/AuthContext';
+import { loadFiltersFromRedis } from './store/slices/filterSlice';
+import type { AppDispatch } from './store';
 
 function AppShell() {
   return (
@@ -22,6 +26,14 @@ function AppShell() {
 function RequireAuth() {
   const { status, authDisabled, token } = useAuth();
   const location = useLocation();
+  const dispatch = useDispatch<AppDispatch>();
+
+  // Load filters from Redis when authenticated
+  useEffect(() => {
+    if (authDisabled || token) {
+      dispatch(loadFiltersFromRedis());
+    }
+  }, [authDisabled, token, dispatch]);
 
   if (status === 'checking') {
     return (
