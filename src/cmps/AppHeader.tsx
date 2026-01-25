@@ -54,7 +54,15 @@ function AppHeader() {
     }, []);
 
     useEffect(() => {
-        applyDealerTheme(getDealerTheme(dealerName));
+        let cancelled = false;
+        getDealerTheme(dealerName).then((theme) => {
+            if (!cancelled) {
+                applyDealerTheme(theme);
+            }
+        });
+        return () => {
+            cancelled = true;
+        };
     }, [dealerName]);
 
     const handleDealerSelect = (dealer: string) => {

@@ -255,7 +255,15 @@ export default function PublicOrderPage() {
 
   useEffect(() => {
     const dealerKey = order?.dealer_company || order?.dealer_name || '';
-    applyDealerTheme(getDealerTheme(dealerKey));
+    let cancelled = false;
+    getDealerTheme(dealerKey).then((theme) => {
+      if (!cancelled) {
+        applyDealerTheme(theme);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [order?.dealer_company, order?.dealer_name]);
 
   useEffect(() => {

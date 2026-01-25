@@ -1,14 +1,26 @@
+import { getStoreForDealer as getStoreForDealerFromService } from '../services/dealerConfig.service';
+
 export type StoreCode = "US" | "EU";
 
-const dealerStoreMap: Record<string, StoreCode> = {
-  "sas tactical equipements": "EU",
-  "aalto group": "EU",
-  "best protection": "EU",
-  "steinadler": "EU",
-  "safety agency, s.r.o.": "EU",
-  "primary arms": "US",
-  "hydrocore concepts llc": "US",
-};
+// Cache for synchronous access (populated after first async load)
+let storeCache: Map<string, StoreCode> | null = null;
+
+/**
+ * Initializes the store cache from the dealer config service.
+ * This should be called after the dealer config is loaded.
+ */
+export async function initializeStoreCache(): Promise<void> {
+  try {
+    const { fetchDealerConfig } = await import('../services/dealerConfig.service');
+    const config = await fetchDealerConfig();
+    storeCache = new Map();
+    config.dealers.forEach(dealer => {
+      storeCache!.set(dealer.name, dealer.store);
+    });
+  } catch (error) {
+    console.error('[storeRouting] Failed to initialize store cache:', error);
+  }
+}
 
 export function normalizeStore(input?: string | null): StoreCode | null {
   if (!input) return null;
@@ -22,12 +34,41 @@ export function normalizeStore(input?: string | null): StoreCode | null {
   return null;
 }
 
+/**
+ * Matches a dealer name to a store code.
+ * Uses cached config if available, otherwise returns null.
+ * For async access, use getStoreForDealerFromService directly.
+ */
 export function matchStoreForDealer(dealerName?: string | null): StoreCode | null {
   if (!dealerName) return null;
+  if (!storeCache) {
+    // Config not loaded yet, try async lookup as fallback
+    // This is a best-effort synchronous fallback
+    return null;
+  }
   const key = dealerName.trim().toLowerCase();
-  return dealerStoreMap[key] ?? null;
+  return storeCache.get(key) ?? null;
 }
 
+/**
+ * Resolves store code for a dealer, defaulting to "US" if not found.
+ * Uses cached config if available.
+ */
 export function resolveStoreForDealer(dealerName?: string | null): StoreCode {
   return matchStoreForDealer(dealerName) ?? "US";
+}
+
+/**
+ * Async version that fetches from service if cache is not available.
+ * Use this when you need guaranteed accuracy and can handle async.
+ */
+export async function resolveStoreForDealerAsync(dealerName?: string | null): Promise<StoreCode> {
+  if (!dealerName) return "US";
+  try {
+    const store = await getStoreForDealerFromService(dealerName);
+    return store ?? "US";
+  } catch (error) {
+    console.error('[storeRouting] Failed to resolve store for dealer:', error);
+    return "US";
+  }
 }
