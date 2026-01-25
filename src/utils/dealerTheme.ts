@@ -1,30 +1,26 @@
-export type DealerTheme = {
-    primary: string;
-    primaryHover: string;
-};
+import { getDealerTheme as getDealerThemeFromService, type DealerTheme } from '../services/dealerConfig.service';
 
+// Re-export type for backward compatibility
+export type { DealerTheme };
+
+// Default theme fallback (used if service hasn't loaded yet)
 export const DEFAULT_DEALER_THEME: DealerTheme = {
     primary: "#008060",
     primaryHover: "#006f55",
 };
 
-export const DEALER_THEME_MAP: Record<string, DealerTheme> = {
-    "primary arms": { primary: "#cf0e2c", primaryHover: "#960D21" },
-    "hydrocore concepts llc": { primary: "#8b1201", primaryHover: "#640E02" },
-    "aalto group": { primary: "#fd5304", primaryHover: "#C24003" },
-    "best protection": { primary: "#83805b", primaryHover: "#55533C" },
-    "safety agency, s.r.o.": { primary: "#30363f", primaryHover: "#1F2329" },
-    "sas tactical equipements": { primary: "#fe842e", primaryHover: "#C46624" },
-    "steinadler": { primary: "#353535", primaryHover: "#292929" },
-};
-
-export function normalizeDealerKey(value: string): string {
-    return value.trim().toLowerCase();
-}
-
-export function getDealerTheme(dealerName?: string | null): DealerTheme {
-    if (!dealerName) return DEFAULT_DEALER_THEME;
-    return DEALER_THEME_MAP[normalizeDealerKey(dealerName)] ?? DEFAULT_DEALER_THEME;
+/**
+ * Gets the theme configuration for a dealer.
+ * This is an async function that fetches from the centralized dealer config service.
+ * Use this in async contexts (useEffect, event handlers, etc.)
+ */
+export async function getDealerTheme(dealerName?: string | null): Promise<DealerTheme> {
+    try {
+        return await getDealerThemeFromService(dealerName);
+    } catch (error) {
+        console.error('[dealerTheme] Failed to get dealer theme, using default:', error);
+        return DEFAULT_DEALER_THEME;
+    }
 }
 
 export function applyDealerTheme(theme: DealerTheme): void {
