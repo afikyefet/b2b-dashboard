@@ -164,18 +164,20 @@ function DashboardCards() {
             const isAvailable = availability.available_for_sale || inventory > 0;
             return isAvailable; // Only show in stock items
         });
-    }, [filteredDataBeforeStock, filters.outOfStockOnly, availabilityBySku, availabilityLoading]);
+    }, [filteredDataBeforeStock, filters.outOfStockOnly, availabilityBySku]);
 
     const storeCode = useMemo(() => resolveStoreForDealer(filters.dealerName), [filters.dealerName]);
 
+    // Compute SKUs from filteredDataBeforeStock to avoid refetching when stock filter is applied
+    // This way we fetch availability for all filtered SKUs, then filter the display based on stock status
     const filteredSkus = useMemo(() => {
         const set = new Set<string>();
-        filteredData.forEach(row => {
+        filteredDataBeforeStock.forEach(row => {
             const sku = row.variant_sku_real;
             if (sku) set.add(String(sku));
         });
         return Array.from(set);
-    }, [filteredData]);
+    }, [filteredDataBeforeStock]);
 
     useEffect(() => {
         if (filteredSkus.length === 0) {
