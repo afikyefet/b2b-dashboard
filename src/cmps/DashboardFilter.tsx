@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { ChevronRight } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import type { AppDispatch } from "../store";
@@ -11,6 +11,7 @@ import {
     toggleVariantSize,
     toggleVariantColor,
     toggleProductSellType,
+    setOutOfStockOnly,
     setWhenToSellRange,
     setHowMuchToSellNowRange,
     setSellRateRange,
@@ -30,6 +31,7 @@ import {
 } from "../components/ui/dropdown-menu";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { Checkbox } from "../components/ui/checkbox";
 
 interface DashboardFilterProps {
     filterOptions: FilterOptions;
@@ -161,11 +163,7 @@ function DashboardFilter({
         cart.forEach(item => removeSku(item.sku));
     };
 
-    useEffect(() => {
-        if (!filtersExpanded && filteredData.length === 0) {
-            setFiltersExpanded(false);
-        }
-    }, [filteredData.length, filtersExpanded]);
+    // Removed unnecessary useEffect that was setting state synchronously
 
     return (
         <div className="rounded-lg border border-border bg-card p-4 shadow-sm max-md:p-3">
@@ -203,6 +201,19 @@ function DashboardFilter({
                         placeholder="Search across all fields..."
                         className="h-9 max-w-xs text-xs max-md:w-full max-md:max-w-none max-md:h-11 max-md:text-sm"
                     />
+                </div>
+                <div className="flex items-center gap-2 max-md:w-full">
+                    <Checkbox
+                        id="outOfStockOnly"
+                        checked={filters.outOfStockOnly || false}
+                        onCheckedChange={(checked) => dispatch(setOutOfStockOnly(checked === true))}
+                    />
+                    <Label
+                        htmlFor="outOfStockOnly"
+                        className="text-xs font-semibold text-muted-foreground cursor-pointer max-md:text-sm"
+                    >
+                        In Stock Only
+                    </Label>
                 </div>
                 <div className="flex flex-wrap items-center gap-2 max-md:w-full max-md:flex-col max-md:gap-2">
                     <div className="flex items-center gap-2 max-md:w-full max-md:justify-between">

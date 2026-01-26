@@ -11,6 +11,8 @@ import { resolveStoreForDealer } from '../utils/storeRouting';
 import { getNoOrderNoteBySku } from '../utils/cartOrderNotes';
 import { cn } from '../lib/utils';
 import { Badge } from '../components/ui/badge';
+import { getDashboardData } from '../services/dashboard.service';
+import type { DashboardDataResponse } from '../types/dashboard.types';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import {
@@ -60,10 +62,40 @@ export default function CartPage() {
     const [loadingProducts, setLoadingProducts] = useState(false);
     const [productsWithVariants, setProductsWithVariants] = useState<Map<string, ProductWithVariants>>(new Map());
     const [loadingVariants, setLoadingVariants] = useState<Set<string>>(new Set());
+    const [dashboardData, setDashboardData] = useState<DashboardDataResponse>([]);
     const storeTag = storeCode.toLowerCase();
     const productsCacheKey = `cart_browse_products_cache_v1_${storeTag}`;
     const variantsCacheKey = `cart_browse_product_variants_cache_v1_${storeTag}`;
     const noOrderNoteBySku = useMemo(() => getNoOrderNoteBySku(dealerName), [dealerName]);
+
+    // Fetch dashboard data to get sell types
+    useEffect(() => {
+        let cancelled = false;
+        getDashboardData()
+            .then((data) => {
+                if (!cancelled) {
+                    setDashboardData(data);
+                }
+            })
+            .catch((err) => {
+                console.error('Error fetching dashboard data for sell types:', err);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    // Create a map of SKU to sell type
+    const sellTypeBySku = useMemo(() => {
+        const map: Record<string, string> = {};
+        dashboardData.forEach((row) => {
+            const sku = row.variant_sku_real;
+            if (sku && row.product_sell_type) {
+                map[String(sku)] = String(row.product_sell_type);
+            }
+        });
+        return map;
+    }, [dashboardData]);
 
     const handleAddSku = async () => {
         if (!skuInput.trim()) return;
@@ -635,14 +667,23 @@ export default function CartPage() {
                                         {sortedCart.map((item) => {
                                             const details = hydrated[item.sku];
                                             const showNoOrderNote = noOrderNoteBySku[item.sku];
+                                            const sellType = sellTypeBySku[item.sku];
+                                            const isProblematic = sellType === 'Problematic Product' || sellType === 'Awaiting Further Data';
 
                                             return (
                                                 <TableRow key={item.sku}>
                                                     <TableCell>
                                                         {details ? (
                                                             <div className="space-y-1">
-                                                                <div className="font-semibold text-foreground">
-                                                                    {details.product_title}
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="font-semibold text-foreground">
+                                                                        {details.product_title}
+                                                                    </div>
+                                                                    {isProblematic && (
+                                                                        <Badge variant="destructive" className="h-4 px-1.5 text-[10px] font-semibold">
+                                                                            {sellType === 'Problematic Product' ? '⚠' : '⏳'}
+                                                                        </Badge>
+                                                                    )}
                                                                 </div>
                                                                 <div className="text-xs text-muted-foreground">
                                                                     {details.variant_title}
@@ -655,15 +696,32 @@ export default function CartPage() {
                                                                         wasnt ordered in the past year
                                                                     </div>
                                                                 )}
+                                                                {isProblematic && (
+                                                                    <div className="text-xs text-destructive font-medium">
+                                                                        {sellType}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         ) : (
                                                             <div className="space-y-1">
-                                                                <span className="text-sm text-muted-foreground">
-                                                                    Loading {item.sku}...
-                                                                </span>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-sm text-muted-foreground">
+                                                                        Loading {item.sku}...
+                                                                    </span>
+                                                                    {isProblematic && (
+                                                                        <Badge variant="destructive" className="h-4 px-1.5 text-[10px] font-semibold">
+                                                                            {sellType === 'Problematic Product' ? '⚠' : '⏳'}
+                                                                        </Badge>
+                                                                    )}
+                                                                </div>
                                                                 {showNoOrderNote && (
                                                                     <div className="text-xs text-warning">
                                                                         wasnt ordered in the past year
+                                                                    </div>
+                                                                )}
+                                                                {isProblematic && (
+                                                                    <div className="text-xs text-destructive font-medium">
+                                                                        {sellType}
                                                                     </div>
                                                                 )}
                                                             </div>

@@ -42,7 +42,9 @@ function DashboardCards() {
 
     const injectInStockHeader = (baseHeaders: DashboardHeader[]): DashboardHeader[] => {
         const alreadyExists = baseHeaders.some(header => header.field === 'in_stock_shopify');
-        if (alreadyExists) return baseHeaders;
+        if (alreadyExists) {
+            return baseHeaders;
+        }
 
         const insertAfterIndex = baseHeaders.findIndex(header => header.field === 'variant_sku_real');
         const inStockHeader: DashboardHeader = {
@@ -99,7 +101,9 @@ function DashboardCards() {
                     getDashboardData(),
                     getDashboardHeaders()
                 ]);
-                if (cancelled) return;
+                if (cancelled) {
+                    return;
+                }
                 const enrichedHeaders = injectInStockHeader(nextHeaders);
                 setOriginalData(data);
                 setHeaders(enrichedHeaders);
@@ -107,9 +111,10 @@ function DashboardCards() {
             } catch (err) {
                 console.error(err);
             } finally {
-                if (cancelled) return;
-                setLoadingData(false);
-                setLoadingHeaders(false);
+                if (!cancelled) {
+                    setLoadingData(false);
+                    setLoadingHeaders(false);
+                }
             }
         };
 
@@ -134,9 +139,32 @@ function DashboardCards() {
     }, [filterOptions.dealerNames, filters.dealerName, dispatch]);
 
     // Apply filters and sorting using useMemo
-    const filteredData = useMemo(() => {
+    const filteredDataBeforeStock = useMemo(() => {
         return applyFiltersAndSort(originalData, filters, sortConfig);
     }, [originalData, filters, sortConfig]);
+
+    // Apply in-stock filter after availability data is loaded
+    const filteredData = useMemo(() => {
+        if (!filters.outOfStockOnly) {
+            return filteredDataBeforeStock;
+        }
+        
+        return filteredDataBeforeStock.filter((row) => {
+            const sku = row.variant_sku_real;
+            if (!sku) return false;
+            
+            const availability = availabilityBySku[sku];
+            if (!availability) {
+                // If availability is still loading, exclude it (will be included when loaded if in stock)
+                // If availability failed to load, exclude it
+                return false;
+            }
+            
+            const inventory = availability.inventory_quantity ?? 0;
+            const isAvailable = availability.available_for_sale || inventory > 0;
+            return isAvailable; // Only show in stock items
+        });
+    }, [filteredDataBeforeStock, filters.outOfStockOnly, availabilityBySku, availabilityLoading]);
 
     const storeCode = useMemo(() => resolveStoreForDealer(filters.dealerName), [filters.dealerName]);
 
@@ -223,6 +251,7 @@ function DashboardCards() {
         if (smartSelectDays !== 30) return true;
         if (filters.generalSearch && filters.generalSearch.trim()) return true;
         // Dealer name is always set (required), so ignore it for "Reset All"
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { dealerName: _dealerName, ...otherFilters } = filters;
         return Object.values(otherFilters).some(value => {
             if (Array.isArray(value)) {

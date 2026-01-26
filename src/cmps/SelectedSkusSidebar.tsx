@@ -13,18 +13,30 @@ import { ScrollArea } from '../components/ui/scroll-area';
 import { Separator } from '../components/ui/separator';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '../components/ui/sheet';
 
-// Prop interface kept for compatibility if needed, but props are unused
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+import type { DashboardDataResponse } from '../types/dashboard.types';
+
 interface SelectedSkusSidebarProps {
-    filteredData?: unknown[];
+    filteredData?: DashboardDataResponse;
 }
 
-function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
+function SelectedSkusSidebar({ filteredData = [] }: SelectedSkusSidebarProps) {
     const navigate = useNavigate();
     const { isOpen, toggleDrawer, setIsOpen } = useDrawer();
     const { cart, hydrated, setQty, removeSku } = useCart();
     const dealerName = useSelector(selectDealerName);
     const noOrderNoteBySku = useMemo(() => getNoOrderNoteBySku(dealerName), [dealerName]);
+
+    // Create a map of SKU to sell type from filteredData
+    const sellTypeBySku = useMemo(() => {
+        const map: Record<string, string> = {};
+        filteredData.forEach((row) => {
+            const sku = row.variant_sku_real;
+            if (sku && row.product_sell_type) {
+                map[String(sku)] = String(row.product_sell_type);
+            }
+        });
+        return map;
+    }, [filteredData]);
 
     const sortedCart = useMemo(() => {
         const items = [...cart];
@@ -71,15 +83,24 @@ function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
                             {sortedCart.map((item) => {
                                 const details = hydrated[item.sku];
                                 const showNoOrderNote = noOrderNoteBySku[item.sku];
+                                const sellType = sellTypeBySku[item.sku];
+                                const isProblematic = sellType === 'Problematic Product' || sellType === 'Awaiting Further Data';
                                 return (
                                     <div
                                         key={item.sku}
                                         className="rounded-md border bg-muted/40 p-3 text-sm"
                                     >
                                         <div className="flex items-start justify-between gap-2">
-                                            <div className="min-w-0">
-                                                <div className="truncate font-semibold text-foreground">
-                                                    {details ? details.product_title : item.sku}
+                                            <div className="min-w-0 flex-1">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="truncate font-semibold text-foreground">
+                                                        {details ? details.product_title : item.sku}
+                                                    </div>
+                                                    {isProblematic && (
+                                                        <Badge variant="destructive" className="h-4 px-1.5 text-[10px] font-semibold">
+                                                            {sellType === 'Problematic Product' ? '⚠' : '⏳'}
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                                 {details && (
                                                     <div className="truncate text-xs text-muted-foreground">
@@ -90,7 +111,7 @@ function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-7 w-7"
+                                                className="h-7 w-7 flex-shrink-0"
                                                 onClick={() => removeSku(item.sku)}
                                                 type="button"
                                             >
@@ -114,6 +135,11 @@ function SelectedSkusSidebar({}: SelectedSkusSidebarProps) {
                                         {showNoOrderNote && (
                                             <div className="mt-2 text-xs text-warning">
                                                 wasnt ordered in the past year
+                                            </div>
+                                        )}
+                                        {isProblematic && (
+                                            <div className="mt-2 text-xs text-destructive font-medium">
+                                                {sellType}
                                             </div>
                                         )}
                                     </div>

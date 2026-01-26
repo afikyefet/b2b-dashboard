@@ -12,6 +12,7 @@ interface FilterState {
   variantColor: string[];
   generalSearch: string;
   productSellType: string[];
+  outOfStockOnly: boolean;
   whenToSellRange: RangeFilter;
   howMuchToSellNowRange: RangeFilter;
   sellRateRange: RangeFilter;
@@ -47,6 +48,7 @@ const initialState: FilterState = {
   variantColor: [],
   generalSearch: '',
   productSellType: [],
+  outOfStockOnly: false,
   whenToSellRange: { min: null, max: null },
   howMuchToSellNowRange: { min: null, max: null },
   sellRateRange: { min: null, max: null },
@@ -120,6 +122,9 @@ const filterSlice = createSlice({
         state.productSellType.splice(index, 1);
       }
     },
+    setOutOfStockOnly: (state, action: PayloadAction<boolean>) => {
+      state.outOfStockOnly = action.payload;
+    },
     setWhenToSellRange: (state, action: PayloadAction<RangeFilter>) => {
       state.whenToSellRange = action.payload;
     },
@@ -147,6 +152,7 @@ const filterSlice = createSlice({
       state.variantColor = [];
       state.generalSearch = '';
       state.productSellType = [];
+      state.outOfStockOnly = false;
       state.whenToSellRange = { min: null, max: null };
       state.howMuchToSellNowRange = { min: null, max: null };
       state.sellRateRange = { min: null, max: null };
@@ -170,6 +176,7 @@ export const {
   toggleVariantSize,
   toggleVariantColor,
   toggleProductSellType,
+  setOutOfStockOnly,
   setWhenToSellRange,
   setHowMuchToSellNowRange,
   setSellRateRange,
@@ -194,6 +201,7 @@ export const selectFilters = createSelector(
     variantColor: filterState.variantColor.length > 0 ? filterState.variantColor : undefined,
     generalSearch: filterState.generalSearch || undefined,
     productSellType: filterState.productSellType.length > 0 ? filterState.productSellType : undefined,
+    outOfStockOnly: filterState.outOfStockOnly || undefined,
     whenToSellRange: (filterState.whenToSellRange.min !== null || filterState.whenToSellRange.max !== null) ? filterState.whenToSellRange : undefined,
     howMuchToSellNowRange: (filterState.howMuchToSellNowRange.min !== null || filterState.howMuchToSellNowRange.max !== null) ? filterState.howMuchToSellNowRange : undefined,
     sellRateRange: (filterState.sellRateRange.min !== null || filterState.sellRateRange.max !== null) ? filterState.sellRateRange : undefined,
@@ -213,6 +221,7 @@ export const selectHasActiveFilters = (state: RootState) => {
     variantColor,
     generalSearch,
     productSellType,
+    outOfStockOnly,
     whenToSellRange,
     howMuchToSellNowRange,
     sellRateRange,
@@ -234,6 +243,7 @@ export const selectHasActiveFilters = (state: RootState) => {
     variantColor.length > 0 ||
     generalSearch.trim() ||
     productSellType.length > 0 ||
+    outOfStockOnly ||
     hasRangeFilter
   );
 };

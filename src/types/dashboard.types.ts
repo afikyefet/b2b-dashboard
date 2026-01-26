@@ -30,6 +30,7 @@ export interface FilterConfig {
   variantSize?: string[];
   variantColor?: string[];
   productSellType?: string[];
+  outOfStockOnly?: boolean;
   whenToSellRange?: RangeFilter;
   howMuchToSellNowRange?: RangeFilter;
   sellRateRange?: RangeFilter;
