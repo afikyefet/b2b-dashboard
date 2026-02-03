@@ -82,6 +82,7 @@ export interface DashboardDataRow {
   when_to_sell: string | null;
   how_much_to_sell_on_schedule: string | number | null;
   sell_rate: string | number | null;
+  when_sell_rate: string | number | null;
   
   // Additional fields that may exist in the data
   Vendor?: string;

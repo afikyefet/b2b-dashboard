@@ -442,6 +442,10 @@ function DashboardCards() {
                                         </div>
                                         <div className="grid grid-cols-2 gap-2 max-md:grid-cols-1 max-md:gap-1.5">
                                             <Field label="Sell Now" value={sellNowValue} />
+                                            <Field label="Last Stock" value={row.last_stock} />
+                                            <Field label="Sell on Schedule" value={row.how_much_to_sell_on_schedule} />
+                                            <Field label="When to Sell" value={row.when_to_sell} />
+                                            <Field label="Sell rate" value={row.when_sell_rate} />
                                         </div>
                                     </div>
 
