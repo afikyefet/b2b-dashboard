@@ -12,6 +12,7 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Textarea } from '../components/ui/textarea';
 import { normalizeStore, resolveStoreForDealer } from '../utils/storeRouting';
+import { exportOrderCsv } from '../utils/csvExport';
 
 export default function OrderDetails() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -304,8 +305,17 @@ export default function OrderDetails() {
           </Card>
 
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Items</CardTitle>
+              {items.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => exportOrderCsv(items, skuDetails, order.dealer_company || order.dealer_name)}
+                >
+                  Export CSV
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <EditableItemsTable

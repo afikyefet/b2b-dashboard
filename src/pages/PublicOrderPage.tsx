@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useDirtyState } from '../hooks/useDirtyState';
 import { matchStoreForDealer, normalizeStore, type StoreCode } from '../utils/storeRouting';
 import { applyDealerTheme, getDealerTheme } from '../utils/dealerTheme';
+import { exportOrderCsv } from '../utils/csvExport';
 import { Badge } from '../components/ui/badge';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
@@ -148,6 +149,19 @@ function formatTime(value: Date | null) {
   return value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+function parseNumericVariantId(value: string | number | undefined | null): number {
+  if (!value) return 0;
+  if (typeof value === 'number') return value;
+  const str = String(value).trim();
+  if (str.startsWith('gid://shopify/ProductVariant/')) {
+    const numStr = str.substring(str.lastIndexOf('/') + 1);
+    const parsed = parseInt(numStr, 10);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }
+  const parsed = parseInt(str, 10);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
 function buildCartUrl(
   items: OrderItem[],
   detailsBySku: Record<string, HydratedSkuItem>,
@@ -166,13 +180,7 @@ function buildCartUrl(
     if (item.qty <= 0) continue;
     let variantId = item.variant_id;
     if (!variantId) {
-      const hydratedVariantId = detailsBySku[item.sku]?.variant_id;
-      if (hydratedVariantId) {
-        const parsed = parseInt(String(hydratedVariantId), 10);
-        if (!Number.isNaN(parsed)) {
-          variantId = parsed;
-        }
-      }
+      variantId = parseNumericVariantId(detailsBySku[item.sku]?.variant_id);
     }
 
     if (!variantId) {
@@ -814,6 +822,18 @@ export default function PublicOrderPage() {
                   </>
                 )}
               </div>
+
+              {items.length > 0 && (
+                <div className="border-t border-border pt-4">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => exportOrderCsv(items, skuDetails, order.dealer_company || order.dealer_name)}
+                  >
+                    Export CSV
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </aside>
