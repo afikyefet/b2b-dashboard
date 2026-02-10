@@ -72,6 +72,15 @@ function SmartSelection({ filteredData, days, onSmartSelectDaysChange }: SmartSe
         }
     };
 
+    const handleDefaultSelect = () => {
+        const defaultDays = 30;
+        onSmartSelectDaysChange?.(defaultDays);
+        const count = selectByRange(0, 30, defaultDays);
+        if (count > 0) {
+            console.log('Selected items from 0-30 days');
+        }
+    };
+
     const handleCustomSelect = () => {
         const min = parseFloat(customMin);
         const max = customMax.trim() ? parseFloat(customMax) : null;
@@ -117,13 +126,27 @@ function SmartSelection({ filteredData, days, onSmartSelectDaysChange }: SmartSe
 
     return (
         <>
-            <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
-                <DropdownMenuTrigger asChild>
-                    <Button size="sm" className="h-9 gap-1">
-                        Smart Select
-                        <ChevronDown className="h-4 w-4" />
-                    </Button>
-                </DropdownMenuTrigger>
+            <div className="flex items-center gap-1">
+                <Button
+                    size="sm"
+                    className="h-9"
+                    onClick={handleDefaultSelect}
+                    type="button"
+                >
+                    Smart Select (30d)
+                </Button>
+                <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+                    <DropdownMenuTrigger asChild>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-9 px-2"
+                            aria-label="Smart select options"
+                            type="button"
+                        >
+                            <ChevronDown className="h-4 w-4" />
+                        </Button>
+                    </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56">
                     {PRESET_RANGES.map((range) => {
                         const count = getCountForRange(range.min, range.max);
@@ -150,7 +173,8 @@ function SmartSelection({ filteredData, days, onSmartSelectDaysChange }: SmartSe
                         Custom range...
                     </DropdownMenuItem>
                 </DropdownMenuContent>
-            </DropdownMenu>
+                </DropdownMenu>
+            </div>
 
             <Dialog open={showCustomModal} onOpenChange={setShowCustomModal}>
                 <DialogContent className="sm:max-w-md">

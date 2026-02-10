@@ -25,6 +25,10 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const CART_STORAGE_KEY = 'b2b-cart';
 
+function normalizeSku(value: unknown): string {
+  return String(value ?? '').trim();
+}
+
 // Load cart from localStorage
 function loadCartFromStorage(): CartByDealer {
   try {
@@ -33,7 +37,30 @@ function loadCartFromStorage(): CartByDealer {
       const parsed = JSON.parse(stored) as CartByDealer;
       // Validate structure
       if (typeof parsed === 'object' && parsed !== null) {
-        return parsed;
+        const normalized: CartByDealer = {};
+        Object.entries(parsed).forEach(([dealer, items]) => {
+          if (!Array.isArray(items)) return;
+          const bySku = new Map<string, CartItem>();
+          items.forEach((item) => {
+            const sku = normalizeSku(item?.sku);
+            const qty = Math.max(0, Math.floor(Number(item?.qty ?? 0)));
+            if (!sku || qty <= 0) return;
+            const existing = bySku.get(sku);
+            if (existing) {
+              existing.qty += qty;
+              if (existing.qty_recommended === undefined && item?.qty_recommended !== undefined) {
+                existing.qty_recommended = Number(item.qty_recommended);
+              }
+            } else {
+              const qtyRecommended = item?.qty_recommended !== undefined
+                ? Math.max(1, Math.floor(Number(item.qty_recommended)))
+                : undefined;
+              bySku.set(sku, { sku, qty, qty_recommended: qtyRecommended });
+            }
+          });
+          normalized[dealer] = Array.from(bySku.values());
+        });
+        return normalized;
       }
     }
   } catch (error) {
@@ -105,13 +132,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function addSku(sku: string, initialQty: number = 1) {
     if (!dealerName) return; // Can't add items without a dealer selected
+    const normalizedSku = normalizeSku(sku);
+    if (!normalizedSku) return;
     
     setCartByDealer((prev) => {
       const dealerCart = prev[dealerName] || [];
-      const existing = dealerCart.find((p) => p.sku === sku);
+      const existing = dealerCart.find((p) => normalizeSku(p.sku) === normalizedSku);
       const updatedCart = existing 
-        ? dealerCart.map((p) => (p.sku === sku ? { ...p, qty: p.qty + 1, qty_recommended: p.qty_recommended ?? p.qty } : p))
-        : [...dealerCart, { sku, qty: Math.max(1, initialQty), qty_recommended: Math.max(1, initialQty) }];
+        ? dealerCart.map((p) => (normalizeSku(p.sku) === normalizedSku ? { ...p, sku: normalizedSku, qty: p.qty + 1, qty_recommended: p.qty_recommended ?? p.qty } : p))
+        : [...dealerCart, { sku: normalizedSku, qty: Math.max(1, initialQty), qty_recommended: Math.max(1, initialQty) }];
       
       const updated = {
         ...prev,
@@ -124,13 +153,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function setQty(sku: string, qty: number) {
     if (!dealerName) return; // Can't modify items without a dealer selected
+    const normalizedSku = normalizeSku(sku);
+    if (!normalizedSku) return;
     
     setCartByDealer((prev) => {
       const dealerCart = prev[dealerName] || [];
       const nextQty = Math.max(0, Math.floor(qty));
       const updatedCart = nextQty === 0 
-        ? dealerCart.filter((p) => p.sku !== sku)
-        : dealerCart.map((p) => (p.sku === sku ? { ...p, qty: nextQty } : p));
+        ? dealerCart.filter((p) => normalizeSku(p.sku) !== normalizedSku)
+        : dealerCart.map((p) => (normalizeSku(p.sku) === normalizedSku ? { ...p, sku: normalizedSku, qty: nextQty } : p));
       
       return {
         ...prev,
@@ -141,18 +172,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   function removeSku(sku: string) {
     if (!dealerName) return; // Can't remove items without a dealer selected
+    const normalizedSku = normalizeSku(sku);
+    if (!normalizedSku) return;
     
     setCartByDealer((prev) => {
       const dealerCart = prev[dealerName] || [];
       return {
         ...prev,
-        [dealerName]: dealerCart.filter((p) => p.sku !== sku)
+        [dealerName]: dealerCart.filter((p) => normalizeSku(p.sku) !== normalizedSku)
       };
     });
   }
   
   function isInCart(sku: string) {
-      return cart.some(item => item.sku === sku);
+      const normalizedSku = normalizeSku(sku);
+      if (!normalizedSku) return false;
+      return cart.some(item => normalizeSku(item.sku) === normalizedSku);
   }
 
   function toggleSku(sku: string, initialQty: number = 1) {

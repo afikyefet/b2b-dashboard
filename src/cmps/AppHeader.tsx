@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { ChevronDown, ShoppingCart } from 'lucide-react';
+import { ChevronDown, ShoppingCart, Trash2 } from 'lucide-react';
 import type { AppDispatch } from '../store';
 import { selectDealerName, setDealerName, resetFilters } from '../store/slices/filterSlice';
 import { useDrawer } from '../contexts/DrawerContext';
@@ -26,7 +26,7 @@ function AppHeader() {
     const location = useLocation();
     const dispatch = useDispatch<AppDispatch>();
     const dealerName = useSelector(selectDealerName);
-    const { cart } = useCart();
+    const { cart, removeSku } = useCart();
     const { isOpen: isDrawerOpen, toggleDrawer } = useDrawer();
     const { email, authDisabled, signOut } = useAuth();
     const [dealerOptions, setDealerOptions] = useState<string[]>([]);
@@ -74,6 +74,13 @@ function AppHeader() {
     const handleSignOut = () => {
         signOut();
         navigate('/login');
+    };
+
+    const handleClearCart = () => {
+        if (cart.length === 0) return;
+        const confirmed = confirm(`Clear ${cart.length} selected item${cart.length === 1 ? '' : 's'} from cart?`);
+        if (!confirmed) return;
+        cart.forEach(item => removeSku(item.sku));
     };
 
     return (
@@ -140,19 +147,32 @@ function AppHeader() {
 
                 <div className="flex items-center gap-2 max-md:gap-1.5">
                     {!isCartPage && (
-                        <Button
-                            className="relative h-11 w-11 rounded-md p-0 max-md:min-h-[44px] max-md:min-w-[44px]"
-                            onClick={toggleDrawer}
-                            type="button"
-                            title={isDrawerOpen ? 'Close cart drawer' : 'Open cart drawer'}
-                        >
-                            <ShoppingCart className="h-5 w-5 max-md:h-4 max-md:w-4" />
-                            {!isDrawerOpen && cart.length > 0 && (
-                                <span className="absolute -right-2 -top-2 rounded-full bg-background px-2 py-0.5 text-xs font-semibold text-primary shadow max-md:-right-1 max-md:-top-1 max-md:px-1.5 max-md:text-[10px]">
-                                    {cart.length}
-                                </span>
-                            )}
-                        </Button>
+                        <>
+                            <Button
+                                variant="outline"
+                                className="h-11 max-md:min-h-[44px] max-md:px-3 max-md:text-sm"
+                                onClick={handleClearCart}
+                                type="button"
+                                disabled={cart.length === 0}
+                                title="Clear cart"
+                            >
+                                <Trash2 className="h-4 w-4" />
+                                <span className="ml-1 max-md:hidden">Clear</span>
+                            </Button>
+                            <Button
+                                className="relative h-11 w-11 rounded-md p-0 max-md:min-h-[44px] max-md:min-w-[44px]"
+                                onClick={toggleDrawer}
+                                type="button"
+                                title={isDrawerOpen ? 'Close cart drawer' : 'Open cart drawer'}
+                            >
+                                <ShoppingCart className="h-5 w-5 max-md:h-4 max-md:w-4" />
+                                {!isDrawerOpen && cart.length > 0 && (
+                                    <span className="absolute -right-2 -top-2 rounded-full bg-background px-2 py-0.5 text-xs font-semibold text-primary shadow max-md:-right-1 max-md:-top-1 max-md:px-1.5 max-md:text-[10px]">
+                                        {cart.length}
+                                    </span>
+                                )}
+                            </Button>
+                        </>
                     )}
 
                     <Button

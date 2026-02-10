@@ -196,14 +196,10 @@ function DashboardTable() {
     const hasActiveFilters = () => {
         if (smartSelectDays !== 30) return true;
         if (filters.generalSearch && filters.generalSearch.trim()) return true;
-        // Dealer name is always set (required), so ignore it for "Reset All"
-        const { dealerName: _dealerName, ...otherFilters } = filters;
-        return Object.values(otherFilters).some(value => {
-            if (Array.isArray(value)) {
-                return value.length > 0;
-            }
-            return !!value;
-        });
+        if (filters.recentOrdersCount) return true;
+        if (filters.openOrdersCount) return true;
+        if (filters.outOfStockOnly === false) return true;
+        return false;
     };
     const hasActiveSort = sortConfig.field && sortConfig.direction;
 
@@ -214,8 +210,6 @@ function DashboardTable() {
     return (
         <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4 px-4 pb-10 pt-6">
             <DashboardFilter
-                filterOptions={filterOptions}
-                originalData={originalData}
                 filteredData={filteredData}
                 onResetAll={handleResetAll}
                 hasActiveFilters={!!(hasActiveFilters() || hasActiveSort)}

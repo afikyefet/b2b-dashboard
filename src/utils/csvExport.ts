@@ -107,3 +107,23 @@ export function exportOrderCsv(
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
+export function exportSkuQtyCsv(
+  items: Array<{ sku: string; qty: number; variant_id?: number; title?: string }>,
+  skuDetails: Record<string, HydratedSkuItem>,
+  dealerLabel?: string,
+) {
+  const orderLikeItems: OrderItem[] = items.map(item => {
+    const details = skuDetails[item.sku];
+    return {
+      sku: item.sku,
+      qty: item.qty,
+      variant_id: item.variant_id ?? 0,
+      title: item.title || details?.product_title || item.sku,
+      price: '0',
+      qty_recommended: item.qty,
+    };
+  });
+
+  exportOrderCsv(orderLikeItems, skuDetails, dealerLabel);
+}

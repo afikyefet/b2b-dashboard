@@ -122,82 +122,24 @@ function filterDashboardData(data: DashboardDataResponse, filters: FilterConfig)
             }
         }
 
-        // Product Category filter (multi-select - exact match)
-        if (filters.productCategory && filters.productCategory.length > 0) {
-            const category = String(row.product_category_name || '').trim();
-            if (!filters.productCategory.includes(category)) {
-                return false;
+        // Count of last orders available in row (based on slots 1/2)
+        if (filters.recentOrdersCount) {
+            const count = getRecentOrdersCount(row);
+            if (filters.recentOrdersCount === '1_or_2') {
+                if (count !== 1 && count !== 2) {
+                    return false;
+                }
+            } else {
+                if (count !== Number(filters.recentOrdersCount)) {
+                    return false;
+                }
             }
         }
 
-        // Product Name filter (multi-select - exact match)
-        if (filters.productName && filters.productName.length > 0) {
-            const productName = String(row.product_name || '').trim();
-            if (!filters.productName.includes(productName)) {
-                return false;
-            }
-        }
-
-        // Variant SKU filter (multi-select - exact match)
-        if (filters.variantSku && filters.variantSku.length > 0) {
-            const sku = String(row.variant_sku_real || '').trim();
-            if (!filters.variantSku.includes(sku)) {
-                return false;
-            }
-        }
-
-        // Variant Size filter (multi-select - exact match)
-        if (filters.variantSize && filters.variantSize.length > 0) {
-            const size = String(row.variant_size || '').trim();
-            if (!filters.variantSize.includes(size)) {
-                return false;
-            }
-        }
-
-        // Variant Color filter (multi-select - exact match)
-        if (filters.variantColor && filters.variantColor.length > 0) {
-            const color = String(row.variant_color || '').trim();
-            if (!filters.variantColor.includes(color)) {
-                return false;
-            }
-        }
-
-        // Product Sell Type filter (multi-select - exact match)
-        if (filters.productSellType && filters.productSellType.length > 0) {
-            const sellType = String(row.product_sell_type || '').trim();
-            if (!filters.productSellType.includes(sellType)) {
-                return false;
-            }
-        }
-
-        // When to Sell range filter
-        if (filters.whenToSellRange) {
-            const value = parseNumericValue(row.when_to_sell);
-            if (!isInRange(value, filters.whenToSellRange)) {
-                return false;
-            }
-        }
-
-        // How Much to Sell Now range filter
-        if (filters.howMuchToSellNowRange) {
-            const value = parseNumericValue(row.how_much_to_sell_now);
-            if (!isInRange(value, filters.howMuchToSellNowRange)) {
-                return false;
-            }
-        }
-
-        // Sell Rate range filter
-        if (filters.sellRateRange) {
-            const value = parseNumericValue(row.sell_rate);
-            if (!isInRange(value, filters.sellRateRange)) {
-                return false;
-            }
-        }
-
-        // Last Stock range filter
-        if (filters.lastStockRange) {
-            const value = parseNumericValue(row.last_stock);
-            if (!isInRange(value, filters.lastStockRange)) {
+        // Count of open/orange orders in slots 1/2
+        if (filters.openOrdersCount) {
+            const openCount = getOpenRecentOrdersCount(row);
+            if (openCount !== Number(filters.openOrdersCount)) {
                 return false;
             }
         }
@@ -206,30 +148,56 @@ function filterDashboardData(data: DashboardDataResponse, filters: FilterConfig)
     });
 }
 
+const CLOSED_SALE_STATUSES = new Set([
+    'DELIVERED',
+    'FULFILLED',
+    'CLOSED',
+    'COMPLETE',
+    'COMPLETED',
+    'CANCELLED',
+    'CANCELED',
+]);
+
+function hasRecentOrderInSlot(row: DashboardDataRow, slot: 1 | 2): boolean {
+    const date = String(row[`${slot}_last_sale_created_at`] || '').trim();
+    if (date) return true;
+    const orderNo = String(row[`${slot}_last_sale_order_no`] || '').trim();
+    if (orderNo) return true;
+    const status = String(row[`${slot}_last_status`] || '').trim();
+    return !!status;
+}
+
+function getRecentOrdersCount(row: DashboardDataRow): number {
+    let count = 0;
+    if (hasRecentOrderInSlot(row, 1)) count += 1;
+    if (hasRecentOrderInSlot(row, 2)) count += 1;
+    return count;
+}
+
+function isOpenSaleStatus(status: string): boolean {
+    const normalized = status.trim().toUpperCase();
+    if (!normalized) return false;
+    return !CLOSED_SALE_STATUSES.has(normalized);
+}
+
+function getOpenRecentOrdersCount(row: DashboardDataRow): number {
+    let openCount = 0;
+    ([1, 2] as const).forEach((slot) => {
+        if (!hasRecentOrderInSlot(row, slot)) return;
+        const status = String(row[`${slot}_last_status`] || '');
+        if (isOpenSaleStatus(status)) {
+            openCount += 1;
+        }
+    });
+    return openCount;
+}
+
 // Helper to parse string numbers to numbers for sorting
 function parseNumericValue(value: unknown): number | null {
     if (value === null || value === undefined) return null;
     if (typeof value === 'number') return value;
     const num = parseFloat(String(value));
     return isNaN(num) ? null : num;
-}
-
-// Helper to check if a value is within a range filter
-function isInRange(value: number | null, range: { min: number | null; max: number | null }): boolean {
-    if (value === null) return false; // Exclude null values from range filters
-
-    const { min, max } = range;
-
-    // If both min and max are null, no filter applied
-    if (min === null && max === null) return true;
-
-    // Check min bound
-    if (min !== null && value < min) return false;
-
-    // Check max bound
-    if (max !== null && value > max) return false;
-
-    return true;
 }
 
 // Helper to calculate range bounds from data

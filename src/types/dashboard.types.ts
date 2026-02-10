@@ -29,12 +29,13 @@ export interface FilterConfig {
   variantSku?: string[];
   variantSize?: string[];
   variantColor?: string[];
-  productSellType?: string[];
   outOfStockOnly?: boolean;
   whenToSellRange?: RangeFilter;
   howMuchToSellNowRange?: RangeFilter;
   sellRateRange?: RangeFilter;
   lastStockRange?: RangeFilter;
+  recentOrdersCount?: '0' | '1' | '2' | '1_or_2';
+  openOrdersCount?: '0' | '1' | '2';
 }
 
 // Dropdown Options
@@ -106,6 +107,11 @@ export interface DashboardDataRow {
   order_count_year?: string | number;
   binary_code_k?: string;
   '1_last_sale_created_at'?: string;
+  '1_last_status'?: string;
+  '1_last_sale_order_no'?: string;
+  '2_last_sale_created_at'?: string;
+  '2_last_status'?: string;
+  '2_last_sale_order_no'?: string;
   '1_last_days_from_last_sale_created_at'?: string | number;
   [key: string]: unknown; // Allow for additional dynamic fields
 }

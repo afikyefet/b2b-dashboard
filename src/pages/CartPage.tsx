@@ -9,6 +9,7 @@ import { CreateOrderModal } from '../cmps/CreateOrderModal';
 import { selectDealerName } from '../store/slices/filterSlice';
 import { resolveStoreForDealer } from '../utils/storeRouting';
 import { getNoOrderNoteBySku } from '../utils/cartOrderNotes';
+import { exportSkuQtyCsv } from '../utils/csvExport';
 import { cn } from '../lib/utils';
 import { Badge } from '../components/ui/badge';
 import { getDashboardData } from '../services/dashboard.service';
@@ -625,6 +626,10 @@ export default function CartPage() {
         return items;
     }, [cart, hydrated]);
 
+    const handleExportCsv = () => {
+        exportSkuQtyCsv(sortedCart, hydrated, dealerName || undefined);
+    };
+
     return (
         <div className="mx-auto w-full max-w-[1200px] space-y-6 px-4 pb-12 pt-6">
             <header className="flex flex-wrap items-center justify-between gap-4">
@@ -654,6 +659,18 @@ export default function CartPage() {
                         </Card>
                     ) : (
                         <Card className="overflow-hidden">
+                            <CardHeader className="flex flex-row items-center justify-between border-b">
+                                <CardTitle className="text-base">Selected Items</CardTitle>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleExportCsv}
+                                    disabled={sortedCart.length === 0}
+                                >
+                                    Export CSV
+                                </Button>
+                            </CardHeader>
                             <CardContent className="p-0">
                                 <Table>
                                     <TableHeader>
