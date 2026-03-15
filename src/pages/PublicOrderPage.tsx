@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties }
 import { useParams } from 'react-router-dom';
 import { hydrateBySkus, type HydratedSkuItem } from '../api/catalogApi';
 import { type Order, type OrderItem } from '../api/orders';
-import { getPublicCatalog, getPublicOrder, patchPublicOrder } from '../api/publicOrders';
+import { createCheckout, getPublicCatalog, getPublicOrder, patchPublicOrder } from '../api/publicOrders';
 import { AddProductModal } from '../cmps/AddProductModal';
 import { OrderStatusBadge } from '../cmps/OrderStatusBadge';
 import { useAuth } from '../contexts/AuthContext';
@@ -543,26 +543,29 @@ export default function PublicOrderPage() {
         clearTimeout(autoSaveTimerRef.current);
         autoSaveTimerRef.current = null;
       }
-      await saveOrder({ silent: true, source: 'auto' });
+      const saved = await saveOrder({ silent: true, source: 'auto' });
+      if (!saved) {
+        alert('Please save your changes before checking out.');
+        return;
+      }
     }
 
-    const latestCartInfo = buildCartUrl(items, skuDetails, cartDomain, { returnTo: '/cart' });
-    if (latestCartInfo.reason === 'missing-domain') {
-      alert('Missing Shopify store domain. Please configure store domains for this environment.');
-      return;
-    }
-    if (latestCartInfo.reason === 'empty') {
+    if (items.length === 0) {
       alert('Cart is empty. Add at least one item to continue.');
-      return;
-    }
-    if (latestCartInfo.missingSkus.length > 0) {
-      alert(`Missing variant IDs for: ${latestCartInfo.missingSkus.join(', ')}`);
       return;
     }
 
     setCartLoading(true);
-    window.open(latestCartInfo.url, '_blank', 'noopener,noreferrer');
-    setTimeout(() => setCartLoading(false), 300);
+    try {
+      const { checkoutUrl } = await createCheckout(token!);
+      window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
+      setOrder(prev => prev ? { ...prev, status: 'CHECKOUT_CREATED' } : prev);
+    } catch (err: unknown) {
+      const error = err as { message?: string };
+      alert(`Failed to create checkout: ${error.message || 'Unknown error'}`);
+    } finally {
+      setCartLoading(false);
+    }
   };
 
   const handleCopyCart = async () => {
@@ -816,7 +819,7 @@ export default function PublicOrderPage() {
                         disabled={cartLoading}
                         className="bg-primary text-primary-foreground hover:bg-primary/90"
                       >
-                        {cartLoading ? 'Opening Cart...' : 'Open Cart'}
+                        {cartLoading ? 'Creating Checkout...' : 'Open Checkout'}
                       </Button>
                     </div>
                   </>
